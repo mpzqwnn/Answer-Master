@@ -496,7 +496,7 @@
                 android:id="@+id/invitation_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="用户***，恭喜您获得续做任务的机会，激励不变，请截此图后，到（渠道名称）领取续做任务。"
+                android:text="用户5，恭喜您获得续做任务的机会，激励不变，请截此图后，到（乐助客）领取续做任务。"
                 android:textColor="@android:color/white"
                 android:textSize="16sp"
                 android:gravity="center"

@@ -34,6 +34,7 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.fortunequizking.api.ApiCallback;
 import com.fortunequizking.api.ApiManager;
 import com.fortunequizking.util.SharedPreferenceUtil;
 import com.fortunequizking.MyApplication;
@@ -43,10 +44,10 @@ public class TakuAdManager {
 
     // 广告位ID常量定义
     private static final String SPLASH_PLACEMENT_ID = "YOUR_SPLASH_PLACEMENT_ID";
-    private static final String BANNER_PLACEMENT_ID = "b68bab76437dbf";
-    private static final String INTERSTITIAL_PLACEMENT_ID = "b68bab861be9c9";
-    private static final String REWARD_PLACEMENT_ID = "b68bab75709b8f";
-    private static final String NATIVE_PLACEMENT_ID = "b68bab735815a1";
+    private static final String BANNER_PLACEMENT_ID = "b68d569e095b70";
+    private static final String INTERSTITIAL_PLACEMENT_ID = "b68d569ec69030";
+    private static final String REWARD_PLACEMENT_ID = "b68d569d27dc77";
+    private static final String NATIVE_PLACEMENT_ID = "b68d569aaa68d3";
 
     // 广告刷新间隔常量（毫秒）
     private static final long MIN_BANNER_REFRESH_INTERVAL = 10000; // 30秒
@@ -1009,6 +1010,8 @@ public class TakuAdManager {
                                 // 广告加载成功后，确保将广告视图添加到容器中
                                 if (activity != null && !activity.isFinishing() && !activity.isDestroyed() && container != null) {
                                     try {
+                                        // 先清空容器，避免旧广告残留
+                                        container.removeAllViews();
                                         renderNativeAdToContainer(activity, container);
                                     } catch (Exception e) {
                                         Log.e(TAG, "添加原生广告视图到容器异常: " + e.getMessage(), e);
@@ -1024,19 +1027,20 @@ public class TakuAdManager {
 
             // 确保广告容器不为空
             if (container != null) {
-                // 先清空容器，避免旧广告残留
-                container.removeAllViews();
-                
                 // 检查广告是否就绪，如果就绪直接显示
                 if (isAdReady(NATIVE_PLACEMENT_ID)) {
                     try {
+                        // 先清空容器，避免旧广告残留
+                        container.removeAllViews();
                         renderNativeAdToContainer(activity, container);
                     } catch (Exception e) {
                         Log.e(TAG, "直接显示原生广告异常: " + e.getMessage(), e);
                     }
+                } else if (!isNativeLoading) {
+                    // 广告未就绪且不在加载中，进行加载，加载成功后会通过监听器自动显示
+                    loadNativeAdWithFrequencyControl(activity, container);
                 } else {
-                    // 广告未就绪，进行加载
-                    loadNativeAdWithFrequencyControl(activity);
+                    Log.d(TAG, "原生广告正在加载中，等待加载完成");
                 }
             } else {
                 Log.e(TAG, "原生广告容器为空，无法显示广告");
@@ -1670,7 +1674,7 @@ public class TakuAdManager {
     /**
      * 带频率控制的原生广告加载方法
      */
-    public void loadNativeAdWithFrequencyControl(Activity activity) {
+    public void loadNativeAdWithFrequencyControl(Activity activity, ViewGroup container) {
         if (isNativeLoading) {
             Log.d(TAG, "原生广告正在加载中，避免重复请求");
             return;
@@ -1755,7 +1759,7 @@ public class TakuAdManager {
 
         nativeRetryRunnable = () -> {
             if (activity != null && !activity.isFinishing() && !activity.isDestroyed() && nativeAd != null) {
-                loadNativeAdWithFrequencyControl(activity);
+                loadNativeAdWithFrequencyControl(activity, container);
             }
         };
 
@@ -2006,7 +2010,7 @@ public class TakuAdManager {
             }
             
             // 发送eCPM数据
-            sendAdEcpmData(adType, placementId, ecpmValue, networkName);
+            sendAdEcpmData(adType, placementId, ecpmValue, networkName, atAdInfo);
         } catch (Exception e) {
             Log.e(TAG, "处理广告eCPM数据异常: " + e.getMessage(), e);
         }
@@ -2017,6 +2021,13 @@ public class TakuAdManager {
      */
     private void handleAdEcpm(String placementId) {
         handleAdEcpm(placementId, null);
+    }
+    
+    /**
+     * 兼容旧的调用方式（不包含atAdInfo）
+     */
+    private void sendAdEcpmData(String adType, String positionId, String ecpmValue, String networkName) {
+        sendAdEcpmData(adType, positionId, ecpmValue, networkName, null);
     }
 
     /**
@@ -2214,7 +2225,7 @@ public class TakuAdManager {
     /**
      * 发送广告eCPM数据
      */
-    private void sendAdEcpmData(String adType, String positionId, String ecpmValue, String networkName) {
+    private void sendAdEcpmData(String adType, String positionId, String ecpmValue, String networkName, ATAdInfo atAdInfo) {
         try {
             // 获取用户ID
             String userId = SharedPreferenceUtil.getString(MyApplication.getInstance(), "user_id", "");
@@ -2235,10 +2246,37 @@ public class TakuAdManager {
             if (!networkName.isEmpty()) {
                 params.put("ad_network_name", networkName);
             }
+            
+            // 如果atAdInfo不为空，则添加at_ad_info字段
+            if (atAdInfo != null) {
+                params.put("at_ad_info", atAdInfo.toString());
+            }
 
-            // 发送eCPM数据
-            ApiManager.getInstance().uploadAdEcpm(params);
-            Log.d(TAG, "发送广告eCPM数据成功: adType=" + adType + ", positionId=" + positionId + ", ecpm=" + ecpmValue + ", network_name=" + params.get("ad_network_name"));
+            // 发送eCPM数据并处理返回的广告数量
+            ApiManager.getInstance().uploadAdEcpm(params, new ApiCallback<Object>() {
+                @Override
+                public void onSuccess(Object data) {
+                    if (data instanceof Map && ((Map<?, ?>) data).containsKey("ad_count")) {
+                        try {
+                            Map<String, Object> result = (Map<String, Object>) data;
+                            int adCount = Integer.parseInt(result.get("ad_count").toString());
+                            // 保存广告数量到本地存储
+                            String key = "ad_count_" + adType;
+                            SharedPreferenceUtil.putInt(MyApplication.getInstance(), key, adCount);
+                            Log.d(TAG, "发送广告eCPM数据成功，并保存广告数量: " + key + "=" + adCount + ", adType=" + adType + ", positionId=" + positionId + ", ecpm=" + ecpmValue);
+                        } catch (Exception e) {
+                            Log.e(TAG, "解析广告数量失败: " + e.getMessage());
+                        }
+                    } else {
+                        Log.d(TAG, "发送广告eCPM数据成功: adType=" + adType + ", positionId=" + positionId + ", ecpm=" + ecpmValue);
+                    }
+                }
+
+                @Override
+                public void onFailure(String errorMessage) {
+                    Log.e(TAG, "发送广告eCPM数据失败: " + errorMessage);
+                }
+            });
         } catch (Exception e) {
             Log.e(TAG, "发送广告eCPM数据异常: " + e.getMessage(), e);
         }

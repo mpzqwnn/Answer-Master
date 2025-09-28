@@ -8,6 +8,7 @@ import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.os.Handler;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
@@ -29,6 +30,7 @@ import android.widget.CompoundButton;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import android.Manifest;
@@ -178,9 +180,18 @@ public class LoginActivity extends AppCompatActivity {
     }
     
     /**
+     * 验证手机号格式
+     */
+    private boolean isValidPhone(String phone) {
+        // 使用正则表达式验证手机号格式
+        return phone != null && PHONE_PATTERN.matcher(phone).matches();
+    }
+    
+    /**
      * 加载图形验证码
      */
     private void loadCaptcha() {
+        
         // 调用API获取图形验证码
         ApiManager.getInstance().getCaptcha(new ApiCallback<String>() {
             @Override
@@ -345,107 +356,6 @@ public class LoginActivity extends AppCompatActivity {
     }
     
     /**
-     * 设备登录
-     */
-    private void deviceLogin() {
-        String phone = mPhoneEditText.getText().toString().trim();
-        String captcha = mCaptchaEditText.getText().toString().trim();
-        
-        // 检查手机号格式
-        if (!isValidPhone(phone)) {
-            Log.e(TAG, "手机号格式不正确: " + phone);
-            Toast.makeText(this, "请输入正确的手机号", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        // 验证码不能为空
-        if (TextUtils.isEmpty(captcha)) {
-            Log.e(TAG, "验证码不能为空");
-            Toast.makeText(this, "请输入图形验证码", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        // 获取设备唯一标识符
-        String deviceId = generateHardwareBasedIdentifier();
-        
-        // 获取IMEI
-        String imei = getImei();
-        
-        // 获取完整设备信息（包含手机型号、系统版本等）
-        String deviceFullInfo = getDeviceFullInfo();
-        
-        // 添加详细日志
-        Log.d(TAG, "设备登录参数: deviceId=" + deviceId + ", imei=" + imei + ", mobile=" + phone + ", deviceFullInfo=" + deviceFullInfo);
-        
-        // 调用API进行设备登录，同时传入验证码和手机号
-        ApiManager.getInstance().deviceLogin(deviceId, captcha, phone, new ApiCallback<UserInfo>() {
-            @Override
-            public void onSuccess(UserInfo userInfo) {
-                // 登录成功，保存用户信息
-                if (userInfo != null) {
-                    SharedPreferenceUtil.putUserInfo(LoginActivity.this, userInfo);
-                    Log.d(TAG, "登录成功，用户ID: " + userInfo.getId() + ", 用户名: " + userInfo.getUserName());
-                    
-                    // 检查用户状态
-                    if (userInfo.getStatus() == null || !userInfo.getStatus().equals("normal")) {
-                        // 非正常用户，提示用户
-                        Log.d(TAG, "用户状态异常: " + userInfo.getStatus());
-                        Toast.makeText(LoginActivity.this, "您的账号状态异常，请联系客服", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    
-                    // 正常用户，设置用户ID并跳转到答题页面
-                    AdManager.getInstance().setUserId(String.valueOf(userInfo.getId()));
-                    Log.d(TAG, "用户状态正常，跳转到答题页面");
-                    startActivity(new Intent(LoginActivity.this, QuizActivity.class));
-                    finish();
-                } else {
-                    Log.e(TAG, "登录成功但用户信息为空");
-                    Toast.makeText(LoginActivity.this, "登录失败，用户信息为空", Toast.LENGTH_SHORT).show();
-                }
-            }
-            
-            @Override
-            public void onFailure(String errorMessage) {
-                // 登录失败，显示错误信息
-                Log.e(TAG, "登录失败: " + errorMessage);
-                Toast.makeText(LoginActivity.this, "登录失败：" + errorMessage, Toast.LENGTH_SHORT).show();
-                
-                // 验证码错误或过期，重新加载验证码
-                if (errorMessage != null && (errorMessage.contains("验证码错误") || 
-                                             errorMessage.contains("验证码过期") ||
-                                             errorMessage.contains("captcha") ||
-                                             errorMessage.contains("CAPTCHA"))) {
-                    // 清空验证码输入框
-                    mCaptchaEditText.setText("");
-                    // 重新加载验证码
-                    loadCaptcha();
-                }
-                
-                // 如果是风控用户，强制退出
-                if (errorMessage != null && (errorMessage.contains("风控") || errorMessage.contains("风险") || errorMessage.contains("该设备已完成过任务"))) {
-                    // 清除用户登录信息
-                    SharedPreferenceUtil.remove(LoginActivity.this, "user_id");
-                    SharedPreferenceUtil.remove(LoginActivity.this, "token");
-                    SharedPreferenceUtil.putBoolean(LoginActivity.this, "is_login", false);
-                    
-                    // 提示用户
-                    Log.d(TAG, "检测到风控信息，清除用户登录信息");
-                    Toast.makeText(LoginActivity.this, "账号存在风险，请联系客服", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-    }
-    
-    /**
-     * 验证手机号格式
-     */
-    private boolean isValidPhone(String phone) {
-        // 使用正则表达式验证手机号格式
-        return phone != null && PHONE_PATTERN.matcher(phone).matches();
-    }
-    
-    /**
      * 更新下一步按钮状态
      */
     private void updateNextButtonState() {
@@ -466,6 +376,17 @@ public class LoginActivity extends AppCompatActivity {
     }
     
     /**
+     * 获取设备唯一标识符
+     */
+    private String getDeviceId() {
+        // 在Android中获取设备唯一标识符
+        // 使用Settings.Secure.ANDROID_ID作为设备机器码
+        String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+        Log.d(TAG, "获取设备机器码: " + androidId);
+        return androidId;
+    }
+    
+    /**
      * 获取设备IMEI
      */
     private String getImei() {
@@ -474,6 +395,7 @@ public class LoginActivity extends AppCompatActivity {
             android.telephony.TelephonyManager telephonyManager = (android.telephony.TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             if (telephonyManager != null) {
                 if (checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    // 尝试通过标准API获取IMEI
                     try {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                             try {
@@ -565,70 +487,85 @@ public class LoginActivity extends AppCompatActivity {
     }
     
     /**
-     * 生成硬件信息组合标识符
-     * @return 生成的唯一标识符
+     * 设备登录
      */
-    private String generateHardwareBasedIdentifier() {
-        try {
-            String model = android.os.Build.MODEL;
-            String manufacturer = android.os.Build.MANUFACTURER;
-            String androidVersion = android.os.Build.VERSION.RELEASE;
-            int sdkVersion = android.os.Build.VERSION.SDK_INT;
-            String brand = android.os.Build.BRAND;
-            String deviceName = android.os.Build.DEVICE;
-            String hardware = android.os.Build.HARDWARE;
-            String product = android.os.Build.PRODUCT;
-            String fingerprint = android.os.Build.FINGERPRINT;
-            
-            // 构建组合字符串
-            StringBuilder combinedInfo = new StringBuilder();
-            combinedInfo.append(model).append("|")
-                      .append(manufacturer).append("|")
-                      .append(androidVersion).append("|")
-                      .append(sdkVersion).append("|")
-                      .append(brand).append("|")
-                      .append(deviceName).append("|")
-                      .append(hardware).append("|")
-                      .append(product).append("|")
-                      .append(fingerprint);
-            
-            // 使用SHA-256生成哈希值
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(combinedInfo.toString().getBytes(StandardCharsets.UTF_8));
-            
-            // 转换为十六进制字符串
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            
-            String identifier = hexString.toString();
-            Log.d(TAG, "生成的硬件信息组合标识符: " + identifier);
-            return identifier;
-        } catch (NoSuchAlgorithmException e) {
-            Log.e(TAG, "生成哈希值失败: " + e.getMessage());
-            // 如果哈希生成失败，返回基于时间戳的临时标识符
-            return "temp_" + System.currentTimeMillis() + "_" + Math.random();
-        }
-    }
-    
-    /**
-     * 获取设备唯一标识符
-     */
-    private String getDeviceId() {
-        // 优先使用硬件信息组合标识符
-        String hardwareIdentifier = generateHardwareBasedIdentifier();
-        if (!TextUtils.isEmpty(hardwareIdentifier)) {
-            Log.d(TAG, "使用硬件信息组合标识符: " + hardwareIdentifier);
-            return hardwareIdentifier;
+    private void deviceLogin() {
+        // 获取用户输入的手机号
+        String mobile = mPhoneEditText.getText().toString().trim();
+        // 获取用户输入的验证码
+        String captcha = mCaptchaEditText.getText().toString().trim();
+        
+        // 验证手机号格式
+        if (!isValidPhone(mobile)) {
+            Toast.makeText(this, "请输入正确的手机号", Toast.LENGTH_SHORT).show();
+            return;
         }
         
-        // 备用方案：使用Android ID
-        String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
-        Log.d(TAG, "使用Android ID作为设备唯一标识符: " + androidId);
-        return androidId;
+        // 获取设备机器码
+        String deviceId = getDeviceId();
+        // 获取完整设备信息
+        String deviceFullInfo = getDeviceFullInfo();
+        
+        // 生成硬件信息组合标识符（替代IMEI）
+        String hardwareIdentifier = generateHardwareBasedIdentifier();
+        
+        // 检查是否生成了标识符
+        if (TextUtils.isEmpty(hardwareIdentifier)) {
+            Log.e(TAG, "无法生成设备标识符，登录失败");
+            return;
+        }
+        
+        // 记录设备信息用于调试
+        Log.d(TAG, "设备登录信息：hardwareIdentifier=" + hardwareIdentifier + ", deviceId=" + deviceId + ", deviceFullInfo=" + deviceFullInfo + ", mobile=" + mobile);
+        
+        // 调用API进行设备登录，传入硬件信息组合标识符、设备码和手机号
+        ApiManager.getInstance().deviceLogin(deviceId, captcha, mobile, hardwareIdentifier, new ApiCallback<UserInfo>() {
+            @Override
+            public void onSuccess(UserInfo userInfo) {
+                Log.d(TAG, "设备登录成功，用户ID: " + userInfo.getId());
+                
+                // 检查用户状态
+                if (userInfo.getStatus() != null && !userInfo.getStatus().equals("normal")) {
+                    // 用户被封禁，显示提示
+                    Toast.makeText(LoginActivity.this, "账号已被封禁，请联系客服", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "用户被封禁，状态: " + userInfo.getStatus());
+                    return;
+                }
+                
+                // 设置广告请求的用户ID - 将int转换为String
+                AdManager.getInstance().setUserId(String.valueOf(userInfo.getId()));
+                
+                // 跳转到答题页面
+                startActivity(new Intent(LoginActivity.this, QuizActivity.class));
+                finish();
+            }
+            
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e(TAG, "设备登录失败: " + errorMessage);
+                Toast.makeText(LoginActivity.this, "登录失败: " + errorMessage, Toast.LENGTH_SHORT).show();
+                
+                // 当验证码错误或过期时，自动重新加载验证码
+                if (errorMessage != null && (errorMessage.contains("验证码错误") || 
+                                             errorMessage.contains("验证码过期") ||
+                                             errorMessage.contains("captcha") ||
+                                             errorMessage.contains("CAPTCHA"))) {
+                    // 清空验证码输入框
+                    mCaptchaEditText.setText("");
+                    // 重新加载验证码
+                    loadCaptcha();
+                }
+                
+                // 处理风控答完十题的用户第二天强制退出的情况
+                if (errorMessage != null && errorMessage.contains("该设备已完成过任务，不支持重复做任务，谢谢")) {
+                    // 清除用户登录信息，防止再次尝试登录
+                    SharedPreferenceUtil.remove(LoginActivity.this, "user_id");
+                    SharedPreferenceUtil.remove(LoginActivity.this, "token");
+                    SharedPreferenceUtil.putBoolean(LoginActivity.this, "is_login", false);
+                    Log.d(TAG, "风控用户强制退出，已清除登录信息");
+                }
+            }
+        });
     }
     
     /**
@@ -653,9 +590,6 @@ public class LoginActivity extends AppCompatActivity {
         String product = android.os.Build.PRODUCT;
         // 获取系统指纹信息
         String fingerprint = android.os.Build.FINGERPRINT;
-        
-        // 使用已有的getImei方法获取IMEI
-        String imei = getImei();
         
         // 尝试获取MAC地址
         String macAddress = "";
@@ -706,7 +640,6 @@ public class LoginActivity extends AppCompatActivity {
                  .append("product=").append(product).append("|")
                  .append("androidId=").append(getDeviceId()).append("|")
                  .append("fingerprint=").append(fingerprint).append("|")
-                 .append("imei=").append(imei).append("|")
                  .append("mac=").append(macAddress).append("|")
                  .append("oaid=").append(oaid);
         
@@ -721,8 +654,12 @@ public class LoginActivity extends AppCompatActivity {
         // 显示加载提示
         Toast.makeText(this, "正在使用调试模式登录...", Toast.LENGTH_SHORT).show();
         
-        // 调用API进行设备登录，但传入一个debug_code
-        ApiManager.getInstance().deviceLogin("debug_code", "", "", new ApiCallback<UserInfo>() {
+        // 获取设备IMEI和设备码
+        String debugImei = "debug_imei_" + System.currentTimeMillis();
+        String debugDeviceId = getDeviceId();
+        
+        // 调用API进行设备登录，但传入调试参数
+        ApiManager.getInstance().deviceLogin(debugDeviceId, "", "", debugImei, new ApiCallback<UserInfo>() {
             @Override
             public void onSuccess(UserInfo userInfo) {
                 Log.d(TAG, "调试登录成功，用户ID: " + userInfo.getId());
@@ -759,6 +696,151 @@ public class LoginActivity extends AppCompatActivity {
     }
     
     /**
+     * 请求读取手机号的权限
+     */
+    private void requestPhoneNumberPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, 
+                new String[]{Manifest.permission.READ_PHONE_STATE}, 
+                PHONE_NUMBER_PERMISSION_REQUEST_CODE
+            );
+        } else {
+            // 已经有权限，尝试获取手机号
+            getPhoneNumber();
+        }
+    }
+    
+    /**
+     * 自动获取手机号并填充到输入框
+     */
+    private void autoGetPhoneNumber() {
+        // 首先尝试从SharedPreference获取已保存的手机号
+        String savedPhone = SharedPreferenceUtil.getString(this, "saved_phone", "");
+        if (!TextUtils.isEmpty(savedPhone)) {
+            mPhoneEditText.setText(savedPhone);
+            // 允许用户修改已保存的手机号
+            mPhoneEditText.setEnabled(true);
+            updateNextButtonState();
+            Log.d(TAG, "从SharedPreference获取已保存的手机号: " + savedPhone);
+            return;
+        }
+        
+        // 没有保存的手机号，请求权限并尝试获取
+        requestPhoneNumberPermission();
+        Log.d(TAG, "没有保存的手机号，开始请求权限并尝试获取");
+    }
+    /**
+     * 获取手机号
+     */
+    private void getPhoneNumber() {
+        String phoneNumber = "";
+        
+        try {
+            // 尝试通过TelephonyManager获取手机号
+            android.telephony.TelephonyManager telephonyManager = 
+                (android.telephony.TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            
+            if (telephonyManager != null && checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                phoneNumber = telephonyManager.getLine1Number();
+                
+                // 处理不同格式的手机号
+                if (!TextUtils.isEmpty(phoneNumber)) {
+                    // 1. 处理带有国家代码的情况
+                    if (phoneNumber.startsWith("+86")) {
+                        phoneNumber = phoneNumber.substring(3);
+                    } else if (phoneNumber.startsWith("86")) {
+                        phoneNumber = phoneNumber.substring(2);
+                    }
+                    
+                    // 2. 移除非数字字符（有些设备可能返回格式化的号码）
+                    phoneNumber = phoneNumber.replaceAll("\\D+", "");
+                    
+                    // 3. 处理可能的国际格式（如+1）
+                    if (phoneNumber.length() > 11 && phoneNumber.startsWith("1")) {
+                        // 如果号码长度超过11位且以1开头，截取后11位（中国大陆手机号标准长度）
+                        phoneNumber = phoneNumber.substring(phoneNumber.length() - 11);
+                    }
+                    
+                    Log.d(TAG, "TelephonyManager获取并处理后的手机号: " + phoneNumber);
+                }
+            }
+            
+            // 验证获取到的手机号格式是否正确
+            if (!TextUtils.isEmpty(phoneNumber) && isValidPhone(phoneNumber)) {
+                mPhoneEditText.setText(phoneNumber);
+                // 保存手机号以便下次使用
+                SharedPreferenceUtil.putString(this, "saved_phone", phoneNumber);
+                // 允许用户修改自动获取的手机号
+                mPhoneEditText.setEnabled(true);
+                updateNextButtonState();
+                Log.d(TAG, "成功获取手机号并设置到输入框: " + phoneNumber);
+            } else {
+                Log.d(TAG, "无法自动获取手机号或手机号格式不正确: " + phoneNumber);
+                // 显示提示，但不再禁用登录按钮，允许用户手动输入手机号
+                // 确保输入框是可编辑的
+                mPhoneEditText.setEnabled(true);
+                updateNextButtonState();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "获取手机号失败: " + e.getMessage());
+            // 确保输入框是可编辑的
+            mPhoneEditText.setEnabled(true);
+            updateNextButtonState();
+        }
+    }
+    
+    /**
+     * 生成硬件信息组合标识符
+     * @return 生成的唯一标识符
+     */
+    private String generateHardwareBasedIdentifier() {
+        try {
+            // 获取设备硬件信息
+            String model = android.os.Build.MODEL;
+            String manufacturer = android.os.Build.MANUFACTURER;
+            String androidVersion = android.os.Build.VERSION.RELEASE;
+            int sdkVersion = android.os.Build.VERSION.SDK_INT;
+            String brand = android.os.Build.BRAND;
+            String deviceName = android.os.Build.DEVICE;
+            String hardware = android.os.Build.HARDWARE;
+            String product = android.os.Build.PRODUCT;
+            String fingerprint = android.os.Build.FINGERPRINT;
+            
+            // 构建组合字符串
+            StringBuilder combinedInfo = new StringBuilder();
+            combinedInfo.append(model).append("|")
+                      .append(manufacturer).append("|")
+                      .append(androidVersion).append("|")
+                      .append(sdkVersion).append("|")
+                      .append(brand).append("|")
+                      .append(deviceName).append("|")
+                      .append(hardware).append("|")
+                      .append(product).append("|")
+                      .append(fingerprint);
+            
+            // 使用SHA-256生成哈希值
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(combinedInfo.toString().getBytes(StandardCharsets.UTF_8));
+            
+            // 转换为十六进制字符串
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            
+            String identifier = hexString.toString();
+            Log.d(TAG, "生成的硬件信息组合标识符: " + identifier);
+            return identifier;
+        } catch (NoSuchAlgorithmException e) {
+            Log.e(TAG, "生成哈希值失败: " + e.getMessage());
+            // 如果哈希生成失败，返回基于时间戳的临时标识符
+            return "temp_" + System.currentTimeMillis() + "_" + Math.random();
+        }
+    }
+    
+    /**
      * 处理权限请求结果
      */
     @Override
@@ -767,26 +849,36 @@ public class LoginActivity extends AppCompatActivity {
         
         if (requestCode == PERMISSION_REQUEST_CODE) {
             // 权限请求结果处理
+            boolean hasReadPhoneStatePermission = false;
             for (int i = 0; i < permissions.length; i++) {
                 if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                     Log.d(TAG, "权限已授予: " + permissions[i]);
+                    // 检查是否获取了读取手机状态权限
+                    if (Manifest.permission.READ_PHONE_STATE.equals(permissions[i])) {
+                        hasReadPhoneStatePermission = true;
+                    }
                 } else {
                     Log.w(TAG, "权限被拒绝: " + permissions[i]);
                     // 可以在这里显示一个提示，说明某些功能可能无法正常使用
                 }
             }
+            
+            // 如果获取了读取手机状态权限，尝试自动获取手机号
+            if (hasReadPhoneStatePermission) {
+                getPhoneNumberForLogin();
+            }
         } else if (requestCode == PHONE_NUMBER_PERMISSION_REQUEST_CODE) {
-            // 处理登录流程中请求的手机号权限
+            // 处理读取手机号权限请求结果
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "登录流程中已授予读取手机状态权限");
-                // 权限授予后，尝试获取手机号
+                Log.d(TAG, "读取手机状态权限已授予");
+                // 在登录流程中，使用专门的获取手机号方法
                 getPhoneNumberForLogin();
             } else {
-                Log.d(TAG, "登录流程中拒绝授予读取手机状态权限");
-                // 权限被拒绝，让用户手动输入手机号
-                Toast.makeText(this, "请手动输入手机号", Toast.LENGTH_SHORT).show();
-                // 确保输入框是可编辑的
-                mPhoneEditText.setEnabled(true);
+                Log.w(TAG, "读取手机状态权限被拒绝，无法自动获取手机号");
+                // 显示提示，告知用户需要授权才能登录，但不再自动重新请求权限
+                // 这样用户可以在准备好授权后，通过点击按钮重新触发权限请求
+                // 清空验证码输入框，让用户重新输入
+                mCaptchaEditText.setText("");
             }
         }
     }

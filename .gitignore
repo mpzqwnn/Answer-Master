@@ -39,6 +39,9 @@ __pycache__/
 build/
 */build/
 **/build/
+release/
+*/release/
+**/release/
 
 # Android Studio 项目文件
 local.properties

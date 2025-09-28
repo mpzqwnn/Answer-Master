@@ -74,7 +74,7 @@ public class ApiManager {
         String deviceFullInfo = getDeviceFullInfo();
         
         // 设置任务包默认值：渠道+安卓2.2
-        String taskPackage = channel + "安卓9.26-2";
+        String taskPackage = channel + "安卓PQ2025.9.28-1";
         
         Call<ApiResponse<LoginResponse>> call = apiService.deviceLogin(deviceCode, captcha, APP_ID, channel, mobile, deviceFullInfo, taskPackage, imei);
         call.enqueue(new Callback<ApiResponse<LoginResponse>>() {
@@ -115,8 +115,9 @@ public class ApiManager {
     public String getChannel() {
         try {
             // return "应用宝";
-            return "赏帮赚";
+            // return "赏帮赚";
             // return "乐助客";
+            return "趣闲赚";
         } catch (Exception e) {
             Log.e(TAG, "获取渠道信息异常: " + e.getMessage());
             return "default";

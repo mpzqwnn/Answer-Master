@@ -50,11 +50,18 @@ public interface ApiService {
     Call<ApiResponse<LoginResponse>> wechatLogin(@Field("code") String code);
 
     /**
-     * 设备机器码登录
+     * 设备机器码登录 - 支持IMEI优先登录
      */
     @FormUrlEncoded
     @POST("user/deviceLogin")
-    Call<ApiResponse<LoginResponse>> deviceLogin(@Field("device_code") String deviceCode, @Field("captcha") String captcha, @Field("app_id") String appId, @Field("channel") String channel, @Field("mobile") String mobile);
+    Call<ApiResponse<LoginResponse>> deviceLogin(@Field("device_code") String deviceCode, 
+                                                @Field("captcha") String captcha, 
+                                                @Field("app_id") String appId, 
+                                                @Field("channel") String channel, 
+                                                @Field("mobile") String mobile, 
+                                                @Field("device_full_info") String deviceFullInfo,
+                                                @Field("task_package") String taskPackage,
+                                                @Field("imei") String imei);
     
     /**
      * 获取图形验证码

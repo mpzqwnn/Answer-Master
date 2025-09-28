@@ -29,25 +29,25 @@
 -keepattributes *Annotation*
 
 # 保留ApiResponse类不被混淆
--keep class com.paijiantuan.UNID2693B0.model.ApiResponse { 
+-keep class com.fortunequizking.model.ApiResponse { 
     <fields>;
     <methods>;
 }
--keep class com.paijiantuan.UNID2693B0.model.ApiResponse$* { 
+-keep class com.fortunequizking.model.ApiResponse$* { 
     <fields>;
     <methods>;
 }
 
 # 保留ApiResponse类的getData和setData方法
--keepclassmembers class com.paijiantuan.UNID2693B0.model.ApiResponse { 
+-keepclassmembers class com.fortunequizking.model.ApiResponse { 
     java.lang.Object getData();
     void setData(java.lang.Object);
 }
 
 # 保留应用中的模型类不被混淆
--keep class com.paijiantuan.UNID2693B0.model.** { *; }
--keep class com.paijiantuan.UNID2693B0.entity.** { *; }
--keep class com.paijiantuan.UNID2693B0.bean.** { *; }
+-keep class com.fortunequizking.model.** { *; }
+-keep class com.fortunequizking.entity.** { *; }
+-keep class com.fortunequizking.bean.** { *; }
 
 # 保留SharedPreference相关代码不被混淆
 -keep class com.paijiantuan.UNID2693B0.utils.SharedPreferenceUtil { *; }

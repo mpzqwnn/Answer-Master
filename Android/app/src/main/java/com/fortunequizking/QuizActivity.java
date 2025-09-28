@@ -1,6 +1,5 @@
 package com.fortunequizking;
 
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -12,9 +11,9 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
+import android.view.ViewParent; // 添加这个导入
 import android.util.TypedValue;
-import android.widget.RelativeLayout;
+import android.widget.RelativeLayout; // 添加RelativeLayout导入
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -105,6 +104,9 @@ public class QuizActivity extends AppCompatActivity {
     // 在类的成员变量区域添加以下变量
     private static final int AD_COOLDOWN_TIME_NORMAL = 60000; // 正常用户1分钟倒计时
     private static final int AD_COOLDOWN_TIME_RISK = 180000; // 触发风控用户3分钟倒计时
+    private static final int AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 = 180000; // 层级处理第一层3分钟倒计时
+    private static final int AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_2 = 300000; // 层级处理第二层5分钟倒计时
+    private int currentAdCooldownLevel = 0; // 当前广告冷却层级
     private CountDownTimer adCooldownTimer; // 广告冷却计时器
     private boolean isAdCooldownActive = false; // 广告冷却状态
     private long lastAdRewardTime = 0; // 上次获得奖励的时间
@@ -122,6 +124,7 @@ public class QuizActivity extends AppCompatActivity {
     private LinearLayout mainContentLayout; // 主内容布局
     private LinearLayout questionAreaLayout; // 题目区域布局
     private boolean riskControlTriggered = false; // 风控触发状态标志
+    private boolean isInvitationDialogShown = false; // 邀约弹窗是否已显示过
     
     // 计时器暂停状态
     private boolean isGlobalTimerPaused = false; // 全局计时器暂停状态
@@ -249,58 +252,7 @@ public class QuizActivity extends AppCompatActivity {
             adCooldownTimer = null;
         }
         // 通过接口获取用户风控状态，而不是硬编码设置
-        String userId = SharedPreferenceUtil.getString(this, "user_id", "");
-        if (!userId.isEmpty()) {
-            apiManager.checkRisk(userId, new ApiCallback<Object>() {
-                @Override
-                public void onSuccess(Object result) {
-                    // 根据接口返回结果设置风控状态
-                    boolean isRiskTriggered = false;
-                    
-                    // 从返回结果中判断是否触发风控
-                    if (result != null && result instanceof Map) {
-                        Map<String, Object> data = (Map<String, Object>) result;
-                        if (data.containsKey("risk_triggered")) {
-                            Object riskTriggeredObj = data.get("risk_triggered");
-                            // 增强类型处理
-                            if (riskTriggeredObj instanceof Number) {
-                                isRiskTriggered = ((Number) riskTriggeredObj).intValue() == 1;
-                            } else if (riskTriggeredObj instanceof Boolean) {
-                                isRiskTriggered = (Boolean) riskTriggeredObj;
-                            } else if (riskTriggeredObj instanceof String) {
-                                String riskTriggeredStr = (String) riskTriggeredObj;
-                                isRiskTriggered = "1".equals(riskTriggeredStr) || "true".equalsIgnoreCase(riskTriggeredStr);
-                            }
-                        }
-                    }
-                    
-                    // 设置风控状态
-                    riskControlTriggered = isRiskTriggered;
-                    isAdCooldownActive = isRiskTriggered;
-                    
-                    Log.d(TAG, "通过接口获取风控状态: " + isRiskTriggered);
-        
-                    // 启动冷却计时器
-                    startAdCooldownTimer();
-                }
-                
-                @Override
-                public void onFailure(String error) {
-                    Log.e(TAG, "获取风控状态失败: " + error);
-                    // 获取失败时，默认使用原有的3分钟冷却
-                    riskControlTriggered = true;
-                    isAdCooldownActive = true;
-                    // 启动冷却计时器
-                    startAdCooldownTimer();
-                }
-            });
-        } else {
-            // 用户ID为空时，默认使用原有的3分钟冷却
-            riskControlTriggered = true;
-            isAdCooldownActive = true;
-            // 启动冷却计时器
-            startAdCooldownTimer();
-        }
+        performRiskCheck("初始化", true);
         
         // 直接设置按钮文本和状态
         if (watchAdButton != null) {
@@ -397,38 +349,7 @@ public class QuizActivity extends AppCompatActivity {
                 startBannerAdRefreshTimer();
                 
                 // 调用风控检查接口
-                String userId = SharedPreferenceUtil.getString(QuizActivity.this, "user_id", "");
-                if (!userId.isEmpty()) {
-                    apiManager.checkRisk(userId, new ApiCallback<Object>() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            boolean isRiskTriggered = false;
-                            if (result != null && result instanceof Map) {
-                                Map<String, Object> data = (Map<String, Object>) result;
-                                if (data.containsKey("risk_triggered")) {
-                                    Object riskTriggeredObj = data.get("risk_triggered");
-                                    if (riskTriggeredObj instanceof Number) {
-                                        isRiskTriggered = ((Number) riskTriggeredObj).intValue() == 1;
-                                    } else if (riskTriggeredObj instanceof Boolean) {
-                                        isRiskTriggered = (Boolean) riskTriggeredObj;
-                                    } else if (riskTriggeredObj instanceof String) {
-                                        String riskTriggeredStr = (String) riskTriggeredObj;
-                                        isRiskTriggered = "1".equals(riskTriggeredStr) || "true".equalsIgnoreCase(riskTriggeredStr);
-                                    }
-                                }
-                            }
-                            
-                            // 设置风控状态
-                            riskControlTriggered = isRiskTriggered;
-                            Log.d(TAG, "横幅广告曝光风控检查结果: " + isRiskTriggered);
-                        }
-                        
-                        @Override
-                        public void onFailure(String error) {
-                            Log.e(TAG, "横幅广告曝光风控检查失败: " + error);
-                        }
-                    });
-                }
+                performRiskCheck("横幅广告", false);
             }
 
             @Override
@@ -474,39 +395,8 @@ public class QuizActivity extends AppCompatActivity {
                 // 启动10秒原生广告刷新计时器
                 startNativeAdRefreshTimer();
                 
-                // 调用风控检查接口
-                String userId = SharedPreferenceUtil.getString(QuizActivity.this, "user_id", "");
-                if (!userId.isEmpty()) {
-                    apiManager.checkRisk(userId, new ApiCallback<Object>() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            boolean isRiskTriggered = false;
-                            if (result != null && result instanceof Map) {
-                                Map<String, Object> data = (Map<String, Object>) result;
-                                if (data.containsKey("risk_triggered")) {
-                                    Object riskTriggeredObj = data.get("risk_triggered");
-                                    if (riskTriggeredObj instanceof Number) {
-                                        isRiskTriggered = ((Number) riskTriggeredObj).intValue() == 1;
-                                    } else if (riskTriggeredObj instanceof Boolean) {
-                                        isRiskTriggered = (Boolean) riskTriggeredObj;
-                                    } else if (riskTriggeredObj instanceof String) {
-                                        String riskTriggeredStr = (String) riskTriggeredObj;
-                                        isRiskTriggered = "1".equals(riskTriggeredStr) || "true".equalsIgnoreCase(riskTriggeredStr);
-                                    }
-                                }
-                            }
-                            
-                            // 设置风控状态
-                            riskControlTriggered = isRiskTriggered;
-                            Log.d(TAG, "原生广告曝光风控检查结果: " + isRiskTriggered);
-                        }
-                        
-                        @Override
-                        public void onFailure(String error) {
-                            Log.e(TAG, "原生广告曝光风控检查失败: " + error);
-                        }
-                    });
-                }
+                // 调用统一的风控检查接口
+                performRiskCheck("原生广告", false);
             }
 
             @Override
@@ -558,39 +448,8 @@ public class QuizActivity extends AppCompatActivity {
             public void onInterstitialAdExposure() {
                 Log.d(TAG, "Taku插屏广告曝光");
                 
-                // 调用风控检查接口
-                String userId = SharedPreferenceUtil.getString(QuizActivity.this, "user_id", "");
-                if (!userId.isEmpty()) {
-                    apiManager.checkRisk(userId, new ApiCallback<Object>() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            boolean isRiskTriggered = false;
-                            if (result != null && result instanceof Map) {
-                                Map<String, Object> data = (Map<String, Object>) result;
-                                if (data.containsKey("risk_triggered")) {
-                                    Object riskTriggeredObj = data.get("risk_triggered");
-                                    if (riskTriggeredObj instanceof Number) {
-                                        isRiskTriggered = ((Number) riskTriggeredObj).intValue() == 1;
-                                    } else if (riskTriggeredObj instanceof Boolean) {
-                                        isRiskTriggered = (Boolean) riskTriggeredObj;
-                                    } else if (riskTriggeredObj instanceof String) {
-                                        String riskTriggeredStr = (String) riskTriggeredObj;
-                                        isRiskTriggered = "1".equals(riskTriggeredStr) || "true".equalsIgnoreCase(riskTriggeredStr);
-                                    }
-                                }
-                            }
-                            
-                            // 设置风控状态
-                            riskControlTriggered = isRiskTriggered;
-                            Log.d(TAG, "插屏广告曝光风控检查结果: " + isRiskTriggered);
-                        }
-                        
-                        @Override
-                        public void onFailure(String error) {
-                            Log.e(TAG, "插屏广告曝光风控检查失败: " + error);
-                        }
-                    });
-                }
+                // 调用统一风控检查方法
+                performRiskCheck("插屏广告", false);
             }
 
             @Override
@@ -674,8 +533,17 @@ public class QuizActivity extends AppCompatActivity {
         // 特别处理体力倒计时的恢复
         if (isAdCooldownActive && isTimerPaused) {
             Log.d(TAG, "恢复体力倒计时，继续之前的计时");
-            // 直接调用startAdCooldownTimer方法，它会自动使用保存的剩余时间
-            startAdCooldownTimer();
+            // 如果计时器存在，直接恢复计时器状态
+            if (adCooldownTimer != null) {
+                Log.d(TAG, "计时器存在，直接恢复计时状态");
+                isTimerPaused = false;
+                // 重新启动计时器以继续之前的计时
+                startAdCooldownTimer();
+            } else {
+                // 计时器不存在，重新启动计时器
+                Log.d(TAG, "计时器不存在，重新启动计时器");
+                startAdCooldownTimer();
+            }
         }
     }
     
@@ -926,9 +794,9 @@ public class QuizActivity extends AppCompatActivity {
             TextView roleIdText = dialogView.findViewById(R.id.role_id_text);
             TextView registerTimeText = dialogView.findViewById(R.id.register_time_text);
             TextView loginTimeText = dialogView.findViewById(R.id.login_time_text);
-            Button logoutButton = dialogView.findViewById(R.id.logout_button);
-            TextView userAgreementText = dialogView.findViewById(R.id.user_agreement_text);
-            TextView privacyAgreementText = dialogView.findViewById(R.id.privacy_agreement_text);
+            // Button logoutButton = dialogView.findViewById(R.id.logout_button);
+            // TextView userAgreementText = dialogView.findViewById(R.id.user_agreement_text);
+            // TextView privacyAgreementText = dialogView.findViewById(R.id.privacy_agreement_text);
             
             // 获取当前用户的真实信息
             loadUserDataForPopup(nicknameText, roleIdText, registerTimeText, loginTimeText);
@@ -951,6 +819,7 @@ public class QuizActivity extends AppCompatActivity {
                 dialog.getWindow().setAttributes(params);
             }
             
+            /* 注销功能已注释掉
             // 为注销按钮添加点击事件
             if (logoutButton != null) {
                 logoutButton.setOnClickListener(new View.OnClickListener() {
@@ -972,28 +841,29 @@ public class QuizActivity extends AppCompatActivity {
                     }
                 });
             }
+            */
 
-            // 为用户协议添加点击事件
-            if (userAgreementText != null) {
-                userAgreementText.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        startActivity(new Intent(QuizActivity.this, AgreementActivity.class)
-                                .putExtra(AgreementActivity.EXTRA_AGREEMENT_TYPE, AgreementActivity.TYPE_USER_AGREEMENT));
-                    }
-                });
-            }
-
-            // 为隐私政策添加点击事件
-            if (privacyAgreementText != null) {
-                privacyAgreementText.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        startActivity(new Intent(QuizActivity.this, AgreementActivity.class)
-                                .putExtra(AgreementActivity.EXTRA_AGREEMENT_TYPE, AgreementActivity.TYPE_PRIVACY_AGREEMENT));
-                    }
-                });
-            }
+//            // 为用户协议添加点击事件
+//            if (userAgreementText != null) {
+//                userAgreementText.setOnClickListener(new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View v) {
+//                        startActivity(new Intent(QuizActivity.this, AgreementActivity.class)
+//                                .putExtra(AgreementActivity.EXTRA_AGREEMENT_TYPE, AgreementActivity.TYPE_USER_AGREEMENT));
+//                    }
+//                });
+//            }
+//
+//            // 为隐私政策添加点击事件
+//            if (privacyAgreementText != null) {
+//                privacyAgreementText.setOnClickListener(new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View v) {
+//                        startActivity(new Intent(QuizActivity.this, AgreementActivity.class)
+//                                .putExtra(AgreementActivity.EXTRA_AGREEMENT_TYPE, AgreementActivity.TYPE_PRIVACY_AGREEMENT));
+//                    }
+//                });
+//            }
 
             // 显示弹窗
             dialog.show();
@@ -1116,6 +986,7 @@ public class QuizActivity extends AppCompatActivity {
     /**
      * 执行账号注销操作
      */
+    /* 注销功能已注释掉
     private void performLogout() {
         // 调用ApiManager中的注销方法
         // 由于ApiManager中的logoutAndRedirectToLogin是私有方法，我们需要直接实现注销逻辑
@@ -1133,6 +1004,7 @@ public class QuizActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+    */
 
     private void updateAnswerHistoryForPopup(View dialogView, List<Map<String, Object>> historyList) {
         try {
@@ -1228,175 +1100,7 @@ public class QuizActivity extends AppCompatActivity {
         // 这里可以添加实际的主题应用代码
     }
 
-    
-    /**
-     * 获取设备ID
-     */
-    private String getDeviceId() {
-        // 优先使用硬件组合标识符
-        String hardwareId = generateHardwareBasedIdentifier();
-        if (hardwareId != null && !hardwareId.isEmpty()) {
-            Log.d(TAG, "使用硬件组合标识符: " + hardwareId);
-            return hardwareId;
-        }
-
-        // 如果硬件组合标识符获取失败，使用Android ID作为备用
-        String androidId = getAndroidId();
-        if (androidId != null && !androidId.isEmpty()) {
-            Log.d(TAG, "使用Android ID作为设备ID: " + androidId);
-            return androidId;
-        }
-
-        // 如果以上都失败，生成一个随机ID
-        String randomId = "random_id_" + UUID.randomUUID().toString();
-        Log.d(TAG, "生成随机设备ID: " + randomId);
-        return randomId;
-    }
-
-    /**
-     * 生成基于硬件信息的唯一标识符
-     */
-    private String generateHardwareBasedIdentifier() {
-        try {
-            StringBuilder sb = new StringBuilder();
-            // 收集多个硬件参数
-            sb.append(getDeviceModel()).append("|");
-            sb.append(getManufacturer()).append("|");
-            sb.append(getSystemVersion()).append("|");
-            sb.append(getAndroidId()).append("|");
-            sb.append(getIMEI()).append("|");
-            sb.append(getSerialNumber()).append("|");
-            sb.append(getBoard()).append("|");
-            sb.append(getBrand()).append("|");
-            sb.append(getProduct()).append("|");
-
-            // 使用SHA-256哈希算法生成唯一标识符
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = md.digest(sb.toString().getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                hexString.append(String.format("%02x", b));
-            }
-            return hexString.toString();
-        } catch (Exception e) {
-            Log.e(TAG, "生成硬件标识符失败: " + e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 获取Android ID
-     */
-    private String getAndroidId() {
-        try {
-            return Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
-        } catch (Exception e) {
-            Log.e(TAG, "获取Android ID失败: " + e.getMessage());
-            return "unknown_android_id";
-        }
-    }
-
-    /**
-     * 获取设备型号
-     */
-    private String getDeviceModel() {
-        return Build.MODEL;
-    }
-
-    /**
-     * 获取设备制造商
-     */
-    private String getManufacturer() {
-        return Build.MANUFACTURER;
-    }
-
-    /**
-     * 获取系统版本
-     */
-    private String getSystemVersion() {
-        return Build.VERSION.RELEASE;
-    }
-
-    /**
-     * 获取IMEI
-     */
-    private String getIMEI() {
-        try {
-            return getDeviceIdByReflect();
-        } catch (Exception e) {
-            Log.e(TAG, "获取IMEI失败: " + e.getMessage());
-            return "unknown_imei";
-        }
-    }
-
-    /**
-     * 通过反射获取设备ID
-     */
-    private String getDeviceIdByReflect() {
-        try {
-            TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-            if (telephonyManager == null) {
-                return "unknown_device_id";
-            }
-
-            // 检查权限
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "没有读取手机状态权限，无法获取IMEI");
-                return "no_permission_imei";
-            }
-
-            // 根据Android版本使用不同的方法获取IMEI
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                return telephonyManager.getImei();
-            } else {
-                // 使用反射调用getDeviceId方法
-                Method method = telephonyManager.getClass().getMethod("getDeviceId");
-                return (String) method.invoke(telephonyManager);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "反射获取设备ID失败: " + e.getMessage());
-            return "reflect_error_device_id";
-        }
-    }
-
-    /**
-     * 获取序列号
-     */
-    private String getSerialNumber() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                return Build.getSerial();
-            } else {
-                // 使用反射获取序列号
-                Method method = Build.class.getMethod("getSerial");
-                return (String) method.invoke(null);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "获取序列号失败: " + e.getMessage());
-            return "unknown_serial";
-        }
-    }
-
-    /**
-     * 获取设备主板信息
-     */
-    private String getBoard() {
-        return Build.BOARD;
-    }
-
-    /**
-     * 获取设备品牌
-     */
-    private String getBrand() {
-        return Build.BRAND;
-    }
-
-    /**
-     * 获取设备产品信息
-     */
-    private String getProduct() {
-        return Build.PRODUCT;
-    }
+    // 注意：体力、广告和统计相关方法在文件末尾定义，避免重复定义
 
     // 检查答案的方法
     private void checkAnswer(String selectedOption) {
@@ -1544,9 +1248,6 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     private void submitAnswerToServer(int questionId, String selectedOption, int timeSpent) {
-        // 获取设备ID
-        String deviceId = getDeviceId();
-        
         // 在提交答案前先检查用户状态
         apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
             @Override
@@ -1566,25 +1267,10 @@ public class QuizActivity extends AppCompatActivity {
                 }
                 
                 // 执行风控检查
-                apiManager.checkRisk(String.valueOf(userInfo.getId()), new ApiCallback<Object>() {
-                    @Override
-                    public void onSuccess(Object result) {
-                        // 检查是否触发了风控
-                            if (result != null && result instanceof String) {
-                                String riskResult = (String) result;
-                                if ("risk_triggered_hard_question".equals(riskResult)) {
-                                    // 触发了风控，设置风控标志
-                                    riskControlTriggered = true;
-                                    if(riskControlTriggered){
-                                        // 启动冷却计时器
-                                        startAdCooldownTimer();
-                                    }
-                                    Log.d(TAG, "触发了风控，用户无法答对题");
-                                }
-                            }
-                        
-                        // 风控检查通过后，再次检查用户状态
-                        apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
+                performRiskCheck("提交答案", true);
+                
+                // 风控检查通过后，再次检查用户状态
+                apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
                             @Override
                             public void onSuccess(UserInfo updatedUserInfo) {
                                 if (updatedUserInfo != null && updatedUserInfo.getStatus() != null && !updatedUserInfo.getStatus().equals("normal")) {
@@ -1602,7 +1288,7 @@ public class QuizActivity extends AppCompatActivity {
                                 }
                                 
                                 // 用户状态正常，继续提交答案
-                                apiManager.submitAnswer(questionId, selectedOption, timeSpent, deviceId, new ApiCallback<Object>() {
+                                apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
                                     @Override
                                     public void onSuccess(Object result) {
                                         Log.d(TAG, "答案提交成功");
@@ -1655,7 +1341,7 @@ public class QuizActivity extends AppCompatActivity {
                                         }
                                         
                                         // 用户状态正常，继续提交答案
-                                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, deviceId, new ApiCallback<Object>() {
+                                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
                                             @Override
                                             public void onSuccess(Object result) {
                                                 Log.d(TAG, "答案提交成功");
@@ -1690,7 +1376,7 @@ public class QuizActivity extends AppCompatActivity {
                                     public void onFailure(String error) {
                                         Log.e(TAG, "获取用户状态失败: " + error);
                                         // 状态检查失败，直接尝试提交答案
-                                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, deviceId, new ApiCallback<Object>() {
+                                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
                                             @Override
                                             public void onSuccess(Object result) {
                                                 Log.d(TAG, "答案提交成功");
@@ -1729,41 +1415,6 @@ public class QuizActivity extends AppCompatActivity {
                     public void onFailure(String error) {
                         Log.e(TAG, "风控检查失败: " + error);
                         // 风控检查失败，仍然尝试提交答案
-                                apiManager.submitAnswer(questionId, selectedOption, timeSpent, deviceId, new ApiCallback<Object>() {
-                            @Override
-                            public void onSuccess(Object result) {
-                                Log.d(TAG, "答案提交成功");
-                                // 答案提交成功后，刷新答题统计
-                                loadUserAnswerStats();
-                                // 刷新用户体力值，因为服务器可能扣除了体力
-                                loadUserStamina();
-                            }
-
-                            @Override
-                            public void onFailure(String error) {
-                                Log.e(TAG, "答案提交失败: " + error);
-                                // 检查是否是答题数量限制导致的失败
-                                if (error != null && error.contains("您今天已答10题")) {
-                                    runOnUiThread(() -> {
-                                        Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
-                                        Intent intent = new Intent(QuizActivity.this, com.fortunequizking.activity.LoginActivity.class);
-                                        startActivity(intent);
-                                        finish();
-                                    });
-                                } else {
-                                    // 其他错误情况下，仍然刷新答题统计
-                                    loadUserAnswerStats();
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(String error) {
-                Log.e(TAG, "获取用户状态失败: " + error);
-                // 检查状态失败时，仍然尝试提交答案
                 apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
                     @Override
                     public void onSuccess(Object result) {
@@ -1898,6 +1549,14 @@ public class QuizActivity extends AppCompatActivity {
         currentLevel = 1;
         // 移除了重置体力的代码，体力只能通过观看广告获取
         currentQuestionIndex = 0;
+        
+        // 重置计时器状态
+        cooldownTimerRemaining = 0;
+        cooldownTimeElapsed = 0;
+        isTimerPaused = false;
+        
+        // 重置层级状态
+        currentAdCooldownLevel = 0;
 
         // 保存数据
         saveQuizData();
@@ -1908,7 +1567,15 @@ public class QuizActivity extends AppCompatActivity {
 
     // 添加变量来保存倒计时状态
     private long cooldownTimeRemaining = 0; // 剩余冷却时间
+    private long cooldownTimeElapsed = 0; // 已冷却时间
     private boolean isTimerPaused = false; // 倒计时是否暂停
+    
+    /**
+     * 获取本地保存的激励广告数量
+     */
+    private int getRewardAdCount() {
+        return SharedPreferenceUtil.getInt(this, "ad_count_reward", 0);
+    }
     
     // 添加广告冷却倒计时方法
     private void startAdCooldownTimer() {
@@ -1927,20 +1594,56 @@ public class QuizActivity extends AppCompatActivity {
         isTimerPaused = false;
         watchAdButton.setEnabled(false);
         
-        // 根据风控状态选择不同的倒计时时间
-        long cooldownTime = riskControlTriggered ? AD_COOLDOWN_TIME_RISK : AD_COOLDOWN_TIME_NORMAL;
-        
-        // 如果有剩余时间，使用剩余时间继续计时
-        if (cooldownTimerRemaining > 0) {
-            cooldownTime = cooldownTimerRemaining;
+        // 计算冷却时间：根据层级处理逻辑
+        long cooldownTime;
+        if (riskControlTriggered) {
+            // 使用后端返回的层级信息
+            if (currentAdCooldownLevel == 1) {
+                // 第一层：3分钟
+                cooldownTime = Math.max(0, AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 - cooldownTimeElapsed);
+                Log.d(TAG, "层级处理第一层，使用3分钟减去已冷却时间：" + cooldownTimeElapsed + "ms，剩余：" + cooldownTime + "ms");
+            } else if (currentAdCooldownLevel == 2) {
+                // 第二层：5分钟
+                cooldownTime = Math.max(0, AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_2 - cooldownTimeElapsed);
+                Log.d(TAG, "层级处理第二层，使用5分钟减去已冷却时间：" + cooldownTimeElapsed + "ms，剩余：" + cooldownTime + "ms");
+            } else {
+                // 默认层级：使用第一层
+                cooldownTime = Math.max(0, AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 - cooldownTimeElapsed);
+                Log.d(TAG, "默认层级处理，使用3分钟减去已冷却时间：" + cooldownTimeElapsed + "ms，剩余：" + cooldownTime + "ms");
+            }
+        } else {
+            // 检查激励广告数量，如果达到6条，将冷却时间改为1.5分钟
+            int rewardAdCount = getRewardAdCount();
+            if (rewardAdCount >= 6) {
+                cooldownTime = 90 * 1000; // 1.5分钟
+                Log.d(TAG, "激励广告数量已达到" + rewardAdCount + "条，将冷却时间调整为1.5分钟");
+            } else {
+                cooldownTime = AD_COOLDOWN_TIME_NORMAL; // 默认1分钟
+            }
+            // 如果有剩余时间，使用剩余时间继续计时
+            if (cooldownTimerRemaining > 0) {
+                cooldownTime = cooldownTimerRemaining;
+            }
         }
 
         adCooldownTimer = new CountDownTimer(cooldownTime, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 if (isTimerPaused || isGlobalTimerPaused) {
-                    // 如果暂停，保存剩余时间并取消计时器
+                    // 如果暂停，保存剩余时间和已冷却时间并取消计时器
                     cooldownTimerRemaining = millisUntilFinished;
+                    // 计算已冷却时间：总时间减去剩余时间
+                    if (riskControlTriggered) {
+                        if (currentAdCooldownLevel == 1) {
+                            cooldownTimeElapsed = AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 - millisUntilFinished;
+                        } else if (currentAdCooldownLevel == 2) {
+                            cooldownTimeElapsed = AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_2 - millisUntilFinished;
+                        } else {
+                            cooldownTimeElapsed = AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 - millisUntilFinished;
+                        }
+                    } else {
+                        cooldownTimeElapsed = AD_COOLDOWN_TIME_NORMAL - millisUntilFinished;
+                    }
                     cancel();
                     return;
                 }
@@ -1951,6 +1654,19 @@ public class QuizActivity extends AppCompatActivity {
                     watchAdButton.setText("获取(" + secondsRemaining + "s)");
                     watchAdButton.setEnabled(false);
                 }
+                
+                // 更新已冷却时间
+                if (riskControlTriggered) {
+                    if (currentAdCooldownLevel == 1) {
+                        cooldownTimeElapsed = AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 - millisUntilFinished;
+                    } else if (currentAdCooldownLevel == 2) {
+                        cooldownTimeElapsed = AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_2 - millisUntilFinished;
+                    } else {
+                        cooldownTimeElapsed = AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 - millisUntilFinished;
+                    }
+                } else {
+                    cooldownTimeElapsed = AD_COOLDOWN_TIME_NORMAL - millisUntilFinished;
+                }
             }
 
             @Override
@@ -1958,6 +1674,7 @@ public class QuizActivity extends AppCompatActivity {
                 // 如果全局计时器被暂停，保存状态
                 if (isGlobalTimerPaused) {
                     cooldownTimerRemaining = 0;
+                    cooldownTimeElapsed = 0;
                     return;
                 }
                 
@@ -1965,6 +1682,7 @@ public class QuizActivity extends AppCompatActivity {
                 isAdCooldownActive = false;
                 isTimerPaused = false;
                 cooldownTimerRemaining = 0;
+                cooldownTimeElapsed = 0;
                 if (watchAdButton != null) {
                     watchAdButton.setEnabled(true);
                     watchAdButton.setText("获取 +");
@@ -2278,12 +1996,12 @@ public class QuizActivity extends AppCompatActivity {
         // 同时更新获取体力按钮的状态，确保冷却状态正确显示
         if (watchAdButton != null) {
             watchAdButton.setEnabled(false);
-            if (isAdCooldownActive) {
+            if (!isAdCooldownActive) {
                 // 显示剩余冷却时间
-                long cooldownTime = riskControlTriggered ? AD_COOLDOWN_TIME_RISK : AD_COOLDOWN_TIME_NORMAL;
-                long secondsRemaining = cooldownTimeRemaining > 0 ? cooldownTimeRemaining / 1000 : cooldownTime / 1000;
-                watchAdButton.setText("获取(" + secondsRemaining + "s)");
-            } else {
+            //     long cooldownTime = riskControlTriggered ? AD_COOLDOWN_TIME_RISK : AD_COOLDOWN_TIME_NORMAL;
+            //     long secondsRemaining = cooldownTimeRemaining > 0 ? cooldownTimeRemaining / 1000 : cooldownTime / 1000;
+            //     watchAdButton.setText("获取(" + secondsRemaining + "s)");
+            // } else {
                 watchAdButton.setEnabled(true);
                 watchAdButton.setText("获取 +");
             }
@@ -2319,39 +2037,8 @@ public class QuizActivity extends AppCompatActivity {
                 // 暂停所有计时器
                 pauseAllTimers();
                 
-                // 调用风控检查接口
-                String userId = SharedPreferenceUtil.getString(QuizActivity.this, "user_id", "");
-                if (!userId.isEmpty()) {
-                    apiManager.checkRisk(userId, new ApiCallback<Object>() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            boolean isRiskTriggered = false;
-                            if (result != null && result instanceof Map) {
-                                Map<String, Object> data = (Map<String, Object>) result;
-                                if (data.containsKey("risk_triggered")) {
-                                    Object riskTriggeredObj = data.get("risk_triggered");
-                                    if (riskTriggeredObj instanceof Number) {
-                                        isRiskTriggered = ((Number) riskTriggeredObj).intValue() == 1;
-                                    } else if (riskTriggeredObj instanceof Boolean) {
-                                        isRiskTriggered = (Boolean) riskTriggeredObj;
-                                    } else if (riskTriggeredObj instanceof String) {
-                                        String riskTriggeredStr = (String) riskTriggeredObj;
-                                        isRiskTriggered = "1".equals(riskTriggeredStr) || "true".equalsIgnoreCase(riskTriggeredStr);
-                                    }
-                                }
-                            }
-                            
-                            // 设置风控状态
-                            riskControlTriggered = isRiskTriggered;
-                            Log.d(TAG, "激励广告开始播放风控检查结果: " + isRiskTriggered);
-                        }
-                        
-                        @Override
-                        public void onFailure(String error) {
-                            Log.e(TAG, "激励广告开始播放风控检查失败: " + error);
-                        }
-                    });
-                }
+                // 调用统一风控检查方法
+                performRiskCheck("激励广告", false);
             }
 
             @Override
@@ -2406,8 +2093,8 @@ public class QuizActivity extends AppCompatActivity {
                 isRewardAdPlaying = false; // 设置激励广告播放状态为false
                 // 恢复所有计时器
                 resumeAllTimers();
-                // 恢复广告冷却计时器
-                if (isAdCooldownActive) {
+                // 恢复广告冷却计时器 - 如果触发风控且计时器已在运行，不需要重新启动
+                if (isAdCooldownActive && !(riskControlTriggered && adCooldownTimer != null)) {
                     startAdCooldownTimer();
                 }
                 // 广告关闭后，更新上次广告显示时间，确保不会立即再次显示
@@ -2682,6 +2369,142 @@ public class QuizActivity extends AppCompatActivity {
         }
     }
     
+    /**
+     * 统一的风险检查方法
+     * @param context 上下文信息，用于日志记录
+     * @param handleFailure 是否处理失败情况（初始化时需要处理失败，广告曝光时不需要）
+     */
+    private void performRiskCheck(String context, boolean handleFailure) {
+        String userId = SharedPreferenceUtil.getString(QuizActivity.this, "user_id", "");
+        if (!userId.isEmpty()) {
+            apiManager.checkRisk(userId, new ApiCallback<Object>() {
+                @Override
+                public void onSuccess(Object result) {
+                    boolean isRiskTriggered = false;
+                    String riskType = "";
+                    if (result != null) {
+                        if (result instanceof Map) {
+                            Map<String, Object> data = (Map<String, Object>) result;
+                            if (data.containsKey("risk_triggered")) {
+                                Object riskTriggeredObj = data.get("risk_triggered");
+                                if (riskTriggeredObj instanceof Number) {
+                                    isRiskTriggered = ((Number) riskTriggeredObj).intValue() == 1;
+                                } else if (riskTriggeredObj instanceof Boolean) {
+                                    isRiskTriggered = (Boolean) riskTriggeredObj;
+                                } else if (riskTriggeredObj instanceof String) {
+                                    String riskTriggeredStr = (String) riskTriggeredObj;
+                                    isRiskTriggered = "1".equals(riskTriggeredStr) || "true".equalsIgnoreCase(riskTriggeredStr);
+                                }
+                            }
+                            
+                            // 获取风控类型
+                            if (data.containsKey("risk_type")) {
+                                Object riskTypeObj = data.get("risk_type");
+                                if (riskTypeObj instanceof String) {
+                                    riskType = (String) riskTypeObj;
+                                }
+                            }
+                        } else if (result instanceof String) {
+                            String riskResult = (String) result;
+                            isRiskTriggered = "risk_triggered_hard_question".equals(riskResult);
+                        }
+                    }
+                    
+                    // 设置风控状态
+                    riskControlTriggered = isRiskTriggered;
+                    
+                    // 保存之前的风控等级，用于检测变化
+                    int previousAdCooldownLevel = currentAdCooldownLevel;
+                    
+                    // 从后端获取层级信息
+                    if (result instanceof Map) {
+                        Map<String, Object> data = (Map<String, Object>) result;
+                        if (data.containsKey("risk_level")) {
+                            Object riskLevelObj = data.get("risk_level");
+                            if (riskLevelObj instanceof Number) {
+                                currentAdCooldownLevel = ((Number) riskLevelObj).intValue();
+                            } else if (riskLevelObj instanceof String) {
+                                try {
+                                    currentAdCooldownLevel = Integer.parseInt((String) riskLevelObj);
+                                } catch (NumberFormatException e) {
+                                    currentAdCooldownLevel = 1; // 解析失败时使用第一层
+                                }
+                            }
+                        } else if (isRiskTriggered) {
+                            // 如果没有层级信息但触发了风控，设置为第一层
+                            currentAdCooldownLevel = 1;
+                        }
+                    } else if (isRiskTriggered) {
+                        // 非Map类型结果但触发了风控，设置为第一层
+                        currentAdCooldownLevel = 1;
+                    }
+                    
+                    // 处理邀约风控类型
+                    if ("invitation".equals(riskType) && !isInvitationDialogShown) {
+                        // 获取渠道名称
+                        String channelName = apiManager.getChannel();
+                        // 显示邀约风控弹窗
+                        showInvitationDialog(userId, channelName);
+                        // 标记弹窗已显示
+                        isInvitationDialogShown = true;
+                    }
+                    
+                    if (context.equals("初始化")) {
+                        isAdCooldownActive = isRiskTriggered;
+                        startAdCooldownTimer();
+                    } else if(riskControlTriggered){
+                        pauseAllTimers();
+                        resumeAllTimers();
+                    }
+                    Log.d(TAG, context + "风控检查结果: " + isRiskTriggered + ", 当前层级: " + currentAdCooldownLevel + ", 风控类型: " + riskType);
+                }
+                
+                @Override
+                public void onFailure(String error) {
+                    Log.e(TAG, context + "风控检查失败: " + error);
+                    if (handleFailure) {
+                        // 失败时默认触发风控
+                        riskControlTriggered = true;
+                        isAdCooldownActive = true;
+                        startAdCooldownTimer();
+                    }
+                }
+            });
+        } else if (handleFailure) {
+            // 用户ID为空时默认触发风控
+            riskControlTriggered = true;
+            isAdCooldownActive = true;
+            startAdCooldownTimer();
+        }
+    }
+    
+    /**
+     * 显示邀约风控弹窗
+     */
+    private void showInvitationDialog(String userId, String channelName) {
+        try {
+            // 获取弹窗视图
+            RelativeLayout invitationDialog = findViewById(R.id.invitation_dialog);
+            TextView invitationContent = findViewById(R.id.invitation_content);
+            Button invitationConfirmButton = findViewById(R.id.invitation_confirm_button);
+            
+            if (invitationDialog != null && invitationContent != null && invitationConfirmButton != null) {
+                String content = "用户" + userId + "，恭喜您获得续做任务的机会，激励不变，请截此图后，到（" + channelName + "）领取续做任务。";
+                invitationContent.setText(content);
+                
+                // 设置关闭按钮点击事件
+                invitationConfirmButton.setOnClickListener(v -> {
+                    invitationDialog.setVisibility(View.GONE);
+                });
+                
+                // 显示弹窗
+                invitationDialog.setVisibility(View.VISIBLE);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "显示邀约风控弹窗失败: " + e.getMessage());
+        }
+    }
+
     /**
      * 启动原生广告刷新计时器
      */

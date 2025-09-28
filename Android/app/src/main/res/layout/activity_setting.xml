@@ -29,145 +29,144 @@
                 android:orientation="vertical">
 
             <!-- 头像和用户基本信息 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <!-- 圆形头像 -->
+            <LinearLayout
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:background="@drawable/settings_item_bg"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/avatar_image"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:background="@drawable/settings_item_bg"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/user_avatar" />
+            </LinearLayout>
+
+            <!-- 版本信息 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="版本号：3.11 DS9.28-1更新"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <!-- 昵称信息 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:orientation="vertical">
+                android:layout_marginTop="15dp"
+                android:background="@drawable/settings_item_bg"
+                android:orientation="horizontal"
+                android:paddingVertical="12dp">
 
-                <!-- 圆形头像 -->
-                <LinearLayout
-                    android:layout_width="100dp"
-                    android:layout_height="100dp"
-                    android:background="@drawable/settings_item_bg"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <ImageView
-                        android:id="@+id/avatar_image"
-                        android:layout_width="80dp"
-                        android:layout_height="80dp"
-                        android:background="@drawable/settings_item_bg"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/user_avatar" />
-                </LinearLayout>
-                
-                <!-- 版本信息 -->
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="100dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="当前版本号3.08，2025/9/24更新"
+                    android:text="昵称:"
                     android:textColor="@color/white"
-                    android:textSize="14sp" />
+                    android:textSize="16sp" />
 
-                <!-- 昵称信息 -->
-                <LinearLayout
+                <TextView
+                    android:id="@+id/nickname_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="15dp"
-                    android:background="@drawable/settings_item_bg"
-                    android:orientation="horizontal"
-                    android:paddingVertical="12dp">
-
-                    <TextView
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:text="昵称:"
-                        android:textColor="@color/white"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:id="@+id/nickname_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="繁花"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- 角色ID信息 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/settings_item_bg"
-                    android:orientation="horizontal"
-                    android:paddingVertical="12dp">
-
-                    <TextView
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:text="角色ID:"
-                        android:textColor="@color/white"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:id="@+id/role_id_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="2582111002"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- 注册时间信息 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/settings_item_bg"
-                    android:orientation="horizontal"
-                    android:paddingVertical="12dp">
-
-                    <TextView
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:text="注册时间:"
-                        android:textColor="@color/white"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:id="@+id/register_time_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="2025/08/21 16:12:36"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- 登录时间信息 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/settings_item_bg"
-                    android:orientation="horizontal"
-                    android:paddingVertical="12dp">
-
-                    <TextView
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:text="登录时间:"
-                        android:textColor="@color/white"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:id="@+id/login_time_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="2025/08/21 16:12:36"
-                        android:textColor="@color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
+                    android:text="繁花"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- 隐私政策和用户协议链接 -->
-        <!-- 答题统计信息 -->
+            <!-- 角色ID信息 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/settings_item_bg"
+                android:orientation="horizontal"
+                android:paddingVertical="12dp">
+
+                <TextView
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:text="角色ID:"
+                    android:textColor="@color/white"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/role_id_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2582111002"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 注册时间信息 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/settings_item_bg"
+                android:orientation="horizontal"
+                android:paddingVertical="12dp">
+
+                <TextView
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:text="注册时间:"
+                    android:textColor="@color/white"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/register_time_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2025/08/21 16:12:36"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 登录时间信息 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/settings_item_bg"
+                android:orientation="horizontal"
+                android:paddingVertical="12dp">
+
+                <TextView
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:text="登录时间:"
+                    android:textColor="@color/white"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/login_time_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2025/08/21 16:12:36"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+            <!-- 答题统计信息 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -285,7 +284,7 @@
             </LinearLayout>
 
             <!-- 注销按钮 -->
-        <LinearLayout
+        <!-- <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
@@ -340,7 +339,7 @@
                     android:textColor="@color/white"
                     android:textSize="16sp"
                     android:textStyle="bold" />
-            </LinearLayout>
+            </LinearLayout> -->
             </LinearLayout>
         </ScrollView>
     </LinearLayout>

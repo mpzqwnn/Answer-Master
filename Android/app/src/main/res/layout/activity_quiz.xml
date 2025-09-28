@@ -18,11 +18,11 @@
         android:orientation="vertical"
         android:visibility="visible">
         
-        <!-- 横幅广告容器 - 设置固定高度以确保广告可见 -->
+        <!-- 横幅广告容器 - 设置固定高度以确保广告可见，宽高比6.4:1 -->
         <LinearLayout
             android:id="@+id/banner_ad_container"
             android:layout_width="match_parent"
-            android:layout_height="80dp" 
+            android:layout_height="56.25dp" 
             android:orientation="vertical" 
             android:visibility="visible" />
 
@@ -458,5 +458,59 @@
             android:text="正在加载题目..."
             android:textColor="@android:color/white"
             android:textSize="18sp" />
+    </RelativeLayout>
+    
+    <!-- 邀约风控弹窗 -->
+    <RelativeLayout
+        android:id="@+id/invitation_dialog"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone"
+        android:elevation="10dp"
+        android:gravity="center">
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="32dp"
+            android:layout_marginRight="32dp"
+            android:background="@drawable/orange_gradient_bg"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:gravity="center">
+            
+            <TextView
+                android:id="@+id/invitation_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="邀约通知"
+                android:textColor="@android:color/white"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="16dp" />
+            
+            <TextView
+                android:id="@+id/invitation_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="用户***，恭喜您获得续做任务的机会，激励不变，请截此图后，到（渠道名称）领取续做任务。"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:layout_marginBottom="24dp" />
+            
+            <Button
+                android:id="@+id/invitation_confirm_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="已确认截图，关闭"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:textAllCaps="false" />
+        </LinearLayout>
     </RelativeLayout>
 </RelativeLayout>
