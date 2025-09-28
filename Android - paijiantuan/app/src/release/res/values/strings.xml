@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 发布环境配置 -->
+    <string name="api_base_url">http://your-production-server.com/api/</string>
+    <!-- 替换为您的实际生产服务器地址 -->
+</resources>

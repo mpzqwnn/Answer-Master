@@ -1,0 +1,91 @@
+原生广告
+1. 原生广告介绍
+1.1 集成建议
+类型	说明	注意事项
+自渲染	三方广告平台返回广告素材由开发者来拼接成的类型。三方后台的类型选择需要和TopOn后台一致，否则会请求失败。	自渲染原生广告注意事项
+模板渲染	三方广告平台返回渲染好的view，开发者直接添加到一个容器就可以展示出来。	
+模板广告有自己的宽高比例，可在广告平台后台进行查看。尽量在广告平台后台选择宽高比例一样或者接近的模板，在代码中以那个宽高比例传入宽高来加载、展示广告，以获得最佳展示效果。
+ATNativeAdView的宽高必须与ATAdConst.KEY.AD_WIDTH、ATAdConst.KEY.AD_HEIGHT所对应的宽高一致，否则可能出现展示不全或者展示过小的问题。
+ 
+
+2. 不同接入方式说明
+接入方式	说明
+自渲染信息流广告	开发者可通过API获取广告的所有素材，自定义自有的UI布局进行接入，接入方式可查看：信息流自渲染广告
+模版信息流广告	开发者可通过API获取一个完整渲染完成的广告View，直接添加到指定位置进行展示，接入方式可查看：信息流模版广告
+Draw信息流广告	主要适用于全屏翻页视频信息流的场景接入，接入方式可查看：Draw信息流广告接入
+ 
+
+3. API说明
+3.1 初始化
+ATNative: Native广告加载的类
+API	说明
+ATNative(Context context, String nativeTakuPlacementID, ATNativeNetworkListener listener)	原生广告初始化方法，其中nativeTakuPlacementID是通过Taku后台创建原生广告位获取的
+ 
+
+ATNativeNetworkListener: 广告加载的监听器
+方法	说明
+void onNativeAdLoaded()	广告加载成功
+void onNativeAdLoadFail(AdError error)	广告加载失败，可通过AdError.getFullErrorInfo()获取全部错误信息，请参考 AdError
+
+注意：禁止在此回调中执行广告的加载方法进行重试，否则会引起很多无用请求且可能会导致应用卡顿
+ 
+
+3.2 广告加载
+ATNative: Native广告加载的类
+API	说明
+void setLocalExtra(Map)	设置本地参数
+void makeAdRequest	发起Native广告请求
+NativeAd getNativeAd()	获取已经加载完成的广告（建议获取之后都要进行非null判断，因为可能会有部分情况出现null，没有广告缓存时会为null）
+
+注意：调用此方法后SDK会移除一次广告缓存。通过此方法获取到的NativeAd，如果不为null时，开发者必须自行引用起来，用于后续广告的展示，否则下一次调用此方法时可能由于没有广告缓存导致返回null
+NativeAd getNativeAd(ATShowConfig showConfig)	（v6.3.10新增）获取已经加载完成的广告（建议获取之后都要进行非null判断，因为可能会有部分情况出现null），并为之后展示的广告设置广告场景。
+
+showConfig：可传入展示时的额外参数，如下1.ATShowConfig#showCustomExt(String showCustomExt)：可传入展示时自定义参数，传入的该参数将通过ATAdInfo#getShowCustomExt()返回
+
+2.ATShowConfig#scenarioId(String scenarioId)：可传入广告场景，同getNativeAd(String scenario)
+void entryAdScenario(String placementId, String scenarioId)	进入业务场景当前广告位缓存状态统计。其中scenario是指广告展示场景（非必传，可以直接传null），可从后台创建场景参数和使用请参考 业务场景缓存状态统计
+List<ATAdInfo> checkValidAdCaches
+查询当前广告位的所有缓存信息的ATAdInfo对象
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+3.3 广告展示
+NativeAd: 通过getNativeAd获取到的广告对象
+
+方法	说明
+isNativeExpress	是否为模板渲染类型的广告
+renderAdContainer(ATNativeAdView view, View selfRenderView)	用于广告渲染，其中view必须使用我们提供的ATNativeAdView
+注意：调用isNativeExpress()返回false（即自渲染）时，selfRenderView必须传入开发者自定义的View，返回true（模板渲染）时可传null
+prepare(ATNativeAdView view, ATNativePrepareInfo nativePrepareInfo)	用于配置广告点击事件、绑定自渲染时的关闭按钮、控制广告标识的展示位置和大小等，在renderAdContainer方法之后调用（默认全部view可点击，存在广告标识的会有默认展示位置和大小）
+ 
+
+3.4 其他API
+API	说明
+getAdInfo	获取当前广告缓存信息 ATAdInfo对象，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+clear(ATNativeAdView view)	移除广告对view的绑定
+onResume	在Activity的onResume时调用（主要针对部分广告平台的视频广告）
+onPause	在Activity的onPause时调用（主要针对部分广告平台的视频广告）
+destory	销毁当前的广告对象（执行之后该广告无法再进行展示）
+ 
+
+3.5 事件回调
+NativeAd: 通过getNativeAd获取到的广告对象
+方法	说明
+setNativeEventListener(ATNativeEventListener listener)	设置广告事件监听，其中ATNativeEventListener是广告事件的接口类
+setDislikeCallbackListener(ATNativeDislikeListener listener)	设置广告关闭事件回调（目前只有穿山甲(Pangle)，广点通和快手的模版广告有效）
+ 
+
+ATNativeDislikeListener：广告Dislike监听类
+方法	说明
+void onAdCloseButtonClick(ATNativeAdView view, ATAdInfo atAdInfo)	关闭按钮被点击时回调此方法，如果想移除广告，需要开发者在此回调中手动调用代码移除Native的View其中ATAdInfo是广告的信息对象，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+ATNativeEventListener: 广告事件监听接口类
+方法	说明
+void onAdImpressed(ATNativeAdView view, ATAdInfo atAdInfo)	广告展示回调
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+void onAdClicked(ATNativeAdView view, ATAdInfo atAdInfo)	广告点击回调
+参数意义同上
+void onAdVideoStart(ATNativeAdView view)	广告视频播放开始（仅部分广告平台存在）
+void onAdVideoEnd(ATNativeAdView view)	广告视频播放结束（仅部分广告平台存在）
+void onAdVideoProgress(ATNativeAdView view, int progress)	广告视频播放进度（仅部分广告平台存在）

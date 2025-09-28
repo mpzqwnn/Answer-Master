@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 播放状态 -->
+    <item android:state_checked="true" android:state_pressed="false">
+        <shape android:shape="oval">
+            <solid android:color="#4CAF50" /> <!-- 播放状态使用绿色 -->
+            <stroke
+                android:width="2dp"
+                android:color="#FFFFFF" />
+            <size
+                android:width="32dp"
+                android:height="32dp" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <!-- 播放状态按下 -->
+    <item android:state_checked="true" android:state_pressed="true">
+        <shape android:shape="oval">
+            <solid android:color="#388E3C" /> <!-- 播放状态按下时的深绿色 -->
+            <stroke
+                android:width="2dp"
+                android:color="#FFFFFF" />
+            <size
+                android:width="32dp"
+                android:height="32dp" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <!-- 暂停状态（默认） -->
+    <item android:state_pressed="false">
+        <shape android:shape="oval">
+            <solid android:color="#FF6B00" /> <!-- 暂停状态使用橙色 -->
+            <stroke
+                android:width="2dp"
+                android:color="#FFFFFF" />
+            <size
+                android:width="32dp"
+                android:height="32dp" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <!-- 暂停状态按下 -->
+    <item android:state_pressed="true">
+        <shape android:shape="oval">
+            <solid android:color="#E65100" /> <!-- 暂停状态按下时的深橙色 -->
+            <stroke
+                android:width="2dp"
+                android:color="#FFFFFF" />
+            <size
+                android:width="32dp"
+                android:height="32dp" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+</selector>

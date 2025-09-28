@@ -1,0 +1,434 @@
+-ignorewarnings
+-dontwarn com.baidu.mobads.sdk.api.**
+-keepclassmembers class * extends android.app.Activity {
+   public void *(android.view.View);
+}
+
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+-keep class com.baidu.mobads.** { *; }
+-keep class com.style.widget.** {*;}
+-keep class com.component.** {*;}
+-keep class com.baidu.ad.magic.flute.** {*;}
+-keep class com.baidu.mobstat.forbes.** {*;}
+
+-keep class android.support.v7.widget.RecyclerView {*;}
+-keepnames class android.support.v7.widget.RecyclerView$* {
+    public <fields>;
+    public <methods>;
+}
+-keep class android.support.v7.widget.LinearLayoutManager {*;}
+-keep class android.support.v7.widget.PagerSnapHelper {*;}
+-keep class android.support.v4.view.ViewCompat {*;}
+-keep class android.support.v4.util.LongSparseArray {*;}
+-keep class android.support.v4.util.ArraySet {*;}
+-keep class android.support.v4.view.accessibility.AccessibilityNodeInfoCompat {*;}
+
+
+-keep class com.tencent.mm.opensdk.** {
+    *;
+}
+-keep class com.tencent.wxop.** {
+    *;
+}
+-keep class com.tencent.mm.sdk.** {
+    *;
+}
+-keep class org.chromium.** {*;}
+-keep class org.chromium.** { *; }
+-keep class aegon.chrome.** { *; }
+-keep class com.kwai.**{ *; }
+-dontwarn com.kwai.**
+-dontwarn com.kwad.**
+-dontwarn com.ksad.**
+-dontwarn aegon.chrome.**
+-keep class com.yxcorp.kuaishou.addfp.android.Orange {*;}
+
+##########################以下是ks建议要求把他们aar里面的混淆全部添加###################################
+
+-keep class com.kwai.**{ *; }
+-keep class com.ksad.**{ *; }
+-keep class com.kwad.** { *;}
+-keep class com.kuaishou.aegon.**{ *; }
+
+-dontwarn com.kwai.**
+-dontwarn com.kwad.**
+-dontwarn com.ksad.**
+-dontwarn aegon.chrome.**
+-dontwarn com.kuaishou.aegon.**
+-dontwarn com.tachikoma.core.**
+
+#ijkplayer
+-keep class org.chromium.** {*;}
+-keep class org.chromium.** { *; }
+-keep class aegon.chrome.** { *; }
+-keeppackagenames com.badlogic.gdx.math
+-keeppackagenames com.google.vrtoolkit.cardboard.sensors
+
+-dontwarn okio.**
+-dontwarn okhttp3.**
+# 混淆一级即可
+-keep class okhttp3.* {*;}
+-keep class com.google.gson.* {*;}
+
+#保留注解，如果不添加改行会导致我们的@Keep注解失效
+-keepattributes *Annotation*
+-keep class android.support.annotation.Keep
+-keep @android.support.annotation.Keep class * {*;}
+
+# 安全sdk
+-dontwarn com.kuaishou.android.security.**
+-keep class com.kuaishou.android.security.**{*;}
+-keep class com.yxcorp.kuaishou.addfp.** { *;}
+
+#直播相关混淆
+-dontwarn io.netty.**
+-dontwarn com.kuaishou.livestream.message.**
+-dontwarn com.kuaishou.protobuf.**
+-keep class com.google.protobuf.nano.** {*;}
+-keep class com.kuaishou.livestream.message.nano.** {*;}
+-keep class com.kuaishou.protobuf.livestream.nano.** {*;}
+-keep class com.kuaishou.merchant.message.nano.** {*;}
+-keep class com.kuaishou.protobuf.merchant.message.nano.** {*;}
+
+#直播广告
+-keep class okio.** {*;}
+-keep class io.** {*;}
+-keep class com.yxcorp.** {*;}
+-keep class com.kuaishou.** {*;}
+-keep class org.reactivestreams.** {*;}
+
+-keep class com.kuaishou.livestream.** {*;}
+-keep class com.kuaishou.security.kste.** {*;}
+-keep class com.seclib.kste.** {*;}
+
+# 安全sdk
+-dontwarn com.kuaishou.android.security.**
+-keep class com.kuaishou.dfp.**{*;}
+-keep class com.kuaishou.dfp.KWEGIDDFP {*;}
+-keep class com.kuaishou.dfp.ResponseDfpCallback {*;}
+-keep class com.kuaishou.dfp.env.jni.Watermelon {*;}
+-dontwarn com.squareup.okhttp3.**
+-keep class com.squareup.okhttp3.** { *;}
+-dontwarn okio.**
+-keep class com.google.protobuf.** {*;}
+-keep class com.kuaishou.dfp.env.Proxy.** {*;}
+#new added for android 10
+-keep class com.bun.miitmdid.core.** {*;}
+
+#TK框架
+-keep class com.tachikoma.core.manager.IProviderCollector {*;}
+-keep class * implements com.tachikoma.core.manager.IProviderCollector { *;}
+
+-keep class com.tkruntime.v8.**{*;}
+
+-keep class com.kwad.proguard.annotations.DoNotStrip
+-keep @com.kwad.proguard.annotations.DoNotStrip class * { *; }
+
+-keepclassmembers,includedescriptorclasses class * { native <methods>; }
+
+#风控sdk
+-keep class com.kuaishou.weapon.**{ *; }
+
+# oaid相关
+-dontwarn com.kwad.sdk.oaid.OADIDSDKHelper**
+-keep class * implements com.bun.miitmdid.interfaces.IIdentifierListener { *; }
+-keep class com.bun.miitmdid.core.MdidSdkHelper{*;}
+-keep public class com.kwad.sdk.crash.online.monitor.block.BlockEvent { *; }
+
+-keep class com.kwad.sdk.glide.framesequence.FrameSequence { *; }
+-keep class com.kwad.sdk.glide.framesequence.FrameSequenceDrawable { *; }
+
+
+-keep class com.kwad.components.offline.api.** { *;}
+
+-keep class * implements com.kwad.components.offline.api.IOfflineCompo { *; }
+
+-keep class com.kwad.components.offline.api.core.annotation.DoNotStrip
+-keep @com.kwad.components.offline.api.core.annotation.DoNotStrip class * { *; }
+
+-keep class com.kwad.sdk.glide.framesequence.FrameSequence { *; }
+-keep class com.kwad.sdk.glide.framesequence.FrameSequenceDrawable { *; }
+
+-keep class com.kwad.components.offline.api.** { *;}
+
+-keep class * implements com.kwad.components.offline.api.IOfflineCompo { *; }
+
+-keep class com.kwad.components.offline.api.core.annotation.DoNotStrip
+-keep @com.kwad.components.offline.api.core.annotation.DoNotStrip class * { *; }
+
+
+##########################以上是ks建议要求把他们aar里面的混淆全部添加###################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 优化 不优化输入的类文件
+-dontoptimize
+
+# androidx
+
+-keep class com.google.android.material.** {*;}
+-keep class androidx.** {*;}
+-keep public class * extends androidx.**
+-keep interface androidx.** {*;}
+-dontwarn com.google.android.material.**
+-dontnote com.google.android.material.**
+-dontwarn androidx.**
+
+# android.support.v4
+
+-dontwarn android.support.v4.**
+-keep class android.support.v4.** { *; }
+-keep interface android.support.v4.** { *; }
+-keep public class * extends android.support.v4.**
+
+# WindAd
+
+-keep class com.sigmob.sdk.**{ *;}
+-keep interface com.sigmob.sdk.**{ *;}
+-keep class com.sigmob.windad.**{ *;}
+-keep interface com.sigmob.windad.**{ *;}
+-keep class com.czhj.**{ *;}
+-keep interface com.czhj.**{ *;}
+-keep class com.tan.mark.**{*;}
+
+# miitmdid
+
+-dontwarn com.bun.**
+-keep class com.bun.** {*;}
+-keep class a.**{*;}
+-keep class XI.CA.XI.**{*;}
+-keep class XI.K0.XI.**{*;}
+-keep class XI.XI.K0.**{*;}
+-keep class XI.vs.K0.**{*;}
+-keep class XI.xo.XI.XI.**{*;}
+-keep class com.asus.msa.SupplementaryDID.**{*;}
+-keep class com.asus.msa.sdid.**{*;}
+-keep class com.huawei.hms.ads.identifier.**{*;}
+-keep class com.samsung.android.deviceidservice.**{*;}
+-keep class com.zui.opendeviceidlibrary.**{*;}
+-keep class org.json.**{*;}
+-keep public class com.netease.nis.sdkwrapper.Utils {public <methods>;}
+-keepclassmembers class * {
+    *** getContext(...);
+    *** getActivity(...);
+    *** getResources(...);
+    *** startActivity(...);
+    *** startActivityForResult(...);
+    *** registerReceiver(...);
+    *** unregisterReceiver(...);
+    *** query(...);
+    *** getType(...);
+    *** insert(...);
+    *** delete(...);
+    *** update(...);
+    *** call(...);
+    *** setResult(...);
+    *** startService(...);
+    *** stopService(...);
+    *** bindService(...);
+    *** unbindService(...);
+    *** requestPermissions(...);
+    *** getIdentifier(...);
+   }
+
+-keep class com.bytedance.pangle.** {*;}
+-keep class com.bytedance.sdk.openadsdk.** { *; }
+
+-keep class ms.bd.c.Pgl.**{*;}
+-keep class com.bytedance.mobsec.metasec.ml.**{*;}
+
+-keep class com.bytedance.embedapplog.** {*;}
+-keep class com.bytedance.embed_dr.** {*;}
+
+-keep class com.bykv.vk.** {*;}
+
+-keep class com.lynx.** { *; }
+
+-keep class com.ss.android.**{*;}
+
+-keep class android.support.v4.app.FragmentActivity{}
+-keep class androidx.fragment.app.FragmentActivity{}
+
+-keep class com.opos.** { *;}
+-keep class com.heytap.msp.mobad.** { *;}
+-keep class com.heytap.openid.** {*;}
+
+-keep class okio.**{ *; }
+
+-keeppackagenames com.heytap.nearx.tapplugin
+-dontwarn com.alibaba.fastjson.**
+
+-keep class com.alibaba.fastjson.**{*;}
+-keep class com.bumptech.glide.**{*;}
+
+-keep class com.alimm.tanx.**{*;}
+
+
+# 有进程间通信,保证service相关不被混淆
+#-keep public class * extends android.app.Service
+#-keep public class * extends android.content.BroadcastReceiver
+
+
+# 自动曝光数据的防混淆
+-keep class * implements java.io.Serializable{
+     <fields>;
+    <methods>;
+}
+# Analytics SDK
+-keep class com.miui.analytics.** { *; }
+-keep class com.xiaomi.analytics.* { public protected *; }
+# Mediation SDK
+-keep class com.xiaomi.ad.mediation.** { *; }
+#Ad SDK
+-keep class com.miui.zeus.mimo.sdk.** { *; }
+-keep class com.google.gson.examples.android.model.** { <fields>; }
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
+-keep class * extends android.os.IInterface{
+    *;
+}
+-keep class com.jd.ad.sdk.** { *; }
+-keepattributes SourceFile,LineNumberTable
+-dontwarn com.squareup.okhttp.**
+-dontwarn okhttp3.**
+-keep class com.vivo.*.** { *; }
+-dontwarn com.bytedance.article.common.nativecrash.NativeCrashInit
+-keep class com.bytedance.sdk.openadsdk.** {*;}
+-keep public interface com.bytedance.sdk.openadsdk.downloadnew.** {*;}
+-keep class com.pgl.sys.ces.* {*;}
+-keep class com.qq.e.** {
+ public protected *;
+}
+-keep class android.support.v4.**{
+ public *;
+}
+-keep class android.support.v7.widget.** {*;}
+-dontwarn com.vivo.secboxsdk.**
+-keep class com.vivo.secboxsdk.SecBoxCipherException { *; }
+-keep class com.vivo.secboxsdk.jni.SecBoxNative { *; }
+-keep class com.vivo.secboxsdk.BuildConfig { *; }
+-keep class com.vivo.advv.**{*;}
+-keep class com.kwad.sdk.** { *;}
+-keep class com.ksad.download.** { *;}
+-keep class com.kwai.filedownloader.** { *;}
+# sdk
+-keep class com.bun.miitmdid.** { *; }
+-keep interface com.bun.supplier.** { *; }
+# asus
+-keep class com.asus.msa.SupplementaryDID.** { *; }
+-keep class com.asus.msa.sdid.** { *; }
+# freeme
+-keep class com.android.creator.** { *; }
+-keep class com.android.msasdk.** { *; }
+# huawei
+-keep class com.huawei.hms.ads.** { *; }
+-keep interface com.huawei.hms.ads.** {*; }
+# lenovo
+-keep class com.zui.deviceidservice.** { *; }
+-keep class com.zui.opendeviceidlibrary.** { *; }
+# meizu
+-keep class com.meizu.flyme.openidsdk.** { *; }
+# nubia
+-keep class com.bun.miitmdid.provider.nubia.NubiaIdentityImpl { *; }
+# oppo
+-keep class com.heytap.openid.** { *; }
+# samsung
+-keep class com.samsung.android.deviceidservice.** { *; }
+# vivo
+-keep class com.vivo.identifier.** { *; }
+# xiaomi
+-keep class com.bun.miitmdid.provider.xiaomi.IdentifierManager { *; }
+# zte
+-keep class com.bun.lib.** { *; }
+# coolpad
+-keep class com.coolpad.deviceidsupport.** { *; }
+# ---------掌酷 SDK--------------
+-keep class com.wrapper.ZkViewSDK {
+ public <fields>;
+ public <methods>;
+}
+-keep class com.wrapper.ZkViewSDK$ActionCallBack {
+ public <fields>;
+ public <methods>;
+}
+# 保留枚举类不被混淆
+-keepclassmembers enum * {
+ public static **[] values();
+ public static ** valueOf(java.lang.String);
+}
+-keep class com.wrapper.ZkViewSDK$KEY {
+ public <fields>;
+ public <methods>;
+}
+-keep class com.wrapper.ZkViewSDK$Event {
+ public <fields>;
+ public <methods>;
+}
+-keeppackagenames com.zk.**
+# ---------掌酷 SDK--------------
+#huawei
+-keep class com.huawei.openalliance.ad.** { *; }
+-keep class com.huawei.hms.ads.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.mbridge.** {*; }
+-keep interface com.mbridge.** {*; }
+-keep class android.support.v4.** { *; }
+-dontwarn com.mbridge.**
+-keep class **.R$* { public static final int mbridge*; }
+-keep class com.qq.e.** {
+    public protected *;
+}
+-keep class android.support.v4.**{
+    public *;
+}
+-keep class android.support.v7.**{
+    public *;
+}
+-keep class MTT.ThirdAppInfoNew {
+    *;
+}
+-keep class com.tencent.** {
+    *;
+}
+-dontwarn dalvik.**
+-dontwarn com.tencent.smtt.**
+-dontwarn com.tapadn.**
+-keep class com.tapadn.** { *;}
+-dontshrink

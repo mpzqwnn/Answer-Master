@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#FF9800</color>
+    <color name="colorPrimaryDark">#F57C00</color>
+    <color name="colorAccent">#03DAC6</color>
+    
+    <!-- 添加缺失的渐变结束颜色 -->
+    <color name="orange_gradient_end">#FF9800</color>
+    
+    <!-- 主色调（统一为橙色系） -->
+    <color name="primary_color">#FF9800</color>
+    <color name="primary_dark_color">#F57C00</color>
+    <color name="primary_light_color">#FFE0B2</color>
+    
+    <!-- 灰色系列 -->
+    <color name="lightgray">#D3D3D3</color>
+    <color name="gray">#808080</color>
+    <color name="darkgray">#424242</color>
+    
+    <!-- 功能颜色 -->
+    <color name="correct_answer">#4CAF50</color>
+    <color name="wrong_answer">#F44336</color>
+    <color name="success_color">#4CAF50</color>
+    <color name="error_color">#F44336</color>
+    <color name="warning_color">#FFC107</color>
+    
+    <!-- 对话框专用颜色 -->
+    <color name="correct_green">#4CAF50</color>
+    <color name="wrong_red">#F44336</color>
+    
+    <!-- 基础颜色 -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    
+    <!-- 文本颜色 -->
+    <color name="text_color_primary">#333333</color>
+    <color name="text_color_secondary">#666666</color>
+    <color name="text_color_hint">#9E9E9E</color>
+    
+    <!-- 背景颜色 -->
+    <color name="bg_color">#F5F5F5</color>
+    <color name="bg_color_secondary">#FFFFFF</color>
+    
+    <!-- 金色系（橙色系延伸） -->
+    <color name="gold">#FFD700</color>
+    <color name="gold_light">#FFE57F</color>
+    <color name="gray_light">#CCCCCC</color>
+</resources>

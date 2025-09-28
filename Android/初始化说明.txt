@@ -1,0 +1,37 @@
+初始化说明
+注意：
+
+请参考《隐私合规指南》配置 隐私设置 进行合规操作
+需要在用户同意隐私授权后，再调用ATSDK#init()进行初始化，同时建议只在主进程且前台调用start()
+1. API说明
+1.1 ATSDK
+API	说明
+void init(Context context, String TakuAppID, String TakuAppKey)	TakuSDK的初始化方法，其中Taku AppID和Taku AppKey需要在Taku后台建立应用之后获取。
+该方法建议在Application onCreate的时候初始化，建议只在主进程调用。
+如何获取App Key?
+start()	
+TakuSDK的启动入口，该API需要在ATSDK.init方法之后调用，启动操作会在子线程执行。
+v6.2.95及以上版本，为了提高Taku统计DAU指标的准确性，强烈建议使用国内TakuSDK时增加此方法调用，建议只在主进程且前台调用。
+注意：
+1.该API只针对国内TakuSDK有效，海外TakuSDK无需再调用该API，只需调用ATSDK.init即可。
+2.v6.2.95及以上版本支持。
+
+setNetworkLogDebug(boolean debug)	设置是否有Debug日志输出。
+建议在测试阶段把它打开，方便验证广告回调状态
+请参考 Taku SDK 日志
+getSDKVersionName	获取TakuSDK的版本
+integrationChecking(Context context)	检查广告平台的集成状态，请参考 验证广告平台SDK集成
+注意：不能在提交审核的包上使用此API
+isCnSDK()	判断当前使用SDK是否为中国区
+testModeDeviceInfo(Context context, DeviceInfoCallback deviceInfoCallback)	打印当前设备的设备信息（IMEI、OAID、GAID、AndroidID等）
+ 
+
+2. 示例代码
+2.1 初始化Taku SDK
+ATSDK.init(getApplicationContext(), TakuAppID, TakuAppKey);//初始化SDK
+ATSDK.start();    //v6.2.95+，针对国内SDK，调用start启动SDK。
+调用init方法初始化SDK后，可立即进行广告的加载
+多次调用init方法，SDK不会重复初始化，只有第一次调用的init方法有效
+init方法默认只初始化Taku SDK，不会初始化广告平台的SDK
+可在初始化前进行隐私配置，隐私配置相关说明可参考国内隐私配置
+如果您的应用有使用多进程，请只在主进程中进行初始化SDK操作

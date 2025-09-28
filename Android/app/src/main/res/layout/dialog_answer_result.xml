@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/dialog_background"
+    android:gravity="center">
+
+    <!-- 修改图标和背景色 -->
+
+    <!-- 添加网赚激励提示 -->
+    <!-- <ImageView
+        android:id="@+id/dialog_icon"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/coin"
+        android:tint="@color/gold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="16dp">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="恭喜获得金币奖励："
+            android:textSize="16sp"
+            android:textColor="@color/text_color_primary" />
+            
+        <TextView
+            android:id="@+id/reward_amount_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+10"
+            android:textColor="@color/gold"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+    </LinearLayout> -->
+
+    <ImageView
+        android:id="@+id/dialog_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/ic_check_circle" />
+
+    <TextView
+        android:id="@+id/dialog_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="恭喜"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/correct_green"
+        android:layout_gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:id="@+id/dialog_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="回答正确！+10分"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:layout_marginBottom="24dp"
+        android:maxLines="3"
+        android:ellipsize="end" />
+
+    <Button
+        android:id="@+id/dialog_ok_button"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="确定"
+        android:textColor="@android:color/white"
+        android:background="@drawable/button_fresh_bg"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_gravity="center"
+        android:padding="8dp" />
+
+</LinearLayout>

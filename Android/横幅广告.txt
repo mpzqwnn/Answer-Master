@@ -1,0 +1,310 @@
+横幅广告
+1. 横幅广告介绍
+1.1 集成建议
+1.1.1 宽高设置
+可以自定义宽高，但需要与在TopOn后台配置的宽高比一致，并根据实际效果进行调整，具体实现请参考Demo。
+1.1.2 自动刷新
+默认情况下不开启，可以在TopOn后台的广告位高级设置中配置刷新时间开启或者禁止刷新。
+横幅广告的View必须添加到窗口并可见，才会触发自动刷新。
+如果广告平台有提供自动刷新功能，则建议关闭广告平台的自动刷新，只需要用TopOn提供的自动刷新就行，避免冲突导致一些不可预知的问题。
+开启自动刷新功能后，将ATBannerView添加到布局中，并保证其处于可见状态后调用一次load()方法，之后的展示和刷新都会由SDK自动执行。
+1.1.3 销毁资源
+当不再需要展示横幅广告时，从布局中移除ATBannerView，并调用ATBannerView#destroy()方法销毁当前的广告资源。
+ 
+
+2. API说明
+2.1 广告加载展示
+ATBannerView: Banner广告的加载类，同时也是一个显示Banner广告的View
+
+方法	说明
+void setPlacementId(String bannerTakuPlacementID)	设置Banner的广告位id，其中bannerTakuPlacementID是通过Taku后台创建banner广告位获取的。（必须设置）
+void loadAd()	Banner广告加载
+ 
+
+广告加载展示：
+
+ATBannerView mBannerView = new ATBannerView(BannerAdActivity.this); 
+mBannerView.setPlacementId(bannerTakuPlacementID); 
+mBannerView.loadAd();
+ 
+
+2.2 广告场景
+ATBannerView:
+
+方法	说明
+void setShowConfig(ATShowConfig showConfig)	（v6.3.10新增）设置广告场景（针对后续展示的广告）
+
+showConfig：可传入展示时的额外参数，如下1.ATShowConfig#showCustomExt(String showCustomExt)：可传入展示时自定义参数，传入的该参数将通过ATAdInfo#getShowCustomExt()返回 2.ATShowConfig#scenarioId(String scenarioId)：可传入广告场景，同setScenario(String scenario)
+ 
+
+场景示例：
+
+mBannerView.setScenario("your scenarioID");
+ 
+
+展示时传入自定义参数：
+
+Taku SDK v6.3.10及以上开始支持开发者在展示时传入自定义参数，展示时传入的自定义参数跟Load时传入的自定义参数相互独立。展示时传入自定义参数可以在Taku SDK回调信息中返回。
+
+ 
+
+2.3 横幅广告大小设置
+ATBannerView:
+
+方法	说明
+void setLocalExtra(Map	设置本地参数
+(1) Banner广告位下的各个广告源尺寸最好选择一样或者比例接近的
+
+(2) 在调用load方法加载广告之前，需要通过setLocalExtra()传入宽高大小
+
+ATBannerView mBannerView = new ATBannerView(BannerAdActivity.this); 
+mBannerView.setPlacementId(bannerTakuPlacementID); 
+int width = getResources().getDisplayMetrics().widthPixels;//定一个宽度值，比如屏幕宽度 
+int height = (int) (width / (320 / 50f));//按照比例转换高度的值 
+Map localMap = new HashMap<>(); 
+localMap.put(ATAdConst.KEY.AD_WIDTH, width); 
+localMap.put(ATAdConst.KEY.AD_HEIGHT, height); 
+mBannerView.setLocalExtra(localMap); 
+mBannerView.loadAd();
+如果使用上面代码，出现Banner有时高、有时低的情况，请使用以下示例代码对高度进行限制：
+
+int width = getResources().getDisplayMetrics().widthPixels;//定一个宽度值，比如屏幕宽度 
+int height = (int) (width / (320 / 50f));//必须跟Taku后台配置的Banner广告源宽高比例一致，假设尺寸为320x50 
+mBannerView.setLayoutParams(new FrameLayout.LayoutParams(width, height)); 
+...
+ 
+ 
+
+2.4 横幅广告移除说明
+ATBannerView:
+
+方法	说明
+destroy	Banner广告销毁（移除的时候执行）
+Banner可在以下情况进行移除
+
+回调onBannerClose()时，手动调用代码将ATBannerView从父布局中移除
+根据开发者需要，手动调用代码将ATBannerView从父布局中移除
+注意：回调OnBannerClose()时，如果不手动调用代码进行移除，将会自动刷新一次Banner广告
+
+ 
+
+2.5 广告对象
+ATBannerView:
+
+方法	说明
+checkAdStatus	获取当前广告位的状态对象 ATAdStatusInfo，ATAdStatusInfo对象的API说明见下方
+checkValidAdCaches
+查询当前广告位的所有缓存信息的ATAdInfo对象 ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+ATAdStatusInfo：广告位的状态对象
+
+方法	说明
+boolean isLoading()	判断当前广告位是否正在加载广告
+boolean isReady()	判断当前广告位是否存在可展示的广告
+getATTopAdInfo	获取当前广告位优先级最高的广告缓存信息 ATAdInfo对象
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+2.6 广告监听
+ATBannerView:
+
+方法	说明
+setBannerAdListener(ATBannerListener listener)	设置Banner广告监听回调，其中ATBannerListener是需要实现广告事件回调的接口类
+setAdDownloadListener(ATAppDownloadListener listener)	设置下载状态监听回调 listener：下载状态的事件回调监听
+目前仅支持以下平台：穿山甲
+setAdSourceStatusListener(ATAdSourceStatusListener listener)	设置广告源层级事件监听回调，其中ATAdSourceStatusListener是需要实现广告源层级事件回调的接口类见ATAdSourceStatusListener说明
+ 
+
+ATBannerListener: 是Banner广告的事件回调监听
+
+方法	说明
+void onBannerLoaded	广告加载成功回调
+void onBannerFailed(AdError error)	广告加载失败回调，可通过AdError.getFullErrorInfo()获取全部错误信息，请参考 AdError
+
+注意：禁止在此回调中执行广告的加载方法进行重试，否则会引起很多无用请求且可能会导致应用卡顿
+void onBannerShow(ATAdInfo atAdInfo)	广告展示回调
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+void onBannerClicked(ATAdInfo atAdInfo)	广告点击回调
+参数意义同上
+void onBannerClose(ATAdInfo atAdInfo)	广告关闭回调（部分广告平台有该回调）
+参数意义同上
+void onBannerAutoRefreshed(ATAdInfo atAdInfo)	广告自动刷新回调
+参数意义同上
+void onBannerAutoRefreshFail(AdError error)	广告自动刷新失败回调
+参数意义同上
+ 
+
+监听示例：
+
+mBannerView.setBannerAdListener(new ATBannerListener() {
+    @Override
+    public void onBannerLoaded() { 
+    }
+
+    @Override
+    public void onBannerFailed(AdError adError) {
+        //注意：禁止在此回调中执行广告的加载方法进行重试，否则会引起很多无用请求且可能会导致应用卡顿
+        //AdError，请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_test?id=aderror
+        Log.e(TAG, "onBannerFailed:" + adError.getFullErrorInfo());
+    }
+
+    @Override
+    public void onBannerClicked(ATAdInfo atAdInfo) {
+    }
+
+    @Override
+    public void onBannerShow(ATAdInfo atAdInfo) {
+        //ATAdInfo可区分广告平台以及获取广告平台的广告位ID等
+        //请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_sdk_callback_access?id=callback_info
+
+    }
+
+    @Override
+    public void onBannerClose(ATAdInfo atAdInfo) {
+          if (mBannerView != null && mBannerView.getParent() != null) {
+                ((ViewGroup) mBannerView.getParent()).removeView(mBannerView);
+          }
+    }
+
+    @Override
+    public void onBannerAutoRefreshed(ATAdInfo atAdInfo) {
+    }
+
+    @Override
+    public void onBannerAutoRefreshFail(AdError adError) {
+        //AdError：https://docs.takuad.com/#/zh-cn/android/android_doc/android_test?id=aderror
+        Log.e(TAG, "onBannerAutoRefreshFail:" + adError.getFullErrorInfo());
+    }
+});
+ 
+ 
+
+ATBannerExListener： 继承自ATBannerListener，方法同ATBannerListener，额外回调说明如下：
+
+方法	说明
+void onDeeplinkCallback(boolean isRefresh, ATAdInfo atAdInfo, boolean isSuccess)	deeplink回调，针对Adx、OnlineApi广告
+isRefresh：是否是自动刷新
+isSuccess：是否成功
+void onDownloadConfirm(Context context, ATAdInfo atAdInfo, View clickView, ATNetworkConfirmInfo networkConfirmInfo)	应用类广告点击下载时回调方法。
+ATNetworkConfirmInfo: 第三方广告平台提供的回调信息（目前仅有优量汇的GDTDownloadFirmInfo）
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+ATAppDownloadListener： （仅中国区SDK支持）下载状态的事件回调监听
+目前仅支持以下平台：穿山甲
+
+方法	说明
+void onDownloadStart(ATAdInfo atAdInfo, long totalBytes, long currBytes, String fileName, String appName)	开始下载回调
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+totalBytes：文件总大小（单位：字节）
+currBytes：当前已下载的大小（单位：字节）
+fileName：文件名称
+appName：文件对应的应用名称
+void onDownloadUpdate(ATAdInfo atAdInfo, long totalBytes, long currBytes, String fileName, String appName)	下载进度更新回调
+参数意义同上
+void onDownloadPause(ATAdInfo atAdInfo, long totalBytes, long currBytes, String fileName, String appName)	暂停下载回调
+参数意义同上
+void onDownloadFinish(ATAdInfo adInfo, long totalBytes, String fileName, String appName)	下载完成回调
+参数意义同上
+void onDownloadFail(ATAdInfo adInfo, long totalBytes, long currBytes, String fileName, String appName)	下载失败回调
+参数意义同上
+void onInstalled(ATAdInfo adInfo, String fileName, String appName)	Apk安装完成回调
+参数意义同上
+ 
+
+3. 示例代码
+ATBannerView mBannerView = new ATBannerView(BannerAdActivity.this);
+mBannerView.setPlacementId(bannerTakuPlacementID);
+
+int width = getResources().getDisplayMetrics().widthPixels;//定一个宽度值，比如屏幕宽度
+int height = ViewGroup.LayoutParams.WRAP_CONTENT;
+
+//如果出现Banner有时高、有时低的情况，请使用此代码
+//float ratio = 320/50f;//必须跟Taku后台配置的Banner广告源宽高比例一致，假设尺寸为320x50
+//int width = getResources().getDisplayMetrics().widthPixels;//定一个宽度值，比如屏幕宽度
+//int height = (int) (width / ratio);
+
+mBannerView.setLayoutParams(new FrameLayout.LayoutParams(width, height));
+
+frameLayout.addView(mBannerView);
+mBannerView.setBannerAdListener(new ATBannerListener() {
+    @Override
+    public void onBannerLoaded() { 
+    }
+
+    @Override
+    public void onBannerFailed(AdError adError) {
+        //注意：禁止在此回调中执行广告的加载方法进行重试，否则会引起很多无用请求且可能会导致应用卡顿
+        //AdError，请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_test?id=aderror
+        Log.e(TAG, "onBannerFailed:" + adError.getFullErrorInfo());
+    }
+
+    @Override
+    public void onBannerClicked(ATAdInfo atAdInfo) {
+    }
+
+    @Override
+    public void onBannerShow(ATAdInfo atAdInfo) {
+        //ATAdInfo可区分广告平台以及获取广告平台的广告位ID等
+        //请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_sdk_callback_access?id=callback_info
+
+    }
+
+    @Override
+    public void onBannerClose(ATAdInfo atAdInfo) {
+          if (mBannerView != null && mBannerView.getParent() != null) {
+                ((ViewGroup) mBannerView.getParent()).removeView(mBannerView);
+          }
+    }
+
+    @Override
+    public void onBannerAutoRefreshed(ATAdInfo atAdInfo) {
+    }
+
+    @Override
+    public void onBannerAutoRefreshFail(AdError adError) {
+        //AdError：https://docs.takuad.com/#/zh-cn/android/android_doc/android_test?id=aderror
+        Log.e(TAG, "onBannerAutoRefreshFail:" + adError.getFullErrorInfo());
+    }
+});
+//scenario 传入场景id后台场景管理才会有数据显示
+mBannerView.setScenario("your scenarioID");
+mBannerView.loadAd();
+详细横幅广告示例代码请参考：Demo的BannerAdActivity类
+
+ 
+4. 广告平台特殊配置说明
+4.1 Admob自适应横幅
+Taku SDK支持Admob的自适应横幅，包括自适应锚定横幅、自适应大尺寸横幅，推荐使用自适应锚定横幅。开发者需用以下代码设置自适应横幅的类型、根据哪种屏幕方向自适应以及横幅的宽度（单位：px）
+
+...
+
+Map localExtra = new HashMap<>();
+
+//since v5.7.0, Admob Adaptive banner（自适应锚定横幅、自适应大尺寸横幅）
+localExtra.put(AdmobATConst.ADAPTIVE_TYPE, AdmobATConst.ADAPTIVE_ANCHORED);//自适应锚定横幅
+//localExtra.put(AdmobATConst.ADAPTIVE_TYPE, AdmobATConst.ADAPTIVE_INLINE);//自适应大尺寸横幅
+
+localExtra.put(AdmobATConst.ADAPTIVE_ORIENTATION, AdmobATConst.ORIENTATION_CURRENT);
+//localExtra.put(AdmobATConst.ADAPTIVE_ORIENTATION, AdmobATConst.ORIENTATION_PORTRAIT);
+//localExtra.put(AdmobATConst.ADAPTIVE_ORIENTATION, AdmobATConst.ORIENTATION_LANDSCAPE);
+
+localExtra.put(AdmobATConst.ADAPTIVE_WIDTH, width);
+
+mBannerView.setLocalExtra(localExtra);
+
+mBannerView.loadAd();
+ 
+注意：当使用Admob的自适应横幅时，不能限制banner父容器的高度，示例如下：
+...
+mBannerView.setLayoutParams(new FrameLayout.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+mBannerView.loadAd();
+ 
+ 
+
+5. 关于广告平台的合规应用下载弹窗
+5.1 穿山甲
+//初始化Taku SDK之前调用此方法
+TTATInitManager.getInstance().setIsOpenDirectDownload(false)

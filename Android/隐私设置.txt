@@ -1,0 +1,853 @@
+隐私设置
+了解更多请参考 隐私合规指南
+
+ 
+
+1. 国内个性化推荐广告开关
+为遵循《个人信息保护法》相关法规，提供关闭个性化推荐广告API。
+
+目前个性化开关设置支持的广告平台：穿山甲，优量汇，快手，百度，华为，Mintegral，Sigmob 默认情况是全部开启广告个性化推荐，如果手动设置关闭之后则全部广告平台关闭个性化推荐
+
+//status：
+//ATAdConst.PRIVACY.PERSIONALIZED_ALLOW_STATUS ：开启个性化推荐 (默认)
+//ATAdConst.PRIVACY.PERSIONALIZED_LIMIT_STATUS：屏蔽个性化推荐
+int status = ATAdConst.PRIVACY.PERSIONALIZED_ALLOW_STATUS;
+ATSDK.setPersonalizedAdStatus(status);
+ 
+
+2. 设置隐私信息控制开关
+① 为了保证您的App顺利通过检测，结合当前监管关注重点，我们可以将Taku SDK的初始化放在用户同意隐私政策之后。
+
+② 如果有更高需求，可以使用以下方法进行控制，限制用户设备数据上报可能会对广告填充造成影响，请斟酌使用。
+
+ 
+
+● Taku
+(1) Taku SDK默认会收集用户的以下数据：
+
+① 公共收集数据：系统版本名、系统版本号、应用包名、应用版本名、应用版本号、设备生产商、设备型号、屏幕分辨率、移动网络代码、移动国家代码、语言、时区、User Agent、屏幕方向、网络类型、应用安装来源、加速度传感器
+
+② 中国区SDK额外收集数据：MAC地址、国际移动设备识别码（IMEI）、OAID、CPU型号信息、系统启动标识、系统更新标识、设备是否root、设备是否使用代理、设备连接WIFI的SSID、Android ID、Google Ad ID、IMSI
+
+③ 非中国区SDK额外收集数据：Google Ad ID、Android ID（v6.1.80以下版本默认收集Android ID，v6.1.80开始不再收集）
+
+(2) Taku SDK提供了API给开发者去限制这些隐私数据的上报，当开发者限制了上报的设备数据时可能会影响Taku功能的正常使用，如流量分组、交叉推广、Taku Adx等功能，请开发者谨慎设置。
+
+(3)  GDPR不同意只会收集：手机系统版本名称，屏幕方向，应用集成的TopOn SDK版本号
+
+//初始化SDK之前调用此代码限制设备隐私数据的上报，传入的信息将被限制上报
+ATSDK.deniedUploadDeviceInfo(
+    DeviceDataInfo.DEVICE_SCREEN_SIZE //屏幕分辨率
+    , DeviceDataInfo.ANDROID_ID //Android ID
+    , DeviceDataInfo.APP_PACKAGE_NAME //应用包名
+    , DeviceDataInfo.APP_VERSION_CODE //应用版本号
+    , DeviceDataInfo.APP_VERSION_NAME //应用版本名
+    , DeviceDataInfo.BRAND //设备生产商
+    , DeviceDataInfo.GAID //Google Ad ID
+    , DeviceDataInfo.LANGUAGE //语言
+    , DeviceDataInfo.MCC //移动网络代码
+    , DeviceDataInfo.MNC //移动国家代码
+    , DeviceDataInfo.MODEL //设备型号
+    , DeviceDataInfo.ORIENTATION //屏幕方向
+    , DeviceDataInfo.OS_VERSION_CODE //系统版本号
+    , DeviceDataInfo.OS_VERSION_NAME //系统版本名
+    , DeviceDataInfo.TIMEZONE //时区
+    , DeviceDataInfo.USER_AGENT //User Agent
+    , DeviceDataInfo.NETWORK_TYPE //网络类型
+    , DeviceDataInfo.INSTALLER //应用安装来源
+
+    , ChinaDeviceDataInfo.MAC //MAC地址
+    , ChinaDeviceDataInfo.IMEI //国际移动设备识别码
+    , ChinaDeviceDataInfo.OAID //OAID
+    , ChinaDeviceDataInfo.SSID//SSID
+    , ChinaDeviceDataInfo.IMSI//IMSI
+);
+(4)（v6.4.40新增）Taku SDK提供了API可以将已有的设备ID传给Taku SDK，示例：
+
+ATUserDeviceInfo atUserDeviceInfo = new ATUserDeviceInfo();
+atUserDeviceInfo.setDevGaid("提前获取Gaid后在此传入");
+atUserDeviceInfo.setDevOaid("提前获取Oaid后在此传入");
+atUserDeviceInfo.setDevImei("提前获取Imei后在此传入");
+//在taku sdk初始化之前调用
+ATSDK.setATUserDeviceInfo(atUserDeviceInfo);
+ 
+
+● 穿山甲
+TTATInitManager.getInstance().setTtCustomController(new TTCustomController() {
+    /**
+     * 是否允许穿山甲SDK主动使用地理位置信息
+     *
+     * @return true可以获取，false禁止获取。默认为true
+     */
+    @Override
+    public boolean isCanUseLocation() {
+        return super.isCanUseLocation();
+    }
+    /**
+     * 当isCanUseLocation=false时，可传入地理位置信息，穿山甲sdk使用您传入的地理位置信息
+     *
+     * @return 地理位置参数
+     */
+    @Override
+    public LocationProvider getTTLocation() {
+        return super.getTTLocation();
+    }
+
+    /**
+     * 是否允许穿山甲SDK主动获取设备上应用安装列表的采集权限
+     *
+     * @return true可以使用，false禁止使用。默认为true
+     */
+    @Override
+    public boolean alist() {
+        return super.alist();
+    }
+
+    /**
+     * 是否允许穿山甲SDK主动使用手机硬件参数，如：imei
+     *
+     * @return true可以使用，false禁止使用。默认为true
+     */
+    @Override
+    public boolean isCanUsePhoneState() {
+        return super.isCanUsePhoneState();
+    }
+
+    /**
+     * 当isCanUsePhoneState=false时，可传入imei信息，穿山甲sdk使用您传入的imei信息
+     *
+     * @return imei信息
+     */
+    @Override
+    public String getDevImei() {
+        return super.getDevImei();
+    }
+
+    /**
+     * 是否允许穿山甲SDK主动使用ACCESS_WIFI_STATE权限
+     *
+     * @return true可以使用，false禁止使用。默认为true
+     */
+    @Override
+    public boolean isCanUseWifiState() {
+        return super.isCanUseWifiState();
+    }
+
+    /**
+     * 可传入Mac信息，穿山甲sdk使用您传入的Mac信息
+     *
+     * @return Mac信息
+     */
+    @Override
+    public String getMacAddress() {
+        return super.getMacAddress();
+    }
+
+    /**
+     * 是否允许穿山甲SDK主动使用WRITE_EXTERNAL_STORAGE权限
+     *
+     * @return true可以使用，false禁止使用。默认为true
+     */
+    @Override
+    public boolean isCanUseWriteExternal() {
+        return super.isCanUseWriteExternal();
+    }
+
+    /**
+     * 开发者可以传入oaid
+     *  信通院OAID的相关采集&mdash;&mdash;如何获取OAID：
+     1. 移动安全联盟官网http://www.msa-alliance.cn/
+     2. 信通院统一SDK下载http://msa-alliance.cn/col.jsp?id=120
+     * @return oaid
+     */
+    @Override
+    public String getDevOaid() {
+        return super.getDevOaid();
+    }
+});
+ 
+
+● 优量汇
+//应用后台禁用安装监听开关：
+Map<String,Boolean> params = new HashMap<>();
+params.put("hieib", false);
+GlobalSetting.setConvOptimizeInfo(params);
+
+GDTATInitManager.getInstance().setGDTATCustomController(new GDTATCustomController() {
+    /*
+    * 用户是否同意隐私政策，默认为true
+    * */
+    @Override
+    public boolean getAgreePrivacyStrategy() {
+        return super.getAgreePrivacyStrategy();
+    }
+});
+ /* * 通过此方法传入地理位置信息或微信openid信息 * */
+GlobalSetting.setExtraUserData(Map extraUserData);
+ /* * 通过此方法屏蔽优量汇SDK获取设备上应用安装列表 * */
+GlobalSetting.setEnableCollectAppInstallStatus(false)；
+ 
+
+● 快手
+KSATInitManager.getInstance().setKSATCustomController(new KSATCustomController() {
+    /*
+    * 是否允许快手SDK主动使用ICCID，默认true
+    * */
+    @Override
+    public boolean getCanReadICCID() {
+        return super.getCanReadICCID();
+    }
+
+    /*
+     * 是否允许快手SDK主动使用Mac地址，默认true
+     * */
+    @Override
+    public boolean getCanReadMacAddress() {
+        return super.getCanReadMacAddress();
+    }
+    /*
+     * 是否允许快手SDK主动使用附近wifi列表，默认true
+     * */
+    @Override
+    public boolean getCanReadNearbyWifiList() {
+        return super.getCanReadNearbyWifiList();
+    }
+    /*
+    * 更多的隐私数据开光
+    * 参考文档：https://p1-web.adkwai.com/udata/pkg/KS-Android-KSAdSDk/doc/4701b963d40a77bc0f45fd71d30b57da352.pdf
+    * 下的&ldquo;3.5 隐私信息控制开关&rdquo;说明
+    * */
+    @Override
+    public KsCustomController getKsCustomeController() {
+        return super.getKsCustomeController();
+    }
+});
+ 
+
+● 百度
+//(v6.4.19及以上)应用后台禁用安装监听开关：
+BDAdConfig.Builder bdAdConfigBuilder = new BDAdConfig.Builder();
+bdAdConfigBuilder.putExtraParam("pk_change_rc","false");
+bdAdConfigBuilder.putExtraParam("mi_market_rc","false");
+BaiduATInitManager.getInstance().setBDAdConfigBuilder(bdAdConfigBuilder);
+
+BaiduATInitManager.getInstance().setBaiduATCustomController(new BaiduATCustomController() {
+    /*
+     * 允许百度SDK可以获取设备id，如imei
+     * */
+    @Override
+    public boolean getPermissionReadDeviceID() {
+        return super.getPermissionReadDeviceID();
+    }
+
+    /*
+     * 允许百度SDK可以使用定位权限
+     * */
+    @Override
+    public boolean getPermissionLocation() {
+        return super.getPermissionLocation();
+    }
+    /*
+     * 允许百度SDK可以使用存储空间
+     * */
+    @Override
+    public boolean getPermissionStorage() {
+        return super.getPermissionStorage();
+    }
+
+    /*
+     * 允许百度SDK可以使用获取应用安装列表权限
+     * */
+    @Override
+    public boolean getPermissionAppList() {
+        return super.getPermissionAppList();
+    }
+
+    /*
+     * 允许百度SDK可以使用OAID
+     * */
+    @Override
+    public boolean getPermissionOAID() {
+        return super.getPermissionOAID();
+    }
+
+    /*
+     * 允许百度SDK可以使用设备信息
+     * */
+    @Override
+    public boolean getPermissionDeviceInfo() {
+        return super.getPermissionDeviceInfo();
+    }
+
+    /*
+     * 设置百度SDK是否允许获取APP更新权限
+     * */
+    @Override
+    public boolean getPermissionAppUpdate() {
+        return super.getPermissionAppUpdate();
+    }
+
+    /*
+     * 设置百度SDK是否允许获取运行中的APP权限
+     * */
+    @Override
+    public boolean getPermissionRunningApp() {
+        return super.getPermissionRunningApp();
+    }
+});
+ 
+
+● 游可盈
+KlevinATInitManager.getInstance().setKlevinCustomController(new KlevinCustomController() {
+    /**
+     * 是否允许SDK采集地理位置信息
+     * @return true: SDK采集位置信息，false: SDK不获取位置信息。默认为true
+     */
+    public boolean isCanUseLocation() {
+        return true;
+    }
+    /**
+     * 当isCanUseLocation为false时，APP可传入地理位置信息，游可赢SDK使用您传入的地理位置信息
+     * @return 地理位置参数
+     */
+    public Location getLocation() {
+        return null;
+    }
+    /**
+     * 是否允许SDK采集手机硬件参数，如：IMEI
+     * @return true: SDK采集IMEI，false: SDK不采集IMEI。默认为true
+     */
+    public boolean isCanUsePhoneState() {
+        return true;
+    }
+    /**
+     * isCanUsePhoneState为false时，开发者可传入IMEI信息，游可赢SDK使用您传入的IMEI信息，SDK内部不采集。
+     * @return IMEI信息
+     */
+    public String getDevImei() {
+        return null;
+    }
+    /**
+     * 是否允许SDK主动使用ACCESS_WIFI_STATE权限
+     * @return true: 可以使用，false: 禁止使用。默认为true
+     */
+    public boolean isCanUseWifiState() {
+        return true;
+    }
+    /**
+     *  开发者可以传入oaid
+     *  信通院OAID的相关采集&mdash;&mdash;如何获取OAID：
+     1. 移动安全联盟官网http://www.msa-alliance.cn/
+     2. 信通院统一SDK下载http://msa-alliance.cn/col.jsp?id=120
+     * @return oaid
+     */
+    public String getDevOaid() {
+        return null;
+    }
+});
+ 
+
+● TapTap
+TapATInitManager.getInstance().setTapAdCustomController(new TapAdCustomController() {
+            // 是否允许 SDK 主动使用地理位置信息
+            @Override
+            public boolean isCanUseLocation() {
+                return true;
+            }
+
+            // 当 isCanUseLocation=false 时，可传入地理位置信息，TapAd 使用您传入的地理位置信息
+            @Override
+            public TapAdLocation getTapAdLocation() {
+                return null;
+            }
+
+            // 是否允许 SDK 主动使用手机硬件参数，如 imei
+            @Override
+            public boolean isCanUsePhoneState() {
+                return true;
+            }
+
+            // 当 isCanUsePhoneState=false 时，可传入 imei 信息，TapAd 使用您传入的 imei 信息
+            @Override
+            public String getDevImei() {
+                return null;
+            }
+
+            // 是否允许 SDK 主动使用 ACCESS_WIFI_STATE 权限
+            @Override
+            public boolean isCanUseWifiState() {
+                return true;
+            }
+
+            // 是否允许 SDK 主动使用 WRITE_EXTERNAL_STORAGE 权限
+            @Override
+            public boolean isCanUseWriteExternal() {
+                return true;
+            }
+
+            // 开发者可以传入 oaid
+            // 信通院 OAID 的相关采集&mdash;&mdash;如何获取 OAID：
+            // 1. 移动安全联盟官网 http://www.msa-alliance.cn/
+            // 2. 信通院统一 SDK 下载 http://msa-alliance.cn/col.jsp?id=120
+            @Override
+            public String getDevOaid() {
+                return null;
+            }
+
+            // 是否允许 SDK 主动获取设备上应用安装列表的采集权限
+            @Override
+            public boolean alist() {
+                return true;
+            }
+
+            // 是否允许 SDK 主动获取 ANDROID_ID
+            @Override
+            public boolean isCanUseAndroidId() {
+                return true;
+            }
+
+            @Override
+            public CustomUser provideCustomUser() {
+                return null;
+            }
+        });
+ 
+
+● 京媒
+JADATInitManager.getInstance().setJADPrivateController(new JADPrivateController() {
+            /**
+             * 开发者可以传入oaid
+             *
+             * @return oaid
+             */
+            @Override
+            public String getOaid() {
+                return null;
+            }
+
+            /**
+             * 是否允许SDK主动使用地理位置信息
+             *
+             * @return true可以获取，false禁止获取。默认为true
+             */
+            @Override
+            public boolean isCanUseLocation() {
+                return true;
+            }
+
+            /**
+             * 当isCanUseLocation=false时，可传入地理位置信息，sdk使用您传入的地理位置信息
+             *
+             * @return 地理位置参数
+             */
+            @Override
+            public JADLocation getLocation() {
+                return new JADLocation(-1.0, -1.0, -1.0);
+            }
+
+            /**
+             * 是否允许SDK主动使用手机硬件参数，如：imei
+             *
+             * @return true可以使用，false禁止使用。默认为true
+             */
+            @Deprecated
+            public boolean isCanUsePhoneState() {
+                return false;
+            }
+
+            /**
+             * 当 isCanUsePhoneState=false 时，
+             * 可传入 imei 信息，sdk使用您传入的 imei 信息
+             *
+             * @return imei信息
+             */
+            @Override
+            public String getImei() {
+                return "";
+            }
+
+            /**
+             * 是否允许SDK主动使用IP信息
+             * @return true可以使用，false禁止使用。默认为true
+             */
+            @Override
+            public boolean isCanUseIP() {
+                return true;
+            }
+
+            /**
+             * 当 isCanUseIP=false 时，
+             * 可传入 IP 信息，SDK使用您传入的 IP 信息
+             *
+             * @return IP
+             */
+            @Override
+            public String getIP() {
+                return "0.0.0.0";
+            }
+        });
+ 
+
+● 趣盟
+ QMATInitManager.getInstance().setQMCustomControl(new QMCustomControl() {
+            @Override
+            public String getDevImei() {
+                return super.getDevImei();
+            }
+
+            @Override
+            public String getDevImsi() {
+                return super.getDevImsi();
+            }
+
+            @Override
+            public String getAndroidId() {
+                return super.getAndroidId();
+            }
+
+            @Override
+            public String getMacAddress() {
+                return super.getMacAddress();
+            }
+
+            @Override
+            public boolean isCanUsePhoneState() {
+                return super.isCanUsePhoneState();
+            }
+
+            @Override
+            public boolean isCanUseAppList() {
+                return super.isCanUseAppList();
+            }
+
+            @Override
+            public boolean isCanUseAndroidId() {
+                return super.isCanUseAndroidId();
+            }
+
+            @Override
+            public List getAppList() {
+                return super.getAppList();
+            }
+
+            @Override
+            public String getOaid() {
+                return super.getOaid();
+            }
+
+            @Override
+            public boolean isCanUseOaid() {
+                return super.isCanUseOaid();
+            }
+
+            @Override
+            public IQLocation getQLocation() {
+                return super.getQLocation();
+            }
+        });
+● oppo
+OppoATInitManager.getInstance().setCustomController(new MobCustomController() {
+            @Override
+            public String getDevImei() {
+                return super.getDevImei();
+            }
+
+            @Override
+            public boolean isCanUseLocation() {
+                return super.isCanUseLocation();
+            }
+
+            @Override
+            public LocationProvider getLocation() {
+                return super.getLocation();
+            }
+
+            @Override
+            public boolean isCanUsePhoneState() {
+                return super.isCanUsePhoneState();
+            }
+
+            @Override
+            public boolean isCanUseAndroidId() {
+                return super.isCanUseAndroidId();
+            }
+
+            @Override
+            public String getAndroidId() {
+                return super.getAndroidId();
+            }
+
+            @Override
+            public boolean isCanUseWifiState() {
+                return super.isCanUseWifiState();
+            }
+
+            @Override
+            public String getMacAddress() {
+                return super.getMacAddress();
+            }
+
+            @Override
+            public boolean isCanUseWriteExternal() {
+                return super.isCanUseWriteExternal();
+            }
+
+            @Override
+            public boolean alist() {
+                return super.alist();
+            }
+        });
+● vivo
+VivoATInitManager.getInstance().setCustomController(new VCustomController() {
+            @Override
+            public boolean isCanUseLocation() {
+                return super.isCanUseLocation();
+            }
+
+            @Override
+            public VLocation getLocation() {
+                return super.getLocation();
+            }
+
+            @Override
+            public boolean isCanUsePhoneState() {
+                return super.isCanUsePhoneState();
+            }
+
+            @Override
+            public String getImei() {
+                return super.getImei();
+            }
+
+            @Override
+            public boolean isCanUseWriteExternal() {
+                return super.isCanUseWriteExternal();
+            }
+
+            @Override
+            public boolean isCanPersonalRecommend() {
+                return super.isCanPersonalRecommend();
+            }
+
+            @Override
+            public boolean isCanUseImsi() {
+                return super.isCanUseImsi();
+            }
+
+            @Override
+            public boolean isCanUseApplist() {
+                return super.isCanUseApplist();
+            }
+
+            @Override
+            public boolean isCanUseAndroidId() {
+                return super.isCanUseAndroidId();
+            }
+
+            @Override
+            public boolean isCanUseMac() {
+                return super.isCanUseMac();
+            }
+
+            @Override
+            public boolean isCanUseIp() {
+                return super.isCanUseIp();
+            }
+
+            @Override
+            public String getOaid() {
+                return super.getOaid();
+            }
+        });
+● 米盟
+MimoATInitManager.getInstance().setMimoCustomController(new MimoCustomController() {
+            @Override
+            public boolean isCanUseLocation() {
+                return super.isCanUseLocation();
+            }
+
+            @Override
+            public MimoLocation getMimoLocation() {
+                return super.getMimoLocation();
+            }
+
+            @Override
+            public boolean isCanUseWifiState() {
+                return super.isCanUseWifiState();
+            }
+
+            @Override
+            public boolean alist() {
+                return super.alist();
+            }
+        });
+● 美数
+MsATInitManager.getInstance().setCustomController(new MSAdConfig.CustomController() {
+         @Override
+         public String getOaid() {
+            return super.getOaid();
+         }
+
+         @Override
+         public boolean isCanUseLocation() {
+            return super.isCanUseLocation();
+         }
+
+         @Override
+         public LocationProvider getTTLocation() {
+            return super.getTTLocation();
+         }
+
+         @Override
+         public Location getLocation() {
+            return super.getLocation();
+         }
+
+         @Override
+         public boolean isCanUsePhoneState() {
+            return super.isCanUsePhoneState();
+         }
+
+         @Override
+         public boolean isCsjUsePhoneState() {
+            return super.isCsjUsePhoneState();
+         }
+
+         @Override
+         public String getDevImei() {
+            return super.getDevImei();
+         }
+
+         @Override
+         public boolean isCanUseImsi() {
+            return super.isCanUseImsi();
+         }
+
+         @Override
+         public boolean isCanUseWifiState() {
+            return super.isCanUseWifiState();
+         }
+
+         @Override
+         public String getMacAddress() {
+            return super.getMacAddress();
+         }
+
+         @Override
+         public boolean isCanUseAndroidId() {
+            return super.isCanUseAndroidId();
+         }
+
+         @Override
+         public String getAndroidId() {
+            return super.getAndroidId();
+         }
+
+         @Override
+         public boolean canUseMacAddress() {
+            return super.canUseMacAddress();
+         }
+
+         @Override
+         public boolean canUseNetworkState() {
+            return super.canUseNetworkState();
+         }
+
+         @Override
+         public boolean canUseStoragePermission() {
+            return super.canUseStoragePermission();
+         }
+
+         @Override
+         public boolean canReadInstalledPackages() {
+            return super.canReadInstalledPackages();
+         }
+
+         @Override
+         public boolean isCanUsePermissionRecordAudio() {
+            return super.isCanUsePermissionRecordAudio();
+         }
+      });
+● 阿里妈妈
+TanxATInitManager.getInstance().setCustomController(new TanxATCustomController() {
+            @Override
+            public String getImei() {
+                return super.getImei();
+            }
+
+            @Override
+            public String getOaid() {
+                return super.getOaid();
+            }
+
+            @Override
+            public boolean oaidSwitch() {
+                return super.oaidSwitch();
+            }
+
+            @Override
+            public boolean imeiSwitch() {
+                return super.imeiSwitch();
+            }
+
+            @Override
+            public boolean idAllSwitch() {
+                return super.idAllSwitch();
+            }
+        });
+3. 国内下载类广告二次弹窗确认
+在合规的场景，下载类广告需要在下载前提示用户，用户确认后才可以开始下载。
+
+在广告播放中，点击触发广告下载时，开发者需要将获取应用名称、版本等相关信息进行弹窗提示用户是否确认进行下载。
+
+适用广告类型：所有广告类型
+
+适用广告平台有：优量汇、穿山甲、快手（需要联系快手开通功能）、Mintegral国内（需要联系Mintegral开通功能）、Sigmob（需要联系Sigmob开通功能）、游可赢（下载类广告会自动弹窗，如果要关闭功能，需要联系三方关闭）
+
+ 
+
+3.1 优量汇
+可以联系优量汇申请（建议），或者自行通过代码设置
+
+3.1.1 代码设置二次弹窗确认
+① 若开发者申请二次弹窗权限确认成功后，无需代码设置。
+
+② 使用代码设置需要开发者自己绘制弹窗并提示用户是否确认进行下载
+
+③ 开启之后一定要处理ATSplashExListener里的onDownloadConfirm逻辑，否则会出现点击无响应
+
+以开屏广告为例，示例代码如下：
+
+ATSplashAd splashAd = new ATSplashAd(this, placementId, atMediationRequestInfo, new ATSplashExListener() {
+            @Override
+            public void onDownloadConfirm(Context context, ATAdInfo adInfo, ATNetworkConfirmInfo networkConfirmInfo) {
+
+                    if (networkConfirmInfo instanceof GDTDownloadFirmInfo) {
+                     //二次弹窗处理，DownloadApkConfirmDialogWebView是绘制二次确认弹窗类，具体需要开发者自己渲染
+                    new DownloadApkConfirmDialogWebView(context, ((GDTDownloadFirmInfo) networkConfirmInfo).appInfoUrl, ((GDTDownloadFirmInfo) networkConfirmInfo).confirmCallBack).show();
+                    }
+            }
+           ....
+      }, 5000);
+Map localMap = new HashMap<>();
+localMap.put(ATAdConst.KEY.AD_WIDTH, layoutParams.width);
+localMap.put(ATAdConst.KEY.AD_HEIGHT, layoutParams.height);
+
+// 开启应用类广告点击后二次弹窗确认下载（设置为false时关闭）
+localMap.put(ATAdConst.KEY.AD_CLICK_CONFIRM_STATUS, true); 
+
+splashAd.setLocalExtra(localMap);
+GDTDownloadFirmInfo API说明：
+
+变量	说明
+scenes	下载发生的场景，ApkDownloadComplianceInterface定义的场景常量：SCENES_AD_OR_NATIVE_LANDING_PAGE（表明下载的场景是点击广告本身，或者原生落地页），SCENES_WEB_LANDING_PAGE（表明下载的场景是点击落地页）
+appInfoUrl	将要下载的应用信息的url地址
+confirmCallBack	开发者通过这个callBack通知sdk是继续下载还是取消下载。onConfirm：确认下载；onCancel：取消下载
+4. 是否允许SDK开启（摇一摇、扭一扭、滑一滑）广告
+List<String> networkFirmIdList = new ArrayList<>();
+// 传入指定广告平台的平台id
+// networkFilmIdList.add("network_firm_id");
+//除了传ALLOW_NETWORK的时候需要传networkFirmIdList ，其他三种都不需要传
+//控制类型:(FORBID_ALL全部禁止、ALLOW_ALL全部允许、ALLOW_NETWORK允许List里面的渠道开启,其他渠道禁止、DEFAULT_NETWORK全部走渠道的默认值)
+//v6.5.09+ 建议初始化后加载前调用
+ATSDKGlobalSetting.setShakeControl(ATSDKGlobalSetting.SHAKE_TYPE.ALLOW_NETWORK,networkFirmIdList);

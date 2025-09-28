@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 夜间模式尺寸（可以与日间模式相同，或根据需要调整） -->
+    <dimen name="status_bar_height">24dp</dimen>
+    <dimen name="login_button_margin_top">80dp</dimen>
+    <dimen name="card_padding">24dp</dimen>
+</resources>

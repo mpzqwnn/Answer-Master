@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/orange_gradient_end"
+    tools:context=".QuizActivity">
+
+    <!-- 包含通用背景装饰 -->
+    <include layout="@layout/include_background_decorations" />
+
+    <!-- 主内容布局 -->
+    <LinearLayout
+        android:id="@+id/main_content_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="visible">
+        
+        <!-- 横幅广告容器 - 设置固定高度以确保广告可见 -->
+        <LinearLayout
+            android:id="@+id/banner_ad_container"
+            android:layout_width="match_parent"
+            android:layout_height="80dp" 
+            android:orientation="vertical" 
+            android:visibility="visible" />
+
+        <!-- 在用户信息栏下方添加网赚组件 -->
+        <!-- <LinearLayout
+            android:id="@+id/earn_money_component"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/orange_gradient_end"
+            android:padding="12dp" 
+            android:gravity="center"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:radius="20dp"
+            android:elevation="4dp">
+            
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                
+                <TextView
+                    android:id="@+id/earn_money_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="今日已赚："
+                    android:textColor="@color/text_color_primary"
+                    android:textSize="14sp" />
+                    
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/earn_money_label"
+                    android:text="0金币"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
+                
+            <Button
+                android:id="@+id/withdraw_button"
+                android:layout_width="80dp"
+                android:layout_height="36dp"
+                android:text="提现"
+                android:textSize="14sp"
+                android:textColor="@color/white"
+                android:background="@drawable/withdraw_button_fresh_bg"
+                android:elevation="2dp"
+                android:stateListAnimator="@null" />
+        </LinearLayout> -->
+
+        <!-- 顶部用户信息和状态栏 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp">
+            
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                
+                <ImageView
+                    android:id="@+id/avatar_image"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:src="@drawable/avatar_placeholder"
+                    android:background="@drawable/avatar_border"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:onClick="showSettingsPopup" />
+                    
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/avatar_image"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="12dp"
+                    android:orientation="vertical">
+                    
+                    <TextView
+                        android:id="@+id/user_name_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="用户名"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="10sp"
+                        android:autoSizeMaxTextSize="14sp"
+                        android:autoSizeStepGranularity="1sp" />
+
+                    <TextView
+                        android:id="@+id/user_mobile_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="#FFBBBBBB"
+                        android:textSize="12sp"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="8sp"
+                        android:autoSizeMaxTextSize="12sp"
+                        android:autoSizeStepGranularity="1sp" />
+                </LinearLayout>
+            </RelativeLayout>
+            
+            <!-- 音乐按钮区域 -->
+            <FrameLayout
+                android:layout_width="32dp"
+                android:layout_height="32dp">
+                
+                <!-- 音乐按钮 - 保持原始大小 -->
+                <ToggleButton
+        android:id="@+id/music_button"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/music_button_fresh_selector"
+        android:gravity="center"
+        android:textOn=""
+        android:textOff="" 
+        android:stateListAnimator="@anim/music_button_elevation"/>
+                
+                <!-- 音乐符号 - 确保常态下可见，点击时添加动画 -->
+                <TextView
+                    android:id="@+id/music_note"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="♫"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:gravity="center"
+                    android:elevation="8dp"
+                    android:visibility="visible"/>
+            </FrameLayout>
+                
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="right"
+                android:orientation="vertical">
+
+                <Button
+                        android:id="@+id/watch_ad_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="获取 +"
+                        android:textSize="14sp"
+                        android:textColor="@android:color/white"
+                        android:background="@drawable/ad_button_fresh_bg"
+                        android:paddingLeft="12dp"
+                        android:paddingRight="12dp"
+                        android:minWidth="80dp"
+                        android:minHeight="36dp"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="10sp"
+                        android:autoSizeMaxTextSize="14sp"
+                        android:autoSizeStepGranularity="1sp" />
+                    
+                <TextView
+                    android:id="@+id/lives_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="今日答题: 0题 历史答题: 0题"
+                    android:textColor="#FFBBBBBB"
+                    android:layout_marginTop="4dp"
+                    android:autoSizeTextType="uniform"
+                    android:autoSizeMinTextSize="8sp"
+                    android:autoSizeMaxTextSize="10sp"
+                    android:autoSizeStepGranularity="1sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+            <!-- 在题目区域上方添加任务提示 -->
+        <!-- <TextView
+            android:id="@+id/task_tip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/orange_gradient_end"
+            android:padding="12dp"
+            android:text="今日任务：再答对3题可领取双倍奖励"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:gravity="center"/> -->
+            
+        <!-- 题目区域 - 降低高度以显示更多信息流广告 -->
+        <LinearLayout
+            android:id="@+id/question_area_layout"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.5"
+            android:orientation="vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:gravity="center">
+
+            <!-- 题目内容 - 使用相对宽度而不是固定宽度 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:maxWidth="400dp"
+                android:orientation="vertical"
+                android:paddingLeft="24dp"
+                android:paddingRight="24dp">
+
+                <TextView
+                    android:id="@+id/question_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="0.25"
+                    android:background="@drawable/question_frame_new_bg"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:text="电子计算机发明于哪一年？"
+                    android:textColor="@android:color/black"
+                    android:textSize="22sp"
+                    android:autoSizeTextType="uniform"
+                    android:autoSizeMinTextSize="16sp"
+                    android:autoSizeMaxTextSize="22sp"
+                    android:autoSizeStepGranularity="1sp" 
+                    android:minHeight="60dp" />
+
+                <TextView
+                    android:id="@+id/question_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/question_title_new_bg_with_border"
+                    android:gravity="center"
+                    android:paddingLeft="24dp"
+                    android:paddingTop="8dp"
+                    android:paddingRight="24dp"
+                    android:paddingBottom="8dp"
+                    android:text="请选择正确答案"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:autoSizeTextType="uniform"
+                    android:autoSizeMinTextSize="12sp"
+                    android:autoSizeMaxTextSize="16sp"
+                    android:autoSizeStepGranularity="1sp" 
+                    android:minWidth="160dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="0.55"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <!-- 关卡和体力信息 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/level_button"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginRight="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/ad_button_fresh_bg"
+                            android:text="关卡:1"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:padding="8dp"
+                            android:minHeight="40dp"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="12sp"
+                            android:autoSizeMaxTextSize="16sp"
+                            android:autoSizeStepGranularity="1sp" />
+
+                        <Button
+                            android:id="@+id/lives_button"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/ad_button_fresh_bg"
+                            android:text="体力:0"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:padding="8dp"
+                            android:minHeight="40dp"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="12sp"
+                            android:autoSizeMaxTextSize="16sp"
+                            android:autoSizeStepGranularity="1sp" />
+                    </LinearLayout>
+
+                    <!-- 选项按钮容器 - 使用权重布局确保两个按钮大小一致 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+                        
+                        <Button
+                            android:id="@+id/option1_button"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginRight="6dp"
+                            android:background="@drawable/button_fresh_bg"
+                            app:backgroundTint="@null"
+                            android:text="1800年"
+                            android:textColor="@color/white"
+                            android:textSize="14sp"
+                            android:padding="8dp"
+                            android:gravity="center"
+                            android:maxLines="2"
+                            android:ellipsize="none"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="10sp"
+                            android:autoSizeMaxTextSize="14sp"
+                            android:autoSizeStepGranularity="1sp" />
+                    
+                        <Button
+                            android:id="@+id/option2_button"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginLeft="6dp"
+                            android:background="@drawable/button_fresh_bg"
+                            app:backgroundTint="@null"
+                            android:text="1946年"
+                            android:textColor="@color/white"
+                            android:textSize="14sp"
+                            android:padding="8dp"
+                            android:gravity="center"
+                            android:maxLines="2"
+                            android:ellipsize="none"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="10sp"
+                            android:autoSizeMaxTextSize="14sp"
+                            android:autoSizeStepGranularity="1sp" />
+                    </LinearLayout>
+                    
+                    <!-- 新增的两个选项按钮 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        
+                        <Button
+                            android:id="@+id/option3_button"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginRight="6dp"
+                            android:background="@drawable/button_fresh_bg"
+                            app:backgroundTint="@null"
+                            android:text="2000年"
+                            android:textColor="@color/white"
+                            android:textSize="14sp"
+                            android:padding="8dp"
+                            android:gravity="center"
+                            android:maxLines="2"
+                            android:ellipsize="none"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="10sp"
+                            android:autoSizeMaxTextSize="14sp"
+                            android:autoSizeStepGranularity="1sp" />
+                    
+                        <Button
+                            android:id="@+id/option4_button"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginLeft="6dp"
+                            android:background="@drawable/button_fresh_bg"
+                            app:backgroundTint="@null"
+                            android:text="2020年"
+                            android:textColor="@color/white"
+                            android:textSize="14sp"
+                            android:padding="8dp"
+                            android:gravity="center"
+                            android:maxLines="2"
+                            android:ellipsize="none"
+                            android:autoSizeTextType="uniform"
+                            android:autoSizeMinTextSize="10sp"
+                            android:autoSizeMaxTextSize="14sp"
+                            android:autoSizeStepGranularity="1sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 信息流广告容器 - 增加高度以显示更多内容 -->
+        <LinearLayout
+            android:id="@+id/native_ad_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.4"
+            android:orientation="vertical"
+            android:padding="0dp"
+            android:layout_marginTop="10dp"
+            android:clipToPadding="true"
+            android:gravity="fill">
+        </LinearLayout>
+    </LinearLayout>
+    
+    <!-- 加载中布局 - 作为覆盖层，放置在最顶层 -->
+    <RelativeLayout
+        android:id="@+id/loading_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/orange_gradient_bg"
+        android:visibility="gone"
+        android:elevation="8dp">
+            
+        <ProgressBar
+            android:id="@+id/loading_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:indeterminateTint="@android:color/white"
+            android:indeterminateTintMode="src_in" />
+            
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/loading_progress"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="16dp"
+            android:text="正在加载题目..."
+            android:textColor="@android:color/white"
+            android:textSize="18sp" />
+    </RelativeLayout>
+</RelativeLayout>

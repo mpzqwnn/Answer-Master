@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF9800" /> <!-- 保持橙色背景 -->
+            <corners android:radius="20dp" /> <!-- 保持圆角 -->
+        </shape>
+    </item>
+    <!-- 添加两侧的尖角效果 -->
+    <item android:left="-10dp" android:right="-10dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FF9800" /> <!-- 保持橙色背景 -->
+        </shape>
+    </item>
+</layer-list>

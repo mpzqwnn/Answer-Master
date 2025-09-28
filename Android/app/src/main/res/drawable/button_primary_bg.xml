@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 按钮正常状态 -->
+    <item android:state_enabled="true" android:state_pressed="false">
+        <shape>
+            <solid android:color="@color/primary_color" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <!-- 按钮按下状态 -->
+    <item android:state_enabled="true" android:state_pressed="true">
+        <shape>
+            <solid android:color="@color/primary_dark_color" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <!-- 按钮禁用状态 -->
+    <item android:state_enabled="false">
+        <shape>
+            <solid android:color="@color/lightgray" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</selector>

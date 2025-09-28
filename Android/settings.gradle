@@ -1,0 +1,75 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+// Remove the Kotlin-specific @file:Suppress annotation
+// @file:Suppress("UnstableApiUsage")
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        // 使用阿里云Maven镜像替代mavenCentral
+        maven {
+            url 'https://maven.aliyun.com/repository/public'
+        }
+
+        // 添加其他必要的仓库
+        jcenter() {
+            content {
+                includeModule("org.jacoco", "org.jacoco.agent")
+                includeModule("org.jacoco", "org.jacoco.core")
+            }
+        }
+        
+        // 保留原有的广告SDK仓库配置
+        flatDir {
+            dirs 'libs', 'app/libs', 'release_folder20250821164243/libs'
+        }
+        //Anythink(Core)
+        maven {
+            url "https://jfrog.takuad.com/artifactory/china_sdk"
+        }
+
+        //Csj
+        maven {
+            url "https://artifact.bytedance.com/repository/pangle"
+        }
+
+        //Tanx
+        maven {
+            url "https://maven.aliyun.com/repository/public"
+        }
+
+        //Mimo
+        maven {
+            url "https://repos.xiaomi.com/maven"
+            credentials {
+                username 'mimo-developer'
+                password 'AKCp8ih1PFG9tV8qaLyws67dLGZi8udFM39SfsHgihN15cgsiRvHuxj8JzFmuZjaViVeNawaA'
+            }
+        }
+
+        //JingDong
+        maven {
+            url "https://jitpack.io"
+        }
+
+        //Huawei
+        maven {
+            url "https://developer.huawei.com/repo/"
+        }
+
+        //Mintegral
+        maven {
+            url "https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_support"
+        }
+    }
+}
+
+rootProject.name = "Fortune Quiz King"
+include ':app'

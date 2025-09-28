@@ -1,0 +1,161 @@
+激励广告
+简介
+激励视频广告是指将短视频融入到app场景当中，成为app“任务”之一，用户观看短视频广告后可以得到一些应用内奖励
+
+适用场景：常见于游戏内的广告样式，多出现在游戏的复活、登录等位置，或者网服类app的一些增值服务场景。建议开发者在分析媒体属性和功能的基础上，判断是否嵌入。
+
+分类：激励视频广告样式有横版竖版之分，您可以根据需要创建对应的广告位：
+
+竖版
+横版
+ExpressRewardPortraitVideo.png	NativeRewardLandscapeVideo.png
+接入注意事项：
+
+AndroidManifest 文件中需要新增配置PortraitADActivity和LandscapeADActivity，具体可参考配置及初始化说明接入检查部分
+
+SDK给开发者的回调（RewardVideoADListener）全部执行在主线程中（异步回调）。
+
+后台会考虑根据广告请求时App横竖屏状态返回相关视频素材，而激励视频广告页面的页面横竖屏设置与展示广告时App当前页面的横竖屏设置保持一致，所以开发者需要尽量保证激励视频广告请求和广告展示两个时刻App的横竖屏状态相同，以让用户获得较好的广告体验。
+
+激励视频广告一次成功拉取的广告数据只允许展示一次。
+
+激励视频广告有过期时间，您可以选择预加载激励视频（提前调用RewardVideoAD的loadAD方法可以实现广告数据和视频素材的预加载），但是您进行广告展示时务必判断下广告数据是否已经过期，判断方法请参考 GDTUnionDemo 工程
+
+SDK不会持有广告实例（RewardVideoAD）和回调实例（RewardVideoADListener），所以需要开发者保证广告结束之前广告实例不会被回收掉，以避免回调丢失的情况
+
+主要 API
+RewardVideoAD
+com.qq.e.ads.rewardvideo.RewardVideoAD: 激励视频广告入口，用于初始化广告，加载广告数据并展示广告。
+方法名	方法介绍
+public RewardVideoAD(final Context context, final String posID, final RewardVideoADListener rewardVideoADListener, final boolean volumeOn)	激励视频广告构造函数，可指定播放时是否有声音；context 是指上下文环境，推荐传入开发者的 Activity，posID 是广告位 ID，rewardVideoADListener 指定广告状态回调接口，volumeOn为true表示有声播放，false表示静音播放。
+public RewardVideoAD(final Context context, final String posID, final RewardVideoADListener rewardVideoADListener)	激励视频广告构造函数，有声播放；参数含义同上
+loadAD()	加载激励视频广告，加载成功则调用回调RewardVideoADListener.onADLoad()，加载失败则会调用RewardVideoADListener.onError(AdError error)
+showAD()	展示激励视频广告，展示成功则调用回调RewardVideoADListener.onADShow()，展示失败则会调用RewardVideoADListener.onError(AdError error)
+getECPMLevel()	获取本条广告实时的eCMP价格层级标签，每个层级标签对应线下预定的eCPM价格范围，成功返回一个包含数字的字符串，比如“1”，无权限调用该接口或后台异常会返回空字符串
+getECPM()	获取本条广告实时的eCPM价格，单位是分
+hasShown()	判断拉取的广告是否已经展示过，一次广告请求只能展示一次。RewardVideoADListener.onADShow()回调成功调用后返回true，其他情况下返回false
+isValid()	广告是否有效，无效广告将无法展示
+getVideoDuration()	获取视频素材时长，单位毫秒
+setServerSideVerificationOptions(ServerSideVerificationOptions options)	设置服务端校验需要透传的参数，服务端校验功能介绍请参照 ServerSideVerificationOptions API 介绍
+getExtraInfo()	（4.410.1280新增）获取本条广告一些额外信息
+RewardVideoADListener
+com.qq.e.ads.rewardvideo.RewardVideoADListener： 激励视频广告加载、展示整个广告流程的回调,SDK保证所有回调均在主线程中被调用（异步回调）。
+方法名	方法介绍
+onADLoad()	广告加载成功，可在此回调后进行广告展示，展示前请使用isValid()判断广告是否有效，若无效则广告将无法展示
+onVideoCached()	视频素材缓存成功，可在此回调后进行广告展示
+onADShow()	激励视频广告页面展示，此后RewardVideoAD.hasShown()返回true
+onADExpose()	激励视频广告曝光
+onReward(Map<String, Object> map)	激励视频广告激励发放，若选择了服务端验证，可以通过 ServerSideVerificationOptions#TRANS_ID 键从 map 中获取此次交易的 id；若未选择服务端验证，则不需关注 map 参数。
+onADClick()	激励视频广告被点击
+onVideoComplete()	广告视频素材播放完毕
+onADClose()	激励视频广告被关闭
+onError(AdError error)	广告加载或展示过程中出错，AdError中包了含错误码和错误描述，具体错误码内容可参考错误码部分
+ServerSideVerificationOptions
+com.qq.e.ads.rewardvideo.ServerSideVerificationOptions： 服务端验证配置项，用于流量设置需要透传的参数
+方法名	方法介绍
+getCustomData()	获取设置的自定义数据
+getUserId()	获取设置的用户 ID
+Builder.setCustomData(String customData)	设置自定义数据
+Builder.setUserId(String userId)	设置的用户 ID
+Builder.build()	生成 ServerSideVerificationOptions 实例
+奖励触发机制
+普通类广告：激励广告一般视频时长在5-60s，30s以下的广告会在播放完毕后回调奖励验证接口，30s以上的视频会在30s左右回调奖励验证接口
+互动类广告：此类素材与播放时长无关，触发与开发者具体的交互有关（比如滑动、点击等等），开发者无须关注时机，等待奖励验证回调即可
+服务端验证说明
+当选择需要服务端验证时，开发者需要按照以上接口进行开发，并在开发者平台上填写回调URL
+服务端回调是指在用户看完视频达到奖励条件时，优量汇服务端会向开发者服务端发送一个验证请求；
+同时客户端会给出 onReward 回调，开发者根据客户收到的回调以及服务端的验证结果比对后决定是否进行奖励发放；
+因为客户端onReward 回调和服务端验证请求是同时发送的，开发者后台收到验证请求可能会有延迟或网络原因上的失败，开发者需要平衡用户体验与奖励验证
+服务端回调说明
+优量汇服务端会以GET方式请求您在开发者平台上注册的服务器回调链接，并拼接以下参数进行回传：
+
+pid=%s&appid=%s&transid=%s&userid=%s&extrainfo=%s&sig=%s
+
+字段定义	字段名称	字段类型	备注
+pid	广告位ID	string	签名
+appid	APP ID	string	
+transid	交易id	string	完成观看的唯一交易ID
+userid	用户id	string	调用SDK透传，应用对用户的唯一标识
+extrainfo	其他信息	string	调用SDK传入并透传，如无需要则为空
+sig	签名	string	签名
+优量汇服务端请求开发者服务端的URL示例：
+
+https://sdk.e.qq.com/s2s?pid=%s&appid=%s&transid=%s&userid=%s&extrainfo=%s&sig=%s
+前半部分的URL为开发者在平台填写的内容，后半部分为优量汇按照上述定义进行拼接
+
+说明： 优量汇后台向上述URL发起请求后，您会在服务端收到某个transid的请求，如果签名验证正确，那么此transid对应的曝光为有效曝光 如果拼接的回调URL无法正常请求您的服务端，优量汇后台会进行两次重试，每次重试间隔200ms
+
+签名生成方式：
+
+sig = sha256(transid:secret) 
+其中transid为交易id，secret为您在优量汇媒体平台输入服务端URL时获取到的密钥。
+
+接入代码示例
+创建广告对象
+   protected RewardVideoAD getRewardVideoAD() {
+    String editPosId = getPosId();
+    boolean volumeOn = ((CheckBox) findViewById(R.id.volume_on_checkbox)).isChecked();
+    RewardVideoAD rvad;
+    Log.d(TAG, "getRewardVideoAD: BiddingToken " + mS2sBiddingToken);
+    if (mRewardVideoAD == null || !editPosId.equals(mCurrentPosId) || volumeOn != mCurrentVolumeOn
+        || !TextUtils.isEmpty(mS2sBiddingToken)) {
+      if (!TextUtils.isEmpty(mS2sBiddingToken)) {
+        rvad = new RewardVideoAD(this, editPosId, this, volumeOn, mS2sBiddingToken);
+      } else {
+        rvad = new RewardVideoAD(this, editPosId, this, volumeOn);
+      }
+      rvad.setNegativeFeedbackListener(new NegativeFeedbackListener() {
+        @Override
+        public void onComplainSuccess() {
+          Log.i(TAG, "onComplainSuccess");
+        }
+      });
+      ServerSideVerificationOptions options = new ServerSideVerificationOptions.Builder()
+              .setCustomData("APP's custom data") // 设置激励视频服务端验证的自定义信息
+              .setUserId("APP's user id for server verify") // 设置服务端验证的用户信息
+              .build();
+      rvad.setServerSideVerificationOptions(options);
+      rvad.setLoadAdParams(DemoUtil.getLoadAdParams("reward_video"));
+      mCurrentPosId = editPosId;
+      mCurrentVolumeOn = volumeOn;
+    } else {
+      rvad = this.mRewardVideoAD;
+    }
+    return rvad;
+  }
+发起广告请求
+ protected void loadAd(){
+    if (!TextUtils.isEmpty(mBackupPosId)) {
+      mPosIdEdt.setText(mBackupPosId);
+      mBackupPosId = null;
+    }
+    // 1. 初始化激励视频广告
+    mRewardVideoAD = getRewardVideoAD();
+    mIsLoadSuccess = false;
+    // 2. 加载激励视频广告
+    mRewardVideoAD.loadAD();
+  }
+展示广告
+ public void onADLoad() {
+    ToastUtil.l("广告加载成功 ！ ");
+    if (mRewardVideoAD.getRewardAdType() == RewardVideoAD.REWARD_TYPE_VIDEO) {
+      Log.d(TAG, "eCPMLevel = " + mRewardVideoAD.getECPMLevel() + ", ECPM: " + mRewardVideoAD.getECPM()
+          + " ,video duration = " + mRewardVideoAD.getVideoDuration()
+          + ", testExtraInfo:" + mRewardVideoAD.getExtraInfo().get("mp")
+          + ", request_id:" + mRewardVideoAD.getExtraInfo().get("request_id"));
+    } else if (mRewardVideoAD.getRewardAdType() == RewardVideoAD.REWARD_TYPE_PAGE) {
+      Log.d(TAG, "eCPMLevel = " + mRewardVideoAD.getECPMLevel()
+          + ", ECPM: " + mRewardVideoAD.getECPM()
+          + ", testExtraInfo:" + mRewardVideoAD.getExtraInfo().get("mp")
+          + ", request_id:" + mRewardVideoAD.getExtraInfo().get("request_id"));
+    }
+    if (DownloadConfirmHelper.USE_CUSTOM_DIALOG) {
+      mRewardVideoAD.setDownloadConfirmListener(DownloadConfirmHelper.DOWNLOAD_CONFIRM_LISTENER);
+    }
+    reportBiddingResult(mRewardVideoAD);
+    mIsLoadSuccess = true;
+    if (mIsLoadAndShow && DemoUtil.isAdValid(true, mRewardVideoAD != null && mRewardVideoAD.isValid(), true)) {
+      mRewardVideoAD.showAD();
+      mIsLoadAndShow = false;
+    }
+  }

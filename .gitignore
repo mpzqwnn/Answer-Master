@@ -1,0 +1,119 @@
+# IDE 文件和目录
+.idea/
+.vscode/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# 操作系统生成的文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 日志文件
+*.log
+logs/
+
+# 编译输出
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.pyc
+*.pyd
+*.pyo
+__pycache__/
+
+# Android 相关忽略
+# Gradle 构建目录
+.gradle/
+build/
+*/build/
+**/build/
+
+# Android Studio 项目文件
+local.properties
+**/local.properties
+
+# 签名文件
+*.jks
+keystore.properties
+
+# AAR 文件（如果太大不建议上传，如需版本控制可移除此行）
+#*.aar
+#*.jar
+
+# 混淆配置文件（如果包含敏感信息）
+#proguard-rules.pro
+
+# 生成的APK文件
+**/release/*.apk
+**/debug/*.apk
+
+# FastAdmin 相关忽略
+/public/hot
+/public/storage
+/storage/*.key
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+.phpstorm.meta.php
+_ide_helper.php
+paijiantuan-h5/unpackage
+runtime/
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# 证书相关文件
+*.pem
+*.crt
+*.key
+*.csr
+
+# 数据库备份
+*.sql
+*.sql.gz
+*.bak
+
+# 其他
+*.swp
+*.swo
+*~
+
+# 特定于项目的目录和文件
+baidu.php
+baidu_with_path.php
+temp_cert.crt
+android_cert_guide.bat
+generate_new_certs.bat
+generate_new_certs.ps1
+add_openssl_to_path.bat
+ExtractPublicKey.class
+ExtractPublicKey.java
+get_android_cert.bat
+get_android_cert_info.ps1
+get_md5.bat
+simple_get_cert.bat
+hs_err_pid*.log
+replay_pid*.log

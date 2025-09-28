@@ -1,0 +1,68 @@
+repositories {
+    //Tanx
+    maven {
+        url "https://maven.aliyun.com/repository/public"
+    }
+
+    //Mimo
+    maven {
+        url "https://repos.xiaomi.com/maven"
+        credentials {
+                username 'mimo-developer'
+                password 'AKCp8ih1PFG9tV8qaLyws67dLGZi8udFM39SfsHgihN15cgsiRvHuxj8JzFmuZjaViVeNawaA'
+        }
+    }
+
+}
+dependencies {
+    //Support (Necessary)
+    api "com.android.support:appcompat-v7:28.0.0"
+
+    //Kuaishou
+    api "com.android.support:design:28.0.0"
+    api "com.android.support:design:28.0.0"
+
+    //Oppo
+    api "com.squareup.okio:okio:2.5.0"
+    api "android.arch.persistence:db-framework:1.1.1"
+    api "com.android.support:palette-v7:28.0.0"
+    api "org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.3.72"
+    api "androidx.recyclerview:recyclerview:1.0.0"
+    api "androidx.appcompat:appcompat:1.0.2"
+    api "com.squareup.okio:okio:2.5.0"
+    api "android.arch.persistence:db-framework:1.1.1"
+    api "androidx.palette:palette:1.0.0"
+    api "org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.3.72"
+    api "androidx.recyclerview:recyclerview:1.0.0"
+    api "androidx.appcompat:appcompat:1.0.2"
+
+    //Tanx
+    api "com.android.support.constraint:constraint-layout:2.0.4"
+    api "com.alibaba:fastjson:1.1.76.android"
+    api "com.squareup.okhttp3:okhttp:4.8.1"
+    api "com.android.support.constraint:constraint-layout:2.0.4"
+    api "com.alibaba:fastjson:1.1.76.android"
+    api "com.squareup.okhttp3:okhttp:4.8.1"
+
+    //Mimo
+    api "com.github.bumptech.glide:glide:4.9.0"
+    api "com.anythink.sdk:sdk-ads-mimo-sys-splash:1.0"
+    api "androidx.recyclerview:recyclerview:1.0.0"
+    api "com.google.code.gson:gson:2.8.4"
+    api "com.github.bumptech.glide:glide:4.9.0"
+
+    //Vivo
+    api "com.android.support:recyclerview-v7:28.0.0"
+    api "com.android.support:recyclerview-v7:28.0.0"
+
+    //TapTap
+    api "io.reactivex.rxjava2:rxjava:2.0.1"
+    api "io.reactivex.rxjava2:rxandroid:2.0.1"
+    api "com.squareup.okhttp3:okhttp:3.12.1"
+    api "com.github.bumptech.glide:glide:4.9.0"
+    api "io.reactivex.rxjava2:rxjava:2.0.1"
+    api "io.reactivex.rxjava2:rxandroid:2.0.1"
+    api "com.squareup.okhttp3:okhttp:3.12.1"
+    api "com.github.bumptech.glide:glide:4.9.0"
+
+}

@@ -1,0 +1,248 @@
+插屏广告
+1. 介绍
+1.1 集成建议
+(1) 展示广告：
+
+展示前判断isAdReady是否准备好，准备好后再调用show进行广告展示；若未准备好则发起广告加载，等待广告加载成功；如果需要在加载成功的回调 onInterstitialAdLoaded 中展示广告，必须先判断当前应用在前台才能执行展示方法，否则有可能会引起广告在应用外展示或者无法正常展示的情况；
+(2) 广告预加载：
+
+请提前调用加载方法进行广告的请求（比如在应用启动就开始加载广告），以便需要触发广告时可以快速展示
+在广告展示后，onInterstitialAdVideoStart的回调中无需isAdReady判断，直接调用load进行预加载 （有助于提升优先级比较高的广告源的展示量）
+ 
+
+2. API说明
+2.1 广告加载
+ATInterstitial: Interstitial广告的加载类
+
+方法	说明
+ATInterstitial(Context context, String interstitialTakuPlacementID)	Interstitial广告的初始化方法，其中interstitialTakuPlacementID是通过Taku后台创建插屏广告位获取的。 context：如果有集成以下平台：优量汇、sigmob、百度、ironSource、Kidoz、Maio、Tabjoy，context必须是Activity
+void setLocalExtra(Map map)	设置本地参数
+void load()	发起广告加载
+void load(Context context)	发起广告加载，开发者可通过调用此方法使用指定的Context进行广告的加载
+ 
+
+广告加载：
+
+//注意：广告对象必须要全局引用，如果广告对象是临时变量会导致广告加载过程中有可能被回收，无法接收广告事件回调
+ATInterstitial mInterstitialAd;
+
+private void loadAd() {
+    if (mInterstitialAd == null) {
+        mInterstitialAd = new ATInterstitial(this, interstitialTakuPlacementID);
+    }
+    mInterstitialAd.load();
+}
+ 
+
+2.2广告对象
+ATInterstitial:
+
+方法	说明
+checkAdStatus	获取当前广告位的状态对象 ATAdStatusInfo，ATAdStatusInfo对象的API说明见下方
+checkValidAdCaches	查询当前广告位的所有缓存信息的ATAdInfo对象 ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+ATAdStatusInfo：广告位的状态对象
+
+方法	说明
+boolean isLoading()	判断当前广告位是否正在加载广告
+boolean isReady()	判断当前广告位是否存在可展示的广告，与ATInterstitial.isAdReady()方法作用相同
+getATTopAdInfo	获取当前广告位优先级最高的广告缓存信息 ATAdInfo对象 ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+2.3广告展示
+ATInterstitial:
+
+方法	说明
+boolean isAdReady()	判断当前Interstitial是否存在可展示的广告
+void show(Activity activity)	展示Interstitial广告（建议使用）
+void show(Activity activity, ATShowConfig showConfig)	（v6.3.10新增）展示RewardedVideo广告。可通过ATShowConfig传入展示时的额外参数
+1.ATShowConfig#showCustomExt(String showCustomExt)：可传入展示时自定义参数，传入的该参数将通过ATAdInfo#getShowCustomExt()返回
+2.ATShowConfig#scenarioId(String scenarioId)：可传入广告场景，同show(Activity activity, String scenario)方法
+void entryAdScenario(String placementId, String scenarioId)	进入业务场景当前广告位缓存状态统计。其中scenario是指广告展示场景（非必传，可以直接传null），可从后台创建场景参数和使用请参考 业务场景缓存状态统计
+ 
+
+广告展示：
+
+private void showAd() {
+   /*
+     为了统计场景到达率，相关信息可查阅 "https://help.takuad.com/docs/1RWLAv"
+     在满足广告触发条件时调用“进入广告场景”方法，比如：
+     ** 广告场景是在清理结束后弹出广告，则在清理结束时调用；
+     * 1、先调用 "entryAdScenario"
+     * 2、在调用 "isAdReady" 是否可展示
+     * 3、最后调用 "show" 展示
+     * 4、scenario 传入场景id后台场景管理才会有数据显示
+     */
+    ATInterstitial.entryAdScenario("your iv placementID", "your scenarioID");
+    if (mInterstitialAd.isAdReady()) {
+        mInterstitialAd.show(activity，"your scenarioID");
+    }
+}
+ 
+
+展示时传入自定义参数：
+
+Taku SDK v6.3.10及以上开始支持开发者在展示时传入自定义参数，展示时传入的自定义参数跟Load时传入的自定义参数相互独立。展示时传入自定义参数可以在Taku SDK回调信息中返回。
+
+ 
+
+2.4 广告监听
+ATInterstitial:
+
+方法	说明
+setAdListener(ATInterstitialListener listener)	设置Interstitial广告监听回调，其中ATInterstitialListener是需要实现广告事件回调的接口类
+setAdDownloadListener(ATAppDownloadListener listener)	设置下载状态监听回调 listener：下载状态的事件回调监听 目前仅支持以下平台：穿山甲
+setAdSourceStatusListener(ATAdSourceStatusListener listener)	设置广告源层级事件监听回调，其中ATAdSourceStatusListener是需要实现广告源层级事件回调的接口类见ATAdSourceStatusListener说明
+ 
+
+ATInterstitialListener： 是Interstitial广告的事件回调监听:
+
+方法	说明
+void onInterstitialAdLoaded	广告加载成功回调
+void onInterstitialAdLoadFail(AdError error)	广告加载失败回调，可通过AdError.getFullErrorInfo()获取全部错误信息，请参考 AdError 注意：禁止在此回调中执行广告的加载方法进行重试，否则会引起很多无用请求且可能会导致应用卡顿
+void onInterstitialAdClicked(ATAdInfo atAdInfo)	广告点击，其中ATAdInfo是广告的信息对象 ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+void onInterstitialAdShow(ATAdInfo atAdInfo)	广告展示回调 建议在此回调中调用load进行广告的加载，方便下一次广告的展示 参数意义同上
+void onInterstitialAdClose(ATAdInfo atAdInfo)	广告关闭回调 参数意义同上
+void onInterstitialAdVideoStart(ATAdInfo atAdInfo)	视频广告开始播放回调 参数意义同上
+void onInterstitialAdVideoEnd(ATAdInfo atAdInfo)	视频广告播放结束回调 参数意义同上
+void onInterstitialAdVideoError(AdError error)	视频广告播放失败回调 参数意义同上
+ 
+
+广告监听：
+
+mInterstitialAd.setAdListener(new ATInterstitialListener() {
+            @Override
+            public void onInterstitialAdLoaded() {
+            }
+
+            @Override
+            public void onInterstitialAdLoadFail(AdError adError) {
+                //注意：禁止在此回调中执行广告的加载方法进行重试，否则会引起很多无用请求且可能会导致应用卡顿
+                //AdError，请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_test?id=aderror
+                Log.e(TAG, "onInterstitialAdLoadFail:" + adError.getFullErrorInfo());
+            }
+
+            @Override
+            public void onInterstitialAdClicked(ATAdInfo atAdInfo) {
+            }
+
+            @Override
+            public void onInterstitialAdShow(ATAdInfo atAdInfo) {
+                //ATAdInfo可区分广告平台以及获取广告平台的广告位ID等
+                //请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_sdk_callback_access?id=callback_info
+               //建议在此回调中调用load进行广告的加载，方便下一次广告的展示（不需要调用isAdReady()） 
+                 mInterstitialAd.load();
+            }
+
+            @Override
+            public void onInterstitialAdClose(ATAdInfo atAdInfo) {
+            }
+
+            @Override
+            public void onInterstitialAdVideoStart(ATAdInfo atAdInfo) {
+                
+            }
+
+            @Override
+            public void onInterstitialAdVideoEnd(ATAdInfo atAdInfo) {
+            }
+
+            @Override
+            public void onInterstitialAdVideoError(AdError adError) {
+                //AdError，请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_test?id=aderror
+                Log.e(TAG, "onInterstitialAdVideoError:" + adError.getFullErrorInfo());
+            }
+        });
+ 
+ 
+
+2.5 其他监听
+ATInterstitialExListener： 继承自ATInterstitialListener，方法同ATInterstitialListener，额外回调说明如下：
+
+方法	说明
+void onDeeplinkCallback(ATAdInfo adInfo, boolean isSuccess)	deeplink回调，针对Adx、OnlineApi广告 isSuccess：是否成功
+void onDownloadConfirm(Context context, ATAdInfo atAdInfo, View clickView, ATNetworkConfirmInfo networkConfirmInfo)	（v5.7.70新增）应用类广告点击下载时回调方法。 ATNetworkConfirmInfo: 第三方广告平台提供的回调信息（目前仅有优量汇的GDTDownloadFirmInfo） ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+ATAppDownloadListener： （仅中国区SDK支持）下载状态的事件回调监听 
+
+目前仅支持以下平台：穿山甲
+
+方法	说明
+void onDownloadStart(ATAdInfo atAdInfo, long totalBytes, long currBytes, String fileName, String appName)	开始下载回调 ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明 totalBytes：文件总大小（单位：字节） currBytes：当前已下载的大小（单位：字节） fileName：文件名称 appName：文件对应的应用名称
+void onDownloadUpdate(ATAdInfo atAdInfo, long totalBytes, long currBytes, String fileName, String appName)	下载进度更新回调 参数意义同上
+void onDownloadPause(ATAdInfo atAdInfo, long totalBytes, long currBytes, String fileName, String appName)	暂停下载回调 参数意义同上
+void onDownloadFinish(ATAdInfo adInfo, long totalBytes, String fileName, String appName)	下载完成回调 参数意义同上
+void onDownloadFail(ATAdInfo adInfo, long totalBytes, long currBytes, String fileName, String appName)	下载失败回调 参数意义同上
+void onInstalled(ATAdInfo adInfo, String fileName, String appName)	Apk安装完成回调 参数意义同上
+ 
+
+3. 示例代码
+//注意：广告对象必须要全局引用，如果广告对象是临时变量会导致广告加载过程中有可能被回收，无法接收广告事件回调
+ATInterstitial mInterstitialAd;
+
+private void loadAd() {
+    if (mInterstitialAd == null) {
+        mInterstitialAd = new ATInterstitial(this, interstitialTakuPlacementID);
+        mInterstitialAd.setAdListener(new ATInterstitialListener() {
+            @Override
+            public void onInterstitialAdLoaded() {
+            }
+
+            @Override
+            public void onInterstitialAdLoadFail(AdError adError) {
+                //注意：禁止在此回调中执行广告的加载方法进行重试，否则会引起很多无用请求且可能会导致应用卡顿
+                //AdError，请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_test?id=aderror
+                Log.e(TAG, "onInterstitialAdLoadFail:" + adError.getFullErrorInfo());
+            }
+
+            @Override
+            public void onInterstitialAdClicked(ATAdInfo atAdInfo) {
+            }
+
+            @Override
+            public void onInterstitialAdShow(ATAdInfo atAdInfo) {
+                //ATAdInfo可区分广告平台以及获取广告平台的广告位ID等
+                //请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_sdk_callback_access?id=callback_info
+                //建议在此回调中调用load进行广告的加载，方便下一次广告的展示（不需要调用isAdReady()） 
+                 mInterstitialAd.load();
+            }
+
+            @Override
+            public void onInterstitialAdClose(ATAdInfo atAdInfo) {
+            }
+
+            @Override
+            public void onInterstitialAdVideoStart(ATAdInfo atAdInfo) {
+               
+            }
+
+            @Override
+            public void onInterstitialAdVideoEnd(ATAdInfo atAdInfo) {
+            }
+
+            @Override
+            public void onInterstitialAdVideoError(AdError adError) {
+                //AdError，请参考 https://docs.takuad.com/#/zh-cn/android/android_doc/android_test?id=aderror
+                Log.e(TAG, "onInterstitialAdVideoError:" + adError.getFullErrorInfo());
+            }
+        });
+    }
+    mInterstitialAd.load();
+}
+private void showAd() {
+   /*
+     为了统计场景到达率，相关信息可查阅 "https://docs.takuad.com/#/zh-cn/android/NetworkAccess/scenario/scenario"
+     在满足广告触发条件时调用&ldquo;进入广告场景&rdquo;方法，比如：
+     ** 广告场景是在清理结束后弹出广告，则在清理结束时调用；
+     * 1、先调用 "entryAdScenario"
+     * 2、在调用 "isAdReady" 是否可展示
+     * 3、最后调用 "show" 展示
+     * 4、scenario 传入场景id后台场景管理才会有数据显示
+     */
+    ATInterstitial.entryAdScenario("your iv placementID", "your scenarioID");
+    if (mInterstitialAd.isAdReady()) {
+        mInterstitialAd.show(activity，"your scenarioID");
+    }
+}

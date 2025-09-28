@@ -1,0 +1,240 @@
+插屏全屏广告
+简介
+插屏全屏广告是移动广告的一种常见形式，在应用流程中弹出，当应用展示插页式广告时，用户可以选择点按广告，访问其目标网址，也可以将其关闭，返回应用。
+
+适用场景：在应用执行流程的自然停顿点，适合投放这类广告。
+
+分类：插屏全屏也分为插屏全屏图片、插屏全屏视频、奖励式插屏视频（插屏激励）。
+
+分类一：插屏全屏图文
+插屏全屏图文，是优量汇最新推出的广告形态。插屏图文广告在广告展示期间会引导用户上滑屏幕进行广告交互；5秒后展示关闭按钮，可关闭。
+
+（1）若用户5秒内与屏幕无交互，则5s后图片自动上滑展示广告落地页（如有）或打开第三方应用，为用户展示广告更多内容；
+
+（2）若用户5秒内与屏幕有交互，则图片上滑展示广告落地页（如有），帮助用户了解更多。
+
+接入效果：可提升广告填充，提升该广告位整体收益。
+
+备注说明：
+
+（1）需升级SDK至4.410及以上版本；低版本SDK将无法返回新插屏图文广告请求；
+
+（2）插屏全屏图文广告暂不支持激励回调能力；
+
+（3）建议接入【图片 + 视频】混出的插屏全屏广告位，最大化提升广告收益。
+
+适用场景：在应用执行流程的自然停顿点，适合展示这类广告。
+
+注意事项：存量广告位请勿变更接口，新建广告位均可参考下方文档接入。
+
+插屏全屏竖屏图文
+插屏全屏横屏图文
+NativeInterstitialImage1.png	NativeInterstitialImage2.png
+接口示例
+com.qq.e.ads.interstitial2.UnifiedInterstitialAD 插屏全屏图文广告入口，用于初始化并加载广告数据
+
+方法名	方法介绍
+UnifiedInterstitialAD(final Activity activity, final String posID,final UnifiedInterstitialADListener listener)	构造函数
+loadFullScreenAD()	加载全屏广告
+showFullScreenAD()	展示全屏广告
+getECPMLevel()	获取本条广告实时的eCMP价格层级标签，每个层级标签对应线下预定的eCPM价格范围，成功返回一个包含数字的字符串，比如“1”，无权限调用该接口或后台异常会返回空字符串
+isValid()	广告是否有效，无效广告将无法展示
+getAdPatternType()	获取广告样式，区分图文或是视频广告, 2: 视频，4: 图文
+com.qq.e.ads.interstitial2.UnifiedInterstitialADListener 插屏全屏广告加载、渲染、点击状态的回调
+
+方法名	方法介绍
+onNoAD(AdError error)	广告加载或展示过程中出错，AdError中包含了错误码和错误描述，具体错误码内容可参考错误码部分
+onADReceive()	插屏全屏图文广告加载完毕，此回调后才可以调用 show 方法
+onRenderSuccess()	插屏全屏图文广告，渲染成功
+onRenderFail()	插屏全屏图文广告，渲染失败
+onADOpened()	插屏全屏图文广告展开时回调
+onADExposure()	插屏全屏图文广告曝光时回调
+onADClicked()	插屏全屏图文广告点击时回调
+onADClosed()	插屏全屏图文广告关闭时回调
+接入注意事项
+插屏全屏图文广告使用方式与插屏全屏视频广告相同。
+插屏全屏图文广告时MediaListener可以设置但不会回调。
+分类二：插屏全屏视频
+插屏全屏视频广告是移动广告的一种常见形式，在应用流程中弹出，当应用展示插页式广告时，用户可以选择点按广告，访问其目标网址，也可以将其关闭，返回应用。
+
+竖版
+横版
+NativeRewardPortraitVideo.png	NativeInterstitialLandscapeVideo.png
+接口示例
+com.qq.e.ads.interstitial2.UnifiedInterstitialAD:插屏全屏视频广告入口，用于初始化并加载广告数据
+
+方法名	方法介绍
+UnifiedInterstitialAD(final Activity activity, final String posID,final UnifiedInterstitialADListener listener)	构造函数
+loadFullScreenAD()	加载全屏广告(目前只支持全屏视频广告)
+showFullScreenAD()	展示全屏广告(目前只支持全屏视频广告，展示使用loadFullScreenAD()方法加载的广告)
+getECPMLevel()	获取本条广告实时的eCMP价格层级标签，每个层级标签对应线下预定的eCPM价格范围，成功返回一个包含数字的字符串，比如“1”，无权限调用该接口或后台异常会返回空字符串
+isValid()	广告是否有效，无效广告将无法展示
+close()	（4.530.1400新增）关闭插屏全屏广告
+getAdPatternType()	获取广告样式，目前只支持AdPatternType.NATIVE_VIDEO
+setMediaListener(UnifiedInterstitialMediaListener listener)	设置监听器，监听视频广告的状态变化
+setVideoOption(VideoOption option)	**（可选方法）**指定视频广告的播放配置，配置包含：
+1. autoPlayPolicy，指定不同网络下的视频播放策略，可选项包括：AutoPlayPolicy.WIFI（WiFi 网络自动播放，4G 网络手动点击播放），AutoPlayPolicy.ALWAYS（WiFi 和4G 网络都自动播放），默认值为 AutoPlayPolicy.ALWAYS。
+2. autoPlayMuted，指定视频自动播放时是否静音，可选项包括：true（自动播放时静音），false（自动播放时有声），默认值为 true。
+注：AutoPlayPolicy.ALWAYS 的配置能够一定程度优化广告收益
+3. detailPageMuted，指定视频详情页是否静音播放，可选项包括：true（视频详情页静音播放），false（视频详情页有声播放），默认值为 false。
+setMinVideoDuration(int minVideoDuration)	设置返回视频广告的最小视频时长（闭区间，可单独设置），单位:秒 此设置会影响广告填充，请谨慎设置；支持奖励时该设置无效
+setMaxVideoDuration(int maxVideoDuration)	设置返回视频广告的最大视频时长（闭区间，可单独设置），单位:秒，合法输入为：5<=maxVideoDuration<=61. 此设置会影响广告填充，请谨慎设置；支持奖励时该设置无效
+getExtraInfo()	（4.410.1280新增）获取本条广告一些额外信息
+com.qq.e.ads.interstitial2.UnifiedInterstitialADListener：插屏全屏视频广告加载、渲染、点击状态的回调。
+方法名	方法介绍
+onNoAD(AdError error)	广告加载或展示过程中出错，AdError中包含了错误码和错误描述，具体错误码内容可参考错误码部分
+onADReceive()	插屏全屏视频广告加载完毕，此回调后才可以调用 show 方法
+onVideoCached()	插屏全屏视频视频广告，视频素材下载完成
+onRenderSuccess()	插屏全屏视频视频广告，渲染成功
+onRenderFail()	插屏全屏视频视频广告，渲染失败
+onADOpened()	插屏全屏视频广告展开时回调
+onADExposure()	插屏全屏视频广告曝光时回调
+onADClicked()	插屏全屏视频广告点击时回调
+onADClosed()	插屏全屏视频广告关闭时回调
+onADLeftApplication()	插屏全屏视频广告点击离开应用时回调
+com.qq.e.ads.interstitial2.UnifiedInterstitialMediaListener:插屏全屏视频视频广告播放状态回调接口
+
+方法名	方法介绍
+onVideoInit()	视频播放 View 初始化完成
+onVideoLoading()	视频下载中
+onVideoReady(long videoDuration)	视频播放器初始化完成，准备好可以播放了，videoDuration 是视频素材的时间长度，单位为 ms
+onVideoStart()	视频开始播放
+onVideoPause()	视频暂停
+onVideoComplete()	视频播放结束，自然播放到达最后一帧时都会触发
+onVideoError(AdError error)	视频播放时出现错误，error 对象包含了错误码和错误信息，错误码的详细内容可以参考右侧快捷导航中的「错误码」
+接入注意事项
+插屏全屏视频广告同一条广告不能重复曝光（一次load只能show一次）
+插屏全屏视频广告展示调用（showFullScreenAD）必须在ui线程内调用
+插屏全屏视频广告给开发者的回调（UnifiedInterstitialADListener）全部执行在主线程中（异步回调）
+尽量复用广告实例，不要实例化过多的广告实例
+分类三：奖励式插屏全屏视频（插屏激励）
+奖励式插屏全屏视频，是优量汇最新推出的广告形态。
+
+奖励式插屏视频在视频播放5s后展示关闭按钮，可关闭；但在关闭展示的同时，增加引导提示「再观看X秒即可获得额外奖励」：
+
+（1）用户如感兴趣，完成视频观看：开发者需针对满足观看的用户，派发额外的奖励，如系统内的金币，生命值等。
+
+（2）用户如不感兴趣，不完成视频观看：可随时点击关闭按钮，退出广告，同普通插屏全屏视频。
+
+接入效果：奖励式插屏，可延长视频播放时间，提升该广告位eCPM和整体收益。
+
+备注说明：选中该样式时，务必针对满足观看的用户，派发额外奖励，如系统内的金币，生命值等。
+
+适用场景：在应用执行流程的自然停顿点，适合展示这类广告。
+
+注意事项：存量广告位请勿变更接口，新建广告位均可参考下方文档接入。
+
+支持版本：Android SDK 4.390及以上。
+
+前5秒	后5秒
+NativeInterstitialRewardVideo1.png	NativeInterstitialRewardVideo2.png
+接口示例
+com.qq.e.ads.interstitial2.UnifiedInterstitialAD:奖励式插屏全屏视频广告入口，用于初始化并加载广告数据
+
+方法名	方法介绍
+UnifiedInterstitialAD(final Activity activity, final String posID,final UnifiedInterstitialADListener listener)	构造函数
+loadFullScreenAD()	加载全屏广告(目前只支持全屏视频广告)
+showFullScreenAD()	展示全屏广告(目前只支持全屏视频广告，展示使用loadFullScreenAD()方法加载的广告)
+getECPMLevel()	获取本条广告实时的eCMP价格层级标签，每个层级标签对应线下预定的eCPM价格范围，成功返回一个包含数字的字符串，比如“1”，无权限调用该接口或后台异常会返回空字符串
+getAdPatternType()	获取广告样式，目前只支持AdPatternType.NATIVE_VIDEO
+setMediaListener(UnifiedInterstitialMediaListener listener)	设置监听器，监听视频广告的状态变化
+setRewardListener(ADRewardListener listener)	设置奖励监听
+setVideoOption(VideoOption option)	**（可选方法）**指定视频广告的播放配置，配置包含：
+1. autoPlayPolicy，指定不同网络下的视频播放策略，可选项包括：AutoPlayPolicy.WIFI（WiFi 网络自动播放，4G 网络手动点击播放），AutoPlayPolicy.ALWAYS（WiFi 和4G 网络都自动播放），默认值为 AutoPlayPolicy.ALWAYS。
+2. autoPlayMuted，指定视频自动播放时是否静音，可选项包括：true（自动播放时静音），false（自动播放时有声），默认值为 true。
+注：AutoPlayPolicy.ALWAYS 的配置能够一定程度优化广告收益
+3. detailPageMuted，指定视频详情页是否静音播放，可选项包括：true（视频详情页静音播放），false（视频详情页有声播放），默认值为 false。
+setMinVideoDuration(int minVideoDuration)	设置返回视频广告的最小视频时长（闭区间，可单独设置），单位:秒 此设置会影响广告填充，请谨慎设置；支持奖励时该设置无效
+setMaxVideoDuration(int maxVideoDuration)	设置返回视频广告的最大视频时长（闭区间，可单独设置），单位:秒，合法输入为：5<=maxVideoDuration<=61. 此设置会影响广告填充，请谨慎设置；支持奖励时该设置无效
+isValid()	广告是否有效，无效广告将无法展示
+com.qq.e.ads.interstitial2.UnifiedInterstitialADListener：插屏全屏视频广告加载、渲染、点击状态的回调。
+方法名	方法介绍
+onNoAD(AdError error)	广告加载或展示过程中出错，AdError中包含了错误码和错误描述，具体错误码内容可参考错误码部分
+onADReceive()	插屏全屏视频广告加载完毕，此回调后才可以调用 show 方法
+onVideoCached()	插屏全屏视频视频广告，视频素材下载完成
+onRenderSuccess()	插屏全屏视频视频广告，渲染成功
+onRenderFail()	插屏全屏视频视频广告，渲染失败
+onADOpened()	插屏全屏视频广告展开时回调
+onADExposure()	插屏全屏视频广告曝光时回调
+onADClicked()	插屏全屏视频广告点击时回调
+onADClosed()	插屏全屏视频广告关闭时回调
+onADLeftApplication()	插屏全屏视频广告点击离开应用时回调
+com.qq.e.ads.interstitial2.UnifiedInterstitialMediaListener:插屏全屏视频视频广告播放状态回调接口
+
+方法名	方法介绍
+onVideoInit()	视频播放 View 初始化完成
+onVideoLoading()	视频下载中
+onVideoReady(long videoDuration)	视频播放器初始化完成，准备好可以播放了，videoDuration 是视频素材的时间长度，单位为 ms
+onVideoStart()	视频开始播放
+onVideoPause()	视频暂停
+onVideoComplete()	视频播放结束，自然播放到达最后一帧时都会触发
+onVideoError(AdError error)	视频播放时出现错误，error 对象包含了错误码和错误信息，错误码的详细内容可以参考右侧快捷导航中的「错误码」
+接入注意事项
+奖励式插屏全屏视频广告使用方式与插屏全屏视频广告相同
+设置奖励回调才可以监听到获取奖励事件
+视频素材效果优化
+对于插屏全屏视频广告位，会在新建广告位时在广告素材栏看到视频选项。需要注意以下几点：
+
+按需进行视频广告播放的个性化配置。
+需处理好Activity的运行时变更，由于视频广告可以跟随手机屏幕的方向旋转和全屏播放，请处理好 Activity 的运行时变更（最简单的方式就是在AndroidManifest 文件中给Activity，加上android:configChanges="keyboard|keyboardHidden|orientation|screenSize" 属性），不要让播放视频广告的 Activity 被销毁重建，具体代码可以参考 GDTUnionDemo。
+如果广告位支持视频广告，强烈建议在拉取广告前，调用setVideoOption设置视频广告的播放策略，有助于提高eCPM
+代码接入示例
+创建广告对象
+  private UnifiedInterstitialAD getIAD() {
+    String posId = getPosId();
+    Log.d(TAG, "getIAD: BiddingToken " + mS2sBiddingToken);
+    if (!posId.equals(currentPosId) || iad == null || !TextUtils.isEmpty(mS2sBiddingToken)) {
+      if (!TextUtils.isEmpty(mS2sBiddingToken)) {
+        iad = new UnifiedInterstitialAD(this, posId, this, null, mS2sBiddingToken);
+      } else {
+        iad = new UnifiedInterstitialAD(this, posId, this);
+      }
+      ServerSideVerificationOptions options = new ServerSideVerificationOptions.Builder()
+          .setCustomData("APP's custom data") // 设置插屏全屏视频服务端验证的自定义信息
+          .setUserId("APP's user id for server verify") // 设置服务端验证的用户信息
+          .build();
+      iad.setServerSideVerificationOptions(options);
+      iad.setLoadAdParams(DemoUtil.getLoadAdParams("full_screen_interstitial"));
+      iad.setNegativeFeedbackListener(new NegativeFeedbackListener() {
+        @Override
+        public void onComplainSuccess() {
+          Log.d(TAG,"onComplainSuccess");
+        }
+      });
+      currentPosId = posId;
+    }
+    return iad;
+  }
+发起广告请求
+  protected void loadAd() {
+    if (!TextUtils.isEmpty(mBackupPosId)) {
+      posIdEdt.setText(mBackupPosId);
+      mBackupPosId = null;
+    }
+    mLoadSuccess = false;
+    iad = getIAD();
+    setVideoOption();
+    iad.loadFullScreenAD();
+  }
+展示广告
+  public void onADReceive() {
+    mLoadSuccess = true;
+    ToastUtil.l("广告加载成功 ！ ");
+    iad.setMediaListener(this);
+    // 如果支持奖励，设置ADRewardListener接收onReward回调；图文广告暂不支持奖励
+    iad.setRewardListener(this);
+    // onADReceive之后才可调用getECPM()
+    Log.d(TAG, "onADReceive， eCPMLevel = " + iad.getECPMLevel() + ", ECPM: " + iad.getECPM()
+        + ", videoduration=" + iad.getVideoDuration()
+        + ", adPatternType=" + iad.getAdPatternType()
+        + ", testExtraInfo:" + iad.getExtraInfo().get("mp")
+        + ", request_id:" + iad.getExtraInfo().get("request_id"));
+    if (DownloadConfirmHelper.USE_CUSTOM_DIALOG) {
+      iad.setDownloadConfirmListener(DownloadConfirmHelper.DOWNLOAD_CONFIRM_LISTENER);
+    }
+    reportBiddingResult(iad);
+    if(mIsLoadAndShow && DemoUtil.isAdValid(mLoadSuccess, iad != null && iad.isValid(), true)){
+      mIsLoadAndShow = false;
+      iad.showFullScreenAD(this);
+    }
+  }

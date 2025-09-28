@@ -1,0 +1,201 @@
+SDK工程配置
+导入示例工程
+如果您是初次使用优量汇 SDK，我们建议您利用 SDK Demo 工程来了解优量汇SDK的使用规范。
+
+Android Studio
+推荐使用最新的 Android Studio 作为开发环境，通过 Import Project 的方式导入示例工程，在弹出的向导中按照 Android Studio 默认的选项，一直点 next 即可导入工程，正确编译运行
+嵌入广告SDK
+步骤1：添加 SDK 到工程中
+方式一：通过 gradle
+最新版本请查看 Maven Central 仓库
+
+  implementation 'com.qq.e.union:union:+' // 标准版SDK
+方式二：通过 aar
+请在工程文件根目录下创建一个名为 libs 的子目录，并将优量汇 SDK 的 AAR 包拷贝到 libs 目录下
+
+请在工程build.gradle中添加如下配置：
+
+  repositories {
+      flatDir {
+          dirs 'libs'
+      }
+  }
+  dependencies {
+      implementation (name:'GDTSDK.unionNormal.4.650.1520', ext:'aar')
+  }
+注：'GDTSDK.union.4.650.1520' 仅为举例，接入时请当前接入aar的文件名
+
+步骤2: 权限申请
+优量汇 SDK 建议您在AndroidManifest.xml添加以下权限声明，若您的targetSDKVersion >= 23您还需要在运行时进行动态权限申请（可参考示例工程）
+
+   <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+注意：SDK不强制校验上述权限（即:无上述权限sdk也可正常工作），但建议您申请上述权限。针对单媒体的用户，允许获取权限的，投放定向广告；不允许获取权限的用户，投放通投广告。媒体可以选择是否把上述权限提供给优量汇，并承担相应广告填充和eCPM单价下降损失的结果。
+
+步骤3: 文件兼容
+如果您打包 App 时的 targetSdkVersion >= 24
+为了让 SDK 能够正常下载、安装 App 类广告，必须按照下面的步骤做兼容性处理。
+
+在 AndroidManifest.xml 中的 Application 标签中添加 provider 标签
+
+  <provider
+      android:name="com.qq.e.comm.GDTFileProvider"
+      android:authorities="${applicationId}.gdt.fileprovider"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+       android:name="android.support.FILE_PROVIDER_PATHS"
+       android:resource="@xml/gdt_file_path" />
+  </provider>
+需要注意的是 provider 的 authorities 值为 ${applicationId}.gdt.fileprovider，对于每一个开发者而言，这个值都是不同的，${applicationId} 在代码中和 Context.getPackageName() 值相等，是应用的唯一 id。
+
+例如 Demo 示例工程中的 applicationId 为 "com.qq.e.union.demo"。
+
+步骤4: 接入检查
+此步骤用于您进行接入的自我检查，检查优量汇 SDK AAR文件中的配置和资源是否正确应用到您的项目中
+
+检查您的构建产物中优量汇 SDK AAR文件中manifest配置被正确merge
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />    <!-- 必要权限，权限会用在下载类广告安装应用时使用 -->
+
+    <application android:usesCleartextTraffic="true" >
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
+        <!-- 声明SDK所需要的组件 -->
+        <service
+            android:name="com.qq.e.comm.DownloadService"
+            android:exported="false" />
+        <!-- 请开发者注意字母的大小写，ADActivity，而不是AdActivity -->
+                <activity
+            android:name="com.qq.e.ads.ADActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:multiprocess="true"/>
+        <activity
+            android:name="com.qq.e.ads.PortraitADActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:multiprocess="true"/>
+        <activity
+            android:name="com.qq.e.ads.LandscapeADActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:screenOrientation="sensorLandscape"
+            android:multiprocess="true"/>
+        <!-- 用于激励视频可选广告的竖屏透明背景activity -->
+        <activity
+            android:name="com.qq.e.ads.RewardvideoPortraitADActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:theme="@android:style/Theme.Light.NoTitleBar"
+            android:multiprocess="true">
+            <meta-data android:name="android.notch_support" android:value="true"/>
+        </activity>
+        <!-- 用于激励视频可选广告的横屏透明背景activity -->
+        <activity
+            android:name="com.qq.e.ads.RewardvideoLandscapeADActivity"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:theme="@android:style/Theme.Light.NoTitleBar"
+            android:multiprocess="true">
+            <meta-data android:name="android.notch_support" android:value="true"/>
+        </activity>
+
+        <activity
+            android:name="com.qq.e.ads.DialogActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen"
+            android:multiprocess="true"/>
+
+    </application>
+检查您的构建产物中优量汇 SDK AAR文件中资源文件被正确应用，资源文件包括：
+
+以gdt_ic为前缀的drawable资源
+/res/xml/gdt_file_path.xml文件，文件内容如下
+<paths>
+<!-- 这个下载路径也不可以修改，必须为GDTDOWNLOAD -->
+<external-cache-path
+    name="gdt_sdk_download_path1"
+    path="com_qq_e_download" />
+<cache-path
+    name="gdt_sdk_download_path2"
+    path="com_qq_e_download" />
+</paths>
+如果您的工程中接入了资源混淆插件AndResGuard，为了保证SDK的资源可以被正常使用，需要在build.gradle中新增白名单配置，内容如下：
+
+ andResGuard {
+    // 白名单配置
+    whiteList = [
+                 "R.integer.min_screen_width_bucket",
+                 "R.style.DialogAnimationUp",
+                 "R.style.DialogAnimationRight",
+                 "R.style.DialogFullScreen",
+                 "R.drawable.gdt_*"
+                 ]
+  }
+检查您的构建产物中优量汇 SDK AAR文件中的proguard配置被正确应用
+proguard配置位于优量汇 SDK AAR文件中"/proguard.txt"，您可以通过check混淆后的您的mapping文件来判断这些配置是否生效。 比如，您可以check包名com.qq.e下类的public和protected成员是否被keep来验证优量汇 SDK AAR文件中的proguard配置被正确应用。
+
+步骤5:初始化SDK
+请在您的的 Application 类的 onCreate() 回调中调用如下方法初始化 SDK。
+
+注意：如果需要在多个进程拉取广告，每个进程都需要初始化 SDK。
+
+/*支持多进程，仅限于和 DownloadService 的不在同一进程的 Activity*/
+MultiProcessFlag.setMultiProcess(false);
+//4.560.1430之前版本
+GDTAdSdk.init(applicationContext, "您在腾讯联盟开发者平台的APPID");
+//4.560.1430及以后版本
+GDTAdSdk.initWithoutStart(applicationContext, "您在腾讯联盟开发者平台的APPID"); // 该接口不会采集用户信息
+// 调用initWithoutStart后请尽快调用start，否则可能影响广告填充，造成收入下降
+GDTAdSdk.start(new GDTAdSdk.OnStartListener() {
+        @Override
+        public void onStartSuccess() {
+          // 推荐开发者在onStartSuccess回调后开始拉广告
+        }
+
+        @Override
+        public void onStartFailed(Exception e) {
+          Log.e("gdt onStartFailed:", e.toString());
+        }
+      });
+步骤6:隐私设置（可选）
+注意：隐私信息禁用可能会影响广告定向、安装定向、广告投放等，会造成部分收入损失，建议非合规需求忽略，请务必在SDK初始化前设置，否则可能不生效
+
+禁用类别	禁用方法	影响范围
+粗略地理位置	Map<String,Boolean> params = new HashMap<>();
+params.put("cell_id", true);//false为关闭粗略地理位置获取，不设置或者设置为true为获取
+GlobalSetting.setAgreeReadPrivacyInfo(params);	影响较小，建议配置可选地理位置回传
+标识符
+android_id	Map<String,Boolean> params = new HashMap<>();
+params.put("android_id", true);//false为关闭android_id获取，不设置或者设置为true为获取
+GlobalSetting.setAgreeReadPrivacyInfo(params);	影响较小
+网络信息
+IP地址	Map<String, Boolean> params = new HashMap<>();
+params.put("mipaddr", true); //false为关闭移动网络状态下获取IP地址，不设置或者设置为true为获取
+params.put("wipaddr", true); //false为关闭WIFI状态下获取IP地址，不设置或者设置为true为获取
+GlobalSetting.setAgreeReadPrivacyInfo(params);	影响较小
+转化优化	Map<String,Boolean> params = new HashMap<>();
+params.put("soate", true);// 唤起行为能力，用于设置应用安装完成后是否显示打开应用的提示弹窗，不设置或设置为true都显示打开应用弹窗，设置为false不显示弹窗，也不会自动打开应用
+GlobalSetting.setConvOptimizeInfo(params);	影响下载安装
+步骤7: 参数设置(可选)
+注意：如需设置参数，请先设置参数，然后再使用SDK的其他功能 - com.qq.e.comm.managers.setting.GlobalSetting:
+
+方法名	方法介绍
+setChannel(int channel)	设置渠道号,渠道号信息主要用来协助平台提升流量变现效果及您的收益,请如实填写,渠道和渠道号的映射关系见下面《渠道号与渠道的对应关系》
+《渠道号与渠道的对应关系》
+
+渠道号	渠道
+1	百度
+2	头条
+3	优量汇
+4	搜狗
+5	其他网盟
+6	oppo
+7	vivo
+8	华为
+9	应用宝
+10	小米
+11	金立
+12	百度手机助手
+13	魅族
+999	其他

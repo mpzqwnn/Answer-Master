@@ -1,0 +1,83 @@
+Banner广告
+简介
+横幅广告，又名Banner广告，固定于app顶部、中部、底部、或其他位置，横向贯穿整个app页面；当用户与app互动时，Banner广告会停留在屏幕上，并可在一段时间后自动刷新。
+
+适用场景：Banner广告展现场景非常灵活，常见的展现场景为：文章页末尾，详情页面底部，信息流顶部等
+
+分类：Banner 广告分为文字链、纯图片和图文描述，具体种类可以在开发者平台进行选择
+
+Demo：
+
+文字链	图文描述	纯图片
+1.png	2.png	3.png
+接口示例
+com.qq.e.ads.banner2.UnifiedBannerView:继承自 Android View 类， 用于加载展示 Banner 广告
+
+方法名	方法介绍
+UnifiedBannerView(final Activity context, final String posID, final UnifiedBannerADListener listener)	构造函数
+loadAD()	加载广告
+destroy()	当不需要Banner广告实例时用于主动释放资源,调用后实例销毁，不可以再调用
+setRefresh(int refresh)	设置刷新频率,为0或30~120之间的数字，单位为 s,0标识不自动轮播,默认30S
+getECPMLevel()	获取本条广告实时的eCMP价格层级标签，每个层级标签对应线下预定的eCPM价格范围，成功返回一个包含数字的字符串，比如“1”，无权限调用该接口或后台异常会返回空字符串
+getECPM()	获取本条广告实时的eCPM价格，单位是分
+isValid()	广告是否有效，无效广告将无法展示
+getExtraInfo()	（4.410.1280新增）获取本条广告一些额外信息
+com.qq.e.ads.banner2.UnifiedBannerADListener: 继承自 Android View 类， 用于加载展示 Banner 广告
+
+方法名	方法介绍
+onNoAD(AdError error)	广告加载或展示过程中出错，AdError中包含了错误码和错误描述，具体错误码内容可参考错误码部分
+onADReceive()	广告加载成功回调，表示广告相关的资源已经加载完毕，Ready To Show
+onADExposure()	当广告曝光时发起的回调
+onADClicked()	当广告点击时发起的回调，由于点击去重等原因可能和平台最终的统计数据有差异
+onADClosed()	当广告关闭时调用
+onADLeftApplication()	由于广告点击离开 APP 时调用
+接入注意事项
+推荐您将 Banner 的宽高比固定为 6.4:1 以获得最佳的广告展示效果
+Banner 给开发者的回调（UnifiedBannerADListener）全部执行在主线程中（异步回调）
+尽量复用广告实例，不要实例化过多的广告实例，当广告实例不再使用时务必调用destory方法进行资源释放
+代码接入示例
+创建广告对象
+protected UnifiedBannerView getBanner() {
+    String editPosId = getPosId();
+    if (mBannerView == null || !editPosId.equals(mCurrentPosId) || !TextUtils.isEmpty(mS2sBiddingToken)) {
+      if(this.mBannerView != null){
+        mBannerView.destroy();
+      }
+      Log.d(TAG, "getBanner: BiddingToken " + mS2sBiddingToken);
+      if (!TextUtils.isEmpty(mS2sBiddingToken)) {
+        mBannerView = new UnifiedBannerView(this, editPosId, this, null, mS2sBiddingToken);
+      } else {
+        mBannerView = new UnifiedBannerView(this, editPosId, this);
+      }
+      mBannerView.setLoadAdParams(DemoUtil.getLoadAdParams("banner"));
+      mCurrentPosId = editPosId;
+      mBannerContainer.removeAllViews();
+      mBannerContainer.addView(mBannerView, getUnifiedBannerLayoutParams());
+    } else {
+      mBannerView.setLayoutParams(getUnifiedBannerLayoutParams());
+    }
+    if (((CheckBox) findViewById(R.id.cbRefreshInterval)).isChecked()) {
+      try {
+        int refreshInterval = Integer.parseInt(((EditText) findViewById(R.id.etRefreshInterval))
+            .getText().toString());
+        this.mBannerView.setRefresh(refreshInterval);
+      } catch (NumberFormatException e) {
+        ToastUtil.l("请输入合法的轮播时间间隔!");
+      }
+    } else {
+      // 默认 30 秒轮播，可以不设置
+      this.mBannerView.setRefresh(30);
+    }
+    mBannerView.setNegativeFeedbackListener(new NegativeFeedbackListener() {
+      @Override
+      public void onComplainSuccess() {
+        Log.d(TAG, "onComplainSuccess");
+      }
+    });
+    return this.mBannerView;
+  }
+发起广告请求
+private void doRefreshBanner() {
+    DemoUtil.hideSoftInput(this);
+    getBanner().loadAD();
+  }

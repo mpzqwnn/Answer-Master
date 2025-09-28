@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 基础橙色主题 -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/orange_gradient_end</item>
+        <item name="colorPrimaryDark">@color/orange_gradient_end</item>
+        <item name="colorAccent">@color/orange_gradient_end</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:textColorPrimary">@color/text_color_primary</item>
+        <item name="android:textColorSecondary">@color/text_color_secondary</item>
+    </style>
+    
+    <!-- 保持兼容性的无ActionBar主题 -->
+    <style name="AppTheme.NoActionBar" parent="AppTheme">
+        <!-- 已经在AppTheme中设置了ActionBar属性，这里保持兼容性 -->
+    </style>
+    
+    <!-- 顶部导航栏样式 -->
+    <style name="AppToolbar" parent="Widget.AppCompat.Toolbar">
+        <item name="android:background">@color/orange_gradient_end</item>
+        <item name="android:titleTextColor">@color/white</item>
+    </style>
+    
+    <!-- 按钮样式 -->
+    <style name="AppButton" parent="Widget.AppCompat.Button">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:background">@drawable/quiz_button_bg</item>
+    </style>
+    
+    <!-- 主标题样式 -->
+    <style name="TitleText" parent="@android:style/TextAppearance.Medium">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:shadowColor">@color/black</item>
+        <item name="android:shadowDx">1</item>
+        <item name="android:shadowDy">1</item>
+        <item name="android:shadowRadius">2</item>
+    </style>
+    
+    <!-- 材质设计按钮 -->
+    <style name="AppButton.Material" parent="AppButton">
+        <item name="android:elevation">4dp</item>
+        <item name="android:background">@drawable/quiz_button_fresh_bg</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+    
+    <!-- 次级标题样式 -->
+    <style name="SubTitleText" parent="@android:style/TextAppearance.Small">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    
+    <!-- 橙色主题 -->
+    <style name="AppTheme.Orange" parent="AppTheme">
+        <item name="colorPrimary">@color/orange_gradient_end</item>
+        <item name="colorAccent">@color/orange_gradient_end</item>
+    </style>
+    
+    <!-- 答题页面标题 -->
+    <style name="Theme.App.Splash" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+    
+    <!-- 自定义对话框主题 -->
+    <style name="CustomDialogTheme" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <!-- 移除对话框默认标题 -->
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+        <!-- 对话框不可取消 -->
+        <item name="android:windowCloseOnTouchOutside">false</item>
+    </style>
+    
+    <!-- 排行榜周期选择按钮样式 -->
+    <style name="RankingPeriodButton" parent="Widget.AppCompat.Button">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:paddingHorizontal">24dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:backgroundTint">@color/lightgray</item>
+        <item name="android:layout_marginHorizontal">8dp</item>
+        <item name="android:radius">20dp</item>
+    </style>
+</resources>

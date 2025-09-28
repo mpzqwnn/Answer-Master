@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/dialog_background"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="用户许可协议"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_color_primary"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/agreement_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="加载中..."
+            android:textSize="14sp"
+            android:textColor="@color/text_color_secondary"
+            android:lineSpacingExtra="4dp"
+            android:paddingHorizontal="4dp" />
+
+    </ScrollView>
+
+    <Button
+        android:id="@+id/close_button"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="关闭"
+        android:textColor="@android:color/white"
+        android:background="@drawable/button_fresh_bg"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

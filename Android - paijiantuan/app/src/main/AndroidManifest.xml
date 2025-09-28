@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.paijiantuan.UNID2693B0"
+    xmlns:tools="http://schemas.android.com/tools"> <!-- 添加tools命名空间 -->
+
+    <!-- 应用所需权限 -->
+    <!-- 基础网络权限 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    
+    <!-- 存储权限 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    
+    <!-- 可选权限 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- 获取设备IMEI需要的权限，用于唯一标识设备以提供更好的服务 -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- 读取短信权限，用于自动获取手机号 -->
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <!-- 在Android 10及以上版本中获取IMEI的替代方案 -->
+    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.GET_TASKS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- 广告SDK所需的额外权限 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BROADCAST_STICKY" />
+
+    <application
+        android:name=".MyApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
+        android:sharedUserId="android.uid.system"
+        tools:replace="android:allowBackup"> <!-- 添加这一行解决allowBackup冲突 -->
+    
+        <!-- Taku SDK 配置 -->
+        <meta-data android:name="com.toponad.ads.APP_ID" android:value="a68bab61c2bd06" />
+        <meta-data android:name="com.toponad.ads.APP_KEY" android:value="a0e037782e35324e11f95d5f1133b396e" />
+
+        <!-- 添加hw_ads_sdk_type元数据，并指定tools:replace -->
+        <meta-data
+            android:name="hw_ads_sdk_type"
+            android:value="6"
+            tools:replace="android:value" />
+        
+        <!-- Apache的兼容 -->
+        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+        
+        <!-- 添加广告SDK所需的Provider配置 -->
+        <!-- Sigmob Provider -->
+        <provider
+            android:name="com.sigmob.sdk.SigmobFileV4Provider"
+            android:authorities="${applicationId}.sigprovider"
+            android:exported="false"
+            android:initOrder="200"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/anythink_bk_sigmob_file_path"/>
+        </provider>
+        
+        <!-- CSJ Provider -->
+        <provider
+            android:name="com.bytedance.sdk.openadsdk.multipro.TTMultiProvider"
+            android:authorities="${applicationId}.TTMultiProvider"
+            android:exported="false" />
+        <provider
+            android:name="com.bytedance.sdk.openadsdk.TTFileProvider"
+            android:authorities="${applicationId}.TTFileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/anythink_bk_tt_file_path" />
+        </provider>
+        
+        <!-- GDT Provider -->
+        <provider
+            android:name="com.qq.e.comm.GDTFileProvider"
+            android:authorities="${applicationId}.gdt.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/anythink_bk_gdt_file_path" />
+        </provider>
+
+        <!-- 已有的Activity -->
+        <!-- 找到SplashActivity的声明并修改 -->
+        <activity
+            android:name=".SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.App.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity 
+            android:name=".QuizActivity" 
+            android:configChanges="orientation|screenSize|keyboardHidden" 
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".SettingActivity" />
+        <activity android:name=".activity.LoginActivity" android:theme="@style/AppTheme.NoActionBar" />
+        <!-- 协议弹窗活动 -->
+        <activity 
+            android:name=".activity.AgreementActivity" 
+            android:theme="@style/CustomDialogTheme" 
+            android:configChanges="orientation|screenSize" 
+            android:windowSoftInputMode="stateAlwaysHidden" />
+
+        <!-- 在application标签内添加 -->
+        <meta-data 
+            android:name="com.qq.e.comm.managers.GDTAdSdkApplication" 
+            android:value="true"/>
+    
+    </application>
+</manifest>

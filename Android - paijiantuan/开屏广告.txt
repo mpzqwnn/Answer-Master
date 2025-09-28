@@ -1,0 +1,568 @@
+开屏广告
+1. 开屏广告介绍
+1.1 集成建议
+为了提高开屏广告的加载效率可以参考冷启动策略和SDK预置策略 ，详情请参考开屏广告接入最佳实践。
+
+ 
+
+2. API说明
+2.1广告加载
+ATSplashAd: Splash广告的加载类
+
+方法	说明
+ATSplashAd(Context context, String placementId, ATSplashAdListener listener, int fetchAdTimeout)	Splash的初始化方法，以下是参数说明：
+context：加载广告使用的Context（建议传入Activity）
+placementId：Taku的开屏广告位id
+listener：广告事件监听器
+fetchAdTimeout：广告加载超时时间，单位ms注意：广告加载超时时间默认为5000ms
+ATSplashAd(Context context, String placementId, ATSplashAdListener listener)	Splash的初始化方法
+参数意义同上
+void loadAd()	发起广告加载
+ 
+
+广告加载：
+
+// 注：xxx需要替换为您的开屏广告超时时间，单位：毫秒
+ATSplashAd splashAd = new ATSplashAd(context, placementId, listner, xxx);
+splashAd.loadAd();
+ 
+2.2广告展示
+ATSplashAd:
+
+方法	说明
+boolean isAdReady()	判断当前ATSplashAd是否存在可展示的广告
+void show(Activity activity, ViewGroup container)	展示Splash广告，以下是参数说明：
+activity:展示广告的activity
+container:展示广告的容器
+void show(Activity activity, final ViewGroup container, ATSplashSkipInfo atSplashSkipInfo)	使用自定义SkipView，展示Splash广告
+参数意义同上
+atSplashSkipInfo:自定义SkipView功能类
+自定义SkipView只对以下广告有效：
+MyOffer、Adx、OnlineAPI、穿山甲
+请参考Demo
+void show(Activity activity, ViewGroup container, ATShowConfig showConfig)	（v6.3.10新增）指定场景展示Splash广告，以下是参数说明：
+activity:展示广告的activity
+container:展示广告的容器
+showConfig:可传入展示时的额外参数，如下1.ATShowConfig#showCustomExt(String showCustomExt)：可传入展示时自定义参数，传入的该参数将通过ATAdInfo#getShowCustomExt()返回
+
+2.ATShowConfig#scenarioId(String scenarioId)：可传入广告场景，同show(Activity activity, ViewGroup container,String scenario)
+void show(Activity activity, final ViewGroup container, ATSplashSkipInfo atSplashSkipInfo, ATShowConfig showConfig)	（v6.3.10新增）指定场景使用自定义SkipView，展示Splash广告
+参数意义同上
+atSplashSkipInfo:自定义SkipView功能类
+自定义SkipView只对以下广告有效：
+MyOffer、Adx、OnlineAPI、穿山甲 请参考Demo
+void entryAdScenario(String placementId, String scenarioId)	进入业务场景当前广告位缓存状态统计。其中scenario是指广告展示场景（非必传，可以直接传null），可从后台创建场景参数和使用请参考 业务场景缓存状态统计
+ 
+
+广告展示：
+
+  /*
+     为了统计场景到达率，相关信息可查阅 "https://help.takuad.com/docs/1RWLAv"
+     在满足广告触发条件时调用“进入广告场景”方法，比如：
+     ** 广告场景是在清理结束后弹出广告，则在清理结束时调用；
+     * 1、先调用 "entryAdScenario"
+     * 2、在调用 "isAdReady" 是否可展示
+     * 3、最后调用 "show" 展示
+     * 4、scenario 传入场景id后台场景管理才会有数据显示（非必须）
+     */
+ ATSplashAd.entryAdScenario("your splash placementID", "your scenarioID");
+//展示前需判断广告有缓存且当前Activity处于前台
+if (splashAd.isAdReady() && inForeBackground) {
+    //container大小至少占屏幕75%
+    splashAd.show(activity, container，"your scenarioID");
+}
+ 
+
+展示时传入自定义参数：
+
+Taku SDK v6.3.10及以上开始支持开发者在展示时传入自定义参数，展示时传入的自定义参数跟Load时传入的自定义参数相互独立。展示时传入自定义参数可以在Taku SDK回调信息中返回。
+
+ 
+
+2.3本地参数
+ATSplashAd:
+
+方法	说明
+void setLocalExtra(Map	设置本地参数，key通过ATAdConst.KEY进行获取
+ 
+
+ATAdConst.KEY：LocalExtra本地参数预定义Key取值
+
+Key	说明
+AD_WIDTH	广告宽度
+AD_HEIGHT	广告高度
+ 
+
+2.4广告对象
+ATSplashAd:
+
+方法	说明
+checkAdStatus	获取当前广告位的状态对象 ATAdStatusInfo，ATAdStatusInfo
+checkValidAdCaches	查询当前广告位的所有缓存信息的ATAdInfo对象
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+ATAdStatusInfo：广告位的状态对象
+
+方法	说明
+boolean isLoading()	判断当前广告位是否正在加载广告
+boolean isReady()	判断当前广告位是否存在可展示的广告，与ATSplashAd.isAdReady()方法作用相同
+getATTopAdInfo	获取当前广告位优先级最高的广告缓存信息 ATAdInfo对象
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+2.5广告监听
+ATSplashAdListener: Splash广告的事件回调类
+
+方法	说明
+void onAdLoaded(boolean isTimeout)	广告加载成功回调
+isTimeout：广告加载成功时，是否超过fetchAdTimeout指定时间
+void onNoAdError(AdError error)	广告加载失败回调，可通过AdError.getFullErrorInfo()获取全部错误信息，请参考 AdError注意：禁止在此回调中执行广告的加载方法进行重试，否则会引起很多无用请求且可能会导致应用卡顿
+void onAdShow(ATAdInfo atAdInfo)	广告展示回调
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+void onAdClick(ATAdInfo atAdInfo)	广告点击回调
+参数意义同上
+void onAdDismiss(ATAdInfo entity, ATSplashAdExtraInfo splashAdExtraInfo)	广告关闭回调
+参数意义同上
+
+ATSplashAdExtraInfo：开屏广告关闭额外信息包括 屏点睛广告控制接口类，开发者可通过此接口控制展示点睛广告
+注意：
+（1）当穿山甲、优量汇的开屏广告素材支持点睛时，splashEyeAd不为null
+（2）当展示的是快手开屏广告时，splashEyeAd为非null值，但不一定表示此次快手开屏广告的素材支持点睛，不支持时调用IATSplashEyeAd#show()方法会直接回调ATSplashEyeAdListener#onAdDismiss()方法
+（3）当splashEyeAd不为null，但是开发者不想支持点睛功能时，必须调用splashEyeAd.destroy()释放资源，然后跳转主页面或者移除开屏View
+void onAdLoadTimeout	广告加载超时回调，可在此处进行开屏广告加载超时处理
+注意：
+（1）广告加载超时回调后，开屏广告仍在加载，如果加载成功会触发onAdLoaded(true)
+（2）如果本次加载的开屏广告没有被展示，会放到缓存中供下次展示
+ 
+
+ATSplashExListener： 继承自ATSplashAdListener，方法同ATSplashAdListener，额外回调说明如下：
+
+方法	说明
+void onDeeplinkCallback(ATAdInfo atAdInfo, boolean isSuccess)	deeplink回调，针对Adx、OnlineApi广告
+isSuccess：是否成功
+void onDownloadConfirm(Context context, ATAdInfo atAdInfo, View clickView, ATNetworkConfirmInfo networkConfirmInfo)	应用类广告点击下载时回调方法。
+ATNetworkConfirmInfo: 第三方广告平台提供的回调信息（目前仅有优量汇的GDTDownloadFirmInfo）
+ATAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+ 
+
+IATSplashEyeAd ：开屏点睛广告的控制类
+
+方法	说明
+show(Context context, Rect rect, ATSplashEyeAdListener atSplashEyeAdListener)	展示开屏点睛（V+、小窗）广告
+context：上下文
+rect：开屏点睛广告缩放动画结束时广告的显示大小，以屏幕左上角为起点（注意：快手必须传入此参数）
+atSplashEyeAdListener：开屏点睛广告事件监听器
+getSuggestedSize(Context context)	获取缩放动画结束时推荐显示的广告大小
+（目前只有穿山甲会返回，建议优先使用此大小）
+onFinished	当执行完缩放动画时，开发者必须调用此方法通知SDK，显示广告的关闭按钮
+ 
+
+ATSplashEyeAdListener：开屏点睛广告的事件回调类
+
+方法	说明
+onAnimationStart(View splashView)	开发者需在此回调中执行开屏点睛广告的动画缩放
+splashView：开屏广告的View
+注意：
+（1）缩放动画的示例代码可参考Demo
+（2）缩放动画结束时，必须调用IATSplashEyeAd#onFinished()
+（3）快手不会触发此回调，不能控制快手的缩放动画
+onAdDismiss(boolean isSupportEyeSplash, String errorMsg)	开屏点睛广告关闭回调，建议在回调中调用IATSplashEyeAd#destroy()
+isSupportEyeSplash：是否支持开屏点睛
+errorMsg：当出现错误时，此处会显示错误信息
+注意：各平台触发此回调的时机不一样，可能是在点击关闭按钮时，也可能是在广告播放结束时
+ 
+
+ATSplashSkipInfo： 自定义SkipView功能类
+
+方法	说明
+ATSplashSkipInfo(View skipView, long countDownDuration, long callbackInterval, ATSplashSkipAdListener atSplashSkipAdListener)	自定义SkipView功能类构造方法
+skipView：开发者自定义的跳过按钮View
+countDownDuration：倒计时总时长（单位：ms），默认5s，最小可设置为2s
+callbackInterval：倒计时回调的触发间隔（单位：ms），默认每隔1s触发一次ATSplashSkipAdListener#onAdTick()回调，最小可设置为20ms
+atSplashSkipAdListener：自定义SkipView事件监听类
+注意：
+（1）skipView传入null时，自定义SkipView功能将不生效
+（2）开发者如果希望自定义倒计时动画，可通过callbackInterval参数，改变倒计时回调的触发间隔
+ATSplashSkipInfo(View skipView, ATSplashSkipAdListener atSplashSkipAdListener)	自定义SkipView功能类构造方法
+参数意义同上
+ 
+
+ATSplashSkipAdListener：自定义SkipView事件监听类
+
+方法	说明
+onAdTick(long duration, long remainder)	倒计时回调，开发者可在此回调中更新倒计时动画
+duration：倒计时总时长（单位：ms）
+remainder：当前剩余倒计时进度（单位：ms）
+isSupportCustomSkipView(boolean isSupport)	回调通知开发者，当前展示的广告是否支持自定义SkipView
+isSupport：true为当前展示的广告平台支持，false为不支持
+
+注意：
+（1）开发者可在此回调中判断isSupport为true时，将skipView设置为可见
+ 
+
+3. 示例代码
+// 注：xxx需要替换为您的开屏广告超时时间，单位：毫秒
+ATSplashAd splashAd = new ATSplashAd(context, placementId, listner, xxx);
+splashAd.loadAd();
+
+ /*
+     为了统计场景到达率，相关信息可查阅 "https://docs.takuad.com/#/zh-cn/android/NetworkAccess/scenario/scenario"
+     在满足广告触发条件时调用“进入广告场景”方法，比如：
+     ** 广告场景是在清理结束后弹出广告，则在清理结束时调用；
+     * 1、先调用 "entryAdScenario"
+     * 2、在调用 "isAdReady" 是否可展示
+     * 3、最后调用 "show" 展示
+     * 4、scenario 传入场景id后台场景管理才会有数据显示（非必须）
+     */
+ ATSplashAd.entryAdScenario("your splash placementID", "your scenarioID");
+//展示前需判断广告有缓存且当前Activity处于前台
+if (splashAd.isAdReady() && inForeBackground) {
+    //container大小至少占屏幕75%
+    splashAd.show(activity, container，"your scenarioID");
+}
+详细开屏广告示例代码请参考：Demo的SplashAdActivity类
+
+ 
+
+冷启动示例：
+
+ATSplashExListener listener = new ATSplashExListener() {
+    ......
+    @Override
+    public void onAdLoaded(boolean isTimeout) {
+        //加载未超时时
+        if(!isTimeout){
+            //当前Activity处于前台时进行广告展示
+            if(inForeBackground){
+                //container大小至少占屏幕75%
+                splashAd.show(activity, container);
+            }else{
+                //等待应用回到前台后再进行展示
+                needShowSplashAd = true;
+            }
+        }
+    }
+
+    @Override
+    public void onAdLoadTimeout() {
+        //加载超时后，直接进入主界面
+        jumpToMainActivity();
+    }
+
+    @Override
+    public void onNoAdError(AdError adError) {
+        //加载失败直接进入主界面
+        jumpToMainActivity();
+    }
+
+    @Override
+    public void onAdShow(ATAdInfo entity) {
+
+    }
+
+    @Override
+    public void onAdDismiss(ATAdInfo entity, ATSplashAdExtraInfo splashAdExtraInfo) {
+        //=1无区分 =2跳过结束 =3倒计时结束 =4点击广告结束 =99开屏展示失败
+        if(splashAdExtraInfo.getDismissType()==ATAdConst.DISMISS_TYPE.SHOWFAILED){
+    }
+        //开屏广告展示关闭后进入主界面
+        //注意：部分平台跳转落地页后倒计时不暂停，即使在看落地页，倒计时结束后仍然会回调onAdDismiss
+        //因此在页面跳转时需要特殊处理，详情参考下方示例代码
+        jumpToMainActivity();
+    }
+    ......
+};
+
+// 注：xxx需要替换为您的开屏广告超时时间，单位：毫秒
+ATSplashAd splashAd = new ATSplashAd(context, placementId, listner, xxx);
+
+if (splashAd.isAdReady()) {
+    //container大小至少占屏幕75%
+    splashAd.show(activity, container);
+}else{
+    splashAd.loadAd();
+}
+ 
+ 
+
+onAdDismiss() 开屏广告页面跳转示例：
+
+//是否需要进行页面跳转标记
+boolean needJump;
+
+@Override
+protected void onResume() {
+    super.onResume();
+    if (needJump) {
+        jumpToMainActivity();
+    }
+    needJump = true;
+}
+
+@Override
+protected void onPause() {
+    super.onPause();
+    needJump = false;
+}
+
+public void jumpToMainActivity() {
+    if (!needJump) {
+        needJump = true;
+        return;
+    }
+    Intent intent = new Intent(this, YourMainActivity.class);
+    startActivity(intent);
+    finish();
+}
+ 
+ 
+
+4. 广告平台特殊配置说明
+4.1 Admob
+Admob的开屏广告不需要依赖container进行展示，只能全屏进行展示，广告展示后不会进行倒计时且不会自动跳过
+
+ 
+
+4.2 百度
+如果有接入百度SDK的Splash广告，需要在百度后台选择SkipView的展示样式（百度后台默认选择不展示SkipView）。
+
+ 
+
+4.3 穿山甲
+加载广告前需设置广告的宽高，示例如下：
+
+// 注：xxx需要替换为您的开屏广告超时时间，单位：毫秒
+splashAd = new ATSplashAd(this, placementId, atMediationRequestInfo, this, xxx); 
+Map localMap = new HashMap<>(); 
+localMap.put(ATAdConst.KEY.AD_WIDTH, width);//单位：px 
+localMap.put(ATAdConst.KEY.AD_HEIGHT, height);//单位：px 
+splashAd.setLocalExtra(localMap); 
+splashAd.loadAd();
+注意：如果设置的宽高与展示时的container宽高不一致，或者Taku后台的模板渲染选项与穿山甲后台不对应，将会导致广告显示不全或者模糊、失真。
+
+ 
+
+ 
+5. 开屏点睛示例
+注意：
+
+① 因为不一定能加载到支持点睛的开屏广告，所以开屏广告点睛素材的填充率问题，请联系广告平台进行处理
+
+② 以下示例代码，请参考Demo
+
+ 
+
+5.1 开屏Activity与显示点睛广告的Activity不是同一个
+(1) 新建SplashEyeAdHolder类用于缓存IATSplashEyeAd实例
+
+public class SplashEyeAdHolder {
+    public static IATSplashEyeAd splashEyeAd;
+}
+public class SplashAdShowActivity extends Activity implements ATSplashAdListener {
+    ...
+    @Override
+    public void onAdDismiss(ATAdInfo entity, ATSplashAdExtraInfo splashAdExtraInfo) {
+        Log.i(TAG, "onAdDismiss:\n" + entity.toString());
+
+        //（1）当穿山甲、优量汇的开屏广告素材支持点睛时，splashEyeAd不为null
+        //（2）当展示的是快手开屏广告时，splashEyeAd为非null值，但不一定表示此次快手开屏广告的素材支持点睛，不支持时调用IATSplashEyeAd#show()方法会直接回调ATSplashEyeAdListener#onAdDismiss()方法
+        //（3）当splashEyeAd不为null，但是开发者不想支持点睛功能时，必须调用splashEyeAd.destroy()释放资源，然后跳转主页面或者移除开屏View
+
+        SplashEyeAdHolder.splashEyeAd = splashAdExtraInfo.getAtSplashEyeAd();
+
+        jumpToMainActivity();
+    }
+}
+ 
+ 
+ 
+
+(2) 设置开屏相关信息（SplashZoomOutManager请参考Demo），同时跳转首页Activity并取消页面跳转动画，关闭当前页面
+
+public class SplashAdShowActivity extends Activity implements ATSplashAdListener {
+    ...
+    public void jumpToMainActivity() {
+        if (!hasHandleJump) {
+            hasHandleJump = true;
+
+            if (SplashEyeAdHolder.splashEyeAd != null) {
+                try {
+                    SplashZoomOutManager zoomOutManager = SplashZoomOutManager.getInstance(getApplicationContext());
+                    zoomOutManager.setSplashInfo(container.getChildAt(0),
+                            getWindow().getDecorView());
+                } catch (Throwable e) {
+                    Log.e(TAG, "jumpToMainActivity: ------------------------------------------ error");
+                    e.printStackTrace();
+                }
+
+                Intent intent = new Intent(this, TestMainActivity.class);
+                startActivity(intent);
+
+                overridePendingTransition(0, 0);
+            }
+
+            finish();
+            Toast.makeText(this, "start your MainActivity.", Toast.LENGTH_SHORT).show();
+        }
+    }
+}
+ 
+ 
+
+(3) 在首页Activity中，创建showSplashEyeAd()方法
+
+public class TestMainActivity extends Activity {
+    ...
+    private void showSplashEyeAd() {
+
+        if (SplashEyeAdHolder.splashEyeAd == null) {
+            return;
+        }
+
+        SplashEyeAdHolder.splashEyeAd.show(TestMainActivity.this, null, new ATSplashEyeAdListener() {
+            @Override
+            public void onAnimationStart(View splashView) {
+                //执行缩放动画
+                SplashZoomOutManager zoomOutManager = SplashZoomOutManager.getInstance(getApplicationContext());
+
+                //建议优先使用IATSplashEyeAd#getSuggestedSize()返回的大小作为缩放动画的目标大小
+                int[] suggestedSize = SplashEyeAdHolder.splashEyeAd.getSuggestedSize(getApplicationContext());
+                if (suggestedSize != null) {
+                    zoomOutManager.setSplashEyeAdViewSize(suggestedSize[0], suggestedSize[1]);
+                }
+                zoomOutManager.startZoomOut((ViewGroup) getWindow().getDecorView(),
+                        findViewById(android.R.id.content), new SplashZoomOutManager.AnimationCallBack() {
+
+                            @Override
+                            public void animationStart(int animationTime) {
+
+                            }
+
+                            @Override
+                            public void animationEnd() {
+                                Log.i(TAG, "animationEnd---------: eye ad");
+
+                                //当缩放动画完成时必须调用IATSplashEyeAd#onFinished()通知SDK
+                                SplashEyeAdHolder.splashEyeAd.onFinished();
+                            }
+                        });
+
+            }
+
+            @Override
+            public void onAdDismiss(boolean isSupportEyeSplash, String errorMsg) {
+                Log.i(TAG, "onAdDismiss---------: close eye ad");
+
+                //建议在此回调中调用IATSplashEyeAd#destroy()释放资源以及释放其他资源，以免造成内存泄漏
+                SplashZoomOutManager zoomOutManager = SplashZoomOutManager.getInstance(getApplicationContext());
+                zoomOutManager.clearStaticData();
+
+                SplashEyeAdHolder.splashEyeAd.destroy();
+                SplashEyeAdHolder.splashEyeAd = null;
+            }
+        });
+    }
+
+}
+ 
+ 
+
+(4) 在首页Activity中，调用showSplashEyeAd()展示点睛广告（建议在onAttachedToWindow()回调中调用showSplashEyeAd()）
+
+ public class TestMainActivity extends Activity {
+     ...
+     @Override
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+
+        showSplashEyeAd();
+    }
+}
+ 
+ 
+
+5.2 开屏Activity与显示点睛广告的Activity是同一个
+public class SplashAdShowActivity extends Activity implements ATSplashAdListener {
+    ...
+    @Override
+    public void onAdDismiss(ATAdInfo entity, IATSplashEyeAd splashEyeAd) {
+        Log.i(TAG, "onAdDismiss:\n" + entity.toString());
+
+        //（1）当穿山甲、优量汇的开屏广告素材支持点睛时，splashEyeAd不为null
+        //（2）当展示的是快手开屏广告时，splashEyeAd为非null值，但不一定表示此次快手开屏广告的素材支持点睛，不支持时调用IATSplashEyeAd#show()方法会直接回调ATSplashEyeAdListener#onAdDismiss()方法
+        //（3）当splashEyeAd不为null，但是开发者不想支持点睛功能时，必须调用splashEyeAd.destroy()释放资源，然后跳转主页面或者移除开屏View
+
+
+        if (container != null) {
+            container.removeAllViews();
+            container.setVisibility(View.GONE);
+        }  
+
+        //展示点睛广告
+        showSplashEyeAd(splashEyeAd);
+    }
+
+     private void showSplashEyeAd(IATSplashEyeAd splashEyeAd) {
+        if (splashEyeAd == null) {
+            return;
+        }
+
+        splashEyeAd.show(SplashAdShowInCurrentActivity.this, null, new ATSplashEyeAdListener() {
+            @Override
+            public void onAnimationStart(View splashView) {
+                //执行缩放动画
+                SplashZoomOutManager zoomOutManager = SplashZoomOutManager.getInstance(getApplicationContext());
+
+                ////建议优先使用IATSplashEyeAd#getSuggestedSize()返回的大小作为缩放动画的目标大小
+                int[] suggestedSize = splashEyeAd.getSuggestedSize(getApplicationContext());
+                if (suggestedSize != null) {
+                    zoomOutManager.setSplashEyeAdViewSize(suggestedSize[0], suggestedSize[1]);
+                }
+
+                zoomOutManager.setSplashInfo(splashView, getWindow().getDecorView());
+                ViewGroup content = findViewById(android.R.id.content);
+                zoomOutManager.startZoomOut(splashView, content, content, new SplashZoomOutManager.AnimationCallBack() {
+
+                    @Override
+                    public void animationStart(int animationTime) {
+
+                    }
+
+                    @Override
+                    public void animationEnd() {
+                        Log.i(TAG, "animationEnd---------: eye ad");
+
+                        //当缩放动画完成时必须调用IATSplashEyeAd#onFinished()通知SDK
+                        splashEyeAd.onFinished();
+                    }
+                });
+
+
+            }
+
+            @Override
+            public void onAdDismiss(boolean isSupportEyeSplash, String errorMsg) {
+                Log.i(TAG, "onAdDismiss---------: eye ad");
+
+                //建议在此回调中调用IATSplashEyeAd#destroy()释放资源以及释放其他资源，以免造成内存泄漏
+                SplashZoomOutManager zoomOutManager = SplashZoomOutManager.getInstance(getApplicationContext());
+                zoomOutManager.clearStaticData();
+                splashEyeAd.destroy();
+            }
+        });
+    }
+}
+ 
+ 
+
+6. 首次安装开屏加载效率提升方案
+背景：应用安装时首次加载开屏广告，Taku需先从后台拉取配置的广告位信息缓存在本地，然后才会去请求广告平台的广告，这期间涉及了两次网络请求（串行）影响了开屏广告加载效率，下面提供了两种方式去提高应用安装后首次开屏加载效率。
+
+ 
+
+6.1（v6.1.78及以后版本）预置策略设置（建议使用）
+为提高首次冷启动的广告加载效果，在开屏广告位上创建SDK预置策略的流量分组，然后在这个流量分组配置瀑布流，同时建议您增加一个兜底广告源，最后导出SDK预置策略并预置到应用中。具体接入文档见SDK预置策略使用说明。
+配置效果： 可以实现SDK预置开屏策略，同时实现开屏兜底广告源的兜底功能。即：此兜底广告源会和广告位下的整体瀑布流并行发起请求。并且用户不会在首次请求时必定使用兜底广告，而是正常走瀑布流和兜底广告源的并行请求。可以实现变现价值最大化。
+
+注意： 预置策略的使用时机是只有在本地没有缓存策略的情况下才会调用。

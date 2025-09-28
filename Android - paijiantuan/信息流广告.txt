@@ -1,0 +1,182 @@
+信息流/详情页插入/视频贴片/沉浸式视频流 广告
+简介
+适用场景：优量汇为您提供了多种的广告模板样式，在新建广告位时支持只出图文广告或只出视频广告，也支持图文和视频广告混出。为保证广告位填充率，建议尽量选择图文和视频广告混出。如样式满足您的诉求，您可直接使用展示
+
+分类：广告具体布局，可参考下方图片：
+
+上图下文
+上文下图
+双图双文
+三小图双文
+			
+左图右文
+左文右图
+横版纯图片
+竖版纯图片
+			
+单图单文（文字浮层）	上文下图（文字浮层）	上图下文（文字浮层）
+		
+注意：以下接入代码示例只适用于上述广告位。误用其他广告位 ID 使用该接口，则会导致无广告返回。
+
+主要 API
+com.qq.e.ads.nativ.NativeExpressAD:模板广告入口，用于初始化并加载广告数据
+方法名	方法介绍
+NativeExpressAD(final Context context, final ADSize adSize, final String posID, final NativeExpressADListener listener)	模板广告构造函数，context 是指上下文环境， 这里必须传入开发者的 Activity，adSize 是指定广告 View 的宽高，posID 是广告位 ID，listener 指定广告状态回调接口。
+关于 adSize 参数的说明：
+1.如果开发者需要自己设置 adSize 的值，那么宽度、高度都必须是大于0的整数，单位为 dp；
+2.如果开发者将 adSize 的高度设为 SDK 提供的 ADSize.AUTO_HEIGHT，可以不需要自己调整广告的高度，此时只需要开发者设定广告的宽度，SDK 会自动判断出广告在这个宽度下的最佳高度，并将 NativeExpressADView 的高度设置为最佳高度。高度方面，我们建议尽量使用 AUTO_HEIGHT，保证广告的展示效果；
+3. 如果开发者将广告的宽度设为 SDK 提供的 ADSize.FULL_WIDTH，NativeExpressADView 会最大程度的使用其父控件给予的宽度，此时开发者可以自己设置高度或者选用 AUTO_HEIGHT。
+loadAD(int count)	加载广告，count 指定期望加载的广告数量，根据广告填充情况不同，返回不大于 count 数量的广告。当前count值有上限
+setDownAPPConfirmPolicy(DownAPPConfirmPolicy policy)	指定点击 APP 广告后是否展示二次确认，可选项包括 Default（wifi 不展示，非wifi 展示），NoConfirm（所有情况不展示）4.330.1200及以后版本支持工信部合规弹窗，在显示工信部弹窗时，该设置无效，工信部弹窗会替换二次确认的弹窗
+setVideoOption(VideoOption videoOption)	**（可选方法）**指定视频广告的播放配置，配置包含：
+1. autoPlayPolicy，指定不同网络下的视频播放策略，可选项包括：AutoPlayPolicy.WIFI（WiFi 网络自动播放，4G 网络手动点击播放），AutoPlayPolicy.ALWAYS（WiFi 和4G 网络都自动播放），默认值为 AutoPlayPolicy.ALWAYS。
+2. autoPlayMuted，指定视频自动播放时是否静音，可选项包括：true（自动播放时静音），false（自动播放时有声），默认值为 true。
+注：AutoPlayPolicy.ALWAYS 的配置能够一定程度优化广告收益
+3. detailPageMuted，指定视频详情页是否静音播放，可选项包括：true（视频详情页静音播放），false（视频详情页有声播放），默认值为 false。
+setMinVideoDuration(int minVideoDuration)	设置返回视频广告的最小视频时长（闭区间，可单独设置），单位:秒 此设置会影响广告填充，请谨慎设置
+setMaxVideoDuration(int maxVideoDuration)	设置返回视频广告的最大视频时长（闭区间，可单独设置），单位:秒，合法输入为：5<=maxVideoDuration<=61. 此设置会影响广告填充，请谨慎设置
+com.qq.e.ads.nativ.NativeExpressAD.NativeExpressADListener：模板广告加载、渲染、点击状态的回调
+方法名	方法介绍
+onNoAD(AdError error)	广告加载或展示过程中出错，AdError中包含了错误码和错误描述，具体错误码内容可参考错误码部分
+onADLoaded(List adList)	广告数据加载成功，返回了可以用来展示广告的 NativeExpressADView，但是想让广告曝光还需要调用 NativeExpressADView 的 render 方法
+onRenderFail(NativeExpressADView adView)	NativeExpressADView 渲染广告失败
+onRenderSuccess(NativeExpressADView adView)	NativeExpressADView 渲染广告成功
+onADExposure(NativeExpressADView adView)	广告曝光
+onADClicked(NativeExpressADView adView)	广告点击
+onADClosed(NativeExpressADView adView)	广告被关闭，将不再显示广告，此时广告对象已经释放资源，不可以再次用来展示了
+onADLeftApplication(NativeExpressADView adView)	因为广告点击等原因离开当前 app 时调用
+com.qq.e.ads.nativ.NativeExpressMediaListener：模板视频广告播放状态回调接口，专用于带有视频素材的广告对象
+方法名	方法介绍
+onVideoInit(NativeExpressADView adView)	视频播放 View 初始化完成
+onVideoLoading(NativeExpressADView adView)	视频下载中
+onVideoCached(NativeExpressADView adView)	视频下载完成
+onVideoReady(NativeExpressADView adView, long videoDuration)	视频播放器初始化完成，准备好可以播放了，videoDuration 是视频素材的时间长度，单位为 ms
+onVideoStart(NativeExpressADView adView)	视频开始播放
+onVideoPause(NativeExpressADView adView)	视频暂停
+onVideoComplete(NativeExpressADView adView)	视频播放结束，手动调用 stop 或者自然播放到达最后一帧时都会触发
+onVideoError(NativeExpressADView adView, AdError error)	视频播放时出现错误，error 对象包含了错误码和错误信息，错误码的详细内容可以参考文档第5章
+onVideoPageOpen(NativeExpressADView adView)	进入视频落地页
+onVideoPageClose(NativeExpressADView adView)	退出视频落地页
+com.qq.e.ads.nativ.NativeExpressADView:用于展示模板广告的 View，可以被动态添加在开发者的布局中（注意：NativeExpressADView 不可以在 XML 中静态写入，也不可以由开发者手动创建，只可以由 SDK 返回）。
+方法名	方法介绍
+isValid()	广告是否有效，无效广告将无法展示
+render()	渲染广告，渲染结果会在 NativeExpressAD.NativeExpressADListener 回调，如果不调用这个方法，NativeExpressADView 就不会把广告图片等资源加载进来，也不会产生曝光等收益
+setAdSize(ADSize adSize)	改变 NativeExpressADView 的尺寸，ADSize 指定了广告 View 的宽高，因此必须大于0，单位是 dp。
+注意：
+SDK 可能在后续版本中废弃这个方法，我们推荐开发者在 NativeExpressAD 构造方法中，给 adSize 的宽度手动指定一个自己需要的宽度或者设为 ADSize.FULL_WIDTH，给 adSize 的高度时设置 ADSize.AUTO_HEIGHT，来保证广告展示的效果。
+destroy()	释放 NativeExpressADView 占用的资源，当不再展示广告时一定要调用这个方法去释放资源
+setMediaListener(NativeExpressMediaListener mediaListener)	设置监听器，监听视频广告的状态变化
+preloadVideo()	预加载视频，加载完成后会回调NativeExpressMediaListener的onVideoCached()方法
+AdData getBoundData()	获取广告 View 绑定的广告数据，如广告信息、播放进度等
+com.qq.e.comm.pi.AdData：广告数据接口
+方法名	方法介绍
+getTitle()	标题
+getDesc()	描述
+getECPMLevel()	获取本条广告实时的eCMP价格层级标签，每个层级标签对应线下预定的eCPM价格范围，成功返回一个包含数字的字符串，比如“1”，无权限调用该接口或后台异常会返回空字符串
+getECPM()	获取本条广告实时的eCPM价格，单位是分
+getAdPatternType()	获取广告样式，目前只支持 AdPatternType.NATIVE_VIDEO
+getProperty(String property)	广告其他属性，保留接口，目前无返回值
+getProperty(Class type)	如果是视频广告，可通过该接口传入 AdData.VideoPlayer.class 获取播放器实例，需要注意的是仅当视频回调 onVideoInit 被调用后才会有实例返回
+equalsAdData(AdData adData)	是否为同一广告对象
+getVideoDuration()	获取广告的视频时长，广告加载成功即可获取，单位ms。注意：虽然此数值单位为ms，但实际精度为s（向上取整），例如视频真实时长 8100ms ，此处返回9000ms
+getExtraInfo()	（4.410.1280新增）获取本条广告一些额外信息
+com.qq.e.comm.pi.AdData.VideoPlayer：播放器接口
+方法名	方法介绍
+getVideoState()	返回播放器当前状态，0:播放出错，1:初始状态，2:准备播放状态，3:播放状态，4:停止状态，5:暂停状态，6:完成状态
+getDuration()	当视频素材 ready 后，获取总时长，单位 ms
+getCurrentPosition()	当视频正在播放时，获取当前播放的位置，单位 ms
+接入注意事项
+如果您的模板广告位支持视频，您会在新建广告位时在广告素材栏看到视频选项。您需要注意以下几点：
+
+您可以按需进行视频广告播放的个性化配置。
+您需要处理好Activity的运行时变更，由于视频广告可以跟随手机屏幕的方向旋转和全屏播放， 请处理好 Activity 的运行时变更（最简单的方式就是在AndroidManifest 文件中给您的 Activity 加上android:configChanges="keyboard|keyboardHidden|orientation|screenSize" 属性）， 不要让播放视频广告的 Activity 被销毁重建，具体代码可以参考 GDTUnionDemo。
+如果广告位支持视频广告，强烈建议在拉取广告前，调用setVideoOption设置视频广告的播放策略，有助于提高eCPM
+接入代码示例
+创建广告对象
+ private void refreshAd() {
+    try {
+      if (checkEditTextEmpty()) {
+        return;
+      }
+
+      adWidth = Integer.valueOf(editTextWidth.getText().toString());
+      adHeight = Integer.valueOf(editTextHeight.getText().toString());
+      hideSoftInput();
+      /**
+       *  如果选择支持视频的模板样式，请使用{@link PositionId#NATIVE_EXPRESS_SUPPORT_VIDEO_POS_ID}
+       */
+      String token = getToken();
+      Log.d(TAG, "refreshAd: BiddingToken " + token);
+      if (!TextUtils.isEmpty(token)) {
+        nativeExpressAD = new NativeExpressAD(this, getMyADSize(), getPosId(), this, token);
+      } else {
+        nativeExpressAD = new NativeExpressAD(this, getMyADSize(), getPosId(), this); // 这里的Context必须为Activity
+      }
+      VideoOption option = NativeExpressADActivity.getVideoOption(getIntent());
+      if(option != null){
+        // setVideoOption是可选的，开发者可根据需要选择是否配置
+        nativeExpressAD.setVideoOption(option);
+      }
+      nativeExpressAD.setMinVideoDuration(getMinVideoDuration());
+      nativeExpressAD.setMaxVideoDuration(getMaxVideoDuration());
+      nativeExpressAD.loadAD(1, DemoUtil.getLoadAdParams("native_express"));
+    } catch (NumberFormatException e) {
+      Log.w(TAG, "ad size invalid.");
+      ToastUtil.s("请输入合法的宽高数值");
+    }
+  }
+发起广告请求
+ protected void loadAd() {
+    mLoadSuccess = false;
+    isPreloadVideo = false;
+    refreshAd();
+  }
+展示广告
+ public void onADLoaded(List<NativeExpressADView> adList) {
+    mLoadSuccess = true;
+    Log.i(TAG, "onADLoaded: " + adList.size());
+    // 释放前一个展示的NativeExpressADView的资源
+    if (nativeExpressADView != null) {
+      nativeExpressADView.destroy();
+    }
+
+    if (container.getVisibility() != View.VISIBLE) {
+      container.setVisibility(View.VISIBLE);
+    }
+
+    if (container.getChildCount() > 0) {
+      container.removeAllViews();
+    }
+
+    nativeExpressADView = adList.get(0);
+   //nativeExpressADView.sendLossNotification(1, 1, null);
+    nativeExpressADView.setNegativeFeedbackListener(new NegativeFeedbackListener() {
+      @Override
+      public void onComplainSuccess() {
+        Log.i(TAG, "onComplainSuccess");
+      }
+    });
+    reportBiddingResult(nativeExpressADView);
+    if (DownloadConfirmHelper.USE_CUSTOM_DIALOG) {
+      nativeExpressADView.setDownloadConfirmListener(DownloadConfirmHelper.DOWNLOAD_CONFIRM_LISTENER);
+    }
+    Log.i(TAG, "onADLoaded, video info: " + getAdInfo(nativeExpressADView) + ", getAdNetWorkName: " +
+        nativeExpressAD.getAdNetWorkName());
+    if (nativeExpressADView.getBoundData().getAdPatternType() == AdPatternType.NATIVE_VIDEO) {
+      nativeExpressADView.setMediaListener(mediaListener);
+      if(isPreloadVideo) {
+        // 预加载视频素材，加载成功会回调mediaListener的onVideoCached方法，失败的话回调onVideoError方法errorCode为702。
+        nativeExpressADView.preloadVideo();
+      }
+    } else {
+      isPreloadVideo = false;
+    }
+    if (!isPreloadVideo) {
+      // 广告可见才会产生曝光，否则将无法产生收益。
+      container.addView(nativeExpressADView);
+      if(mIsLoadAndShow){
+        nativeExpressADView.render();
+        mIsLoadAndShow = false;
+      }
+    }
+  }

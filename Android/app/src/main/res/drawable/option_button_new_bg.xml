@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 底层深色阴影 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#6B3A10" />
+            <corners android:radius="30dp" />
+        </shape>
+    </item>
+    <!-- 中间层按钮主体 -->
+    <item android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#8B4513" />
+            <corners android:radius="30dp" />
+        </shape>
+    </item>
+    <!-- 顶层光泽效果 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:startColor="#CCFFFFFF"
+                android:centerColor="#00FFFFFF"
+                android:endColor="#00FFFFFF"
+                android:type="linear" />
+            <corners android:radius="30dp" />
+        </shape>
+    </item>
+</layer-list>

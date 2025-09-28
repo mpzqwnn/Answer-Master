@@ -1,0 +1,370 @@
+回调信息说明
+1. 广告位回调
+1.1 ATAdInfo回调信息说明
+方法	返回值类型	说明
+getNetworkFirmId()	int	获取 广告平台对应的ID，用于区分广告平台，参考文档末尾的 Network Firm Id Table
+getNetworkPlacementId()	String	获取 广告平台的广告位ID
+getAdsourceId()	String	获取 广告源ID. 可在开发者后台或Taku Open API 通过广告源ID查询具体的Network信息
+getAdsourceIndex()	int	获取 当前广告源在WaterFall中的排序（从0开始，0优先级最高）
+getEcpm()	double	获取Taku预估eCPM。即每次广告展示的预估eCPM：常规广告源是Taku后台对应广告源填写的排序价格，竞价广告源是实时竞价返回的价格。eCPM的货币单位可通过currency获取，通常为元（CNY）或美元（USD），精度可通过precision获取。
+eCPM含义：每千次广告展示收益。假设广告源A的eCPM=1美元，则展示一次广告源A之后，展示收益为0.001美元。
+getEcpmPrecision()	String	获取eCPM精度
+"publisher_defined"：开发者在Taku后台为广告源定义的eCPM（交叉推广的eCPM也属于该类型)
+"estimated": 在Taku后台开启广告源的自动价格功能后，Taku根据历史数据计算出的eCPM
+"exact"：实时竞价的eCPM (Meta广告平台除外)
+"ecpm_api"： 针对Meta广告源生效，根据Meta的ReportAPI数据预估的历史eCPM API。Taku SDK v5.9.60及以上版本支持。
+getCurrency()	String	获取 Taku收益货币单位。根据返回的货币单位，确定当前eCPM或收益的价格，通常为元（CNY）或美元（USD）。
+例如："USD"，则返回的价格为“美元”，getEcpm()和getPublisherRevenue()两个方法返回的价格单位均为“美元”。
+isHeaderBiddingAdsource()	int	是否为头部竞价的广告源，1：是，0：否
+getShowId()	int	获取 每次展示广告时生成的独立ID
+getPublisherRevenue()	double	获取 Taku广告位展示收益。即每次广告展示后，预估可获得的收益。单位可通过currency获取，通常为元（CNY）或美元（USD），精度可通过 precision 获取。
+getCountry()	String	获取 国家代码， 例如：”CN"
+getPlacementId()	String	获取 Taku广告位ID
+getAdFormat()	String	获取 广告类型，包括："Native"、"RewardedVideo"、"Banner""Interstitial"、"Splash"
+getAdNetworkType()	String	获取 Network类型
+"Network"：第三方广告平台
+"Cross_Promotion"：交互推广
+"Adx"：Taku Adx
+getEcpmLevel()	int	获取 广告源的eCPM层级(对应开发者后台聚合管理页面的优先级），头部竞价广告源默认为0
+getSegmentId()	int	获取 流量分组ID
+getScenarioId()	String	获取 广告场景ID
+getScenarioRewardName()	String	获取 广告场景的激励名称，仅Rewarded Video支持
+getScenarioRewardNumber()	int	获取 广告场景的激励数量，仅Rewarded Video支持
+getSubChannel()	String	获取子渠道信息
+getChannel()	String	获取 渠道信息
+getCustomRule()	String	获取 Placement+App维度的自定义规则的Json字符串
+getABTestId()	String	获取 AB测试ID。具体AB测试ID可以从AB测试页面查询。
+getExtInfoMap()	Map	
+获取 广告的自定义信息，针对Adx、OnlineAPI、直投广告、交叉推广以及自定义广告平台，Adx、OnlineAPI、直投广告、交叉推广相关Key参考 ATAdConst.NETWORK_CUSTOM_KEY
+获取Admob展示收益信息（展示后可获取），相关Key参考 Admob展示收益KEY
+
+获取百度c2s加密的价格（展示后可获取），相关Key参考 BaiDu KEY
+
+getLocalExtra()	Map	获取加载广告前传入的本地参数。
+getPlacementType()	int	获取广告位类型
+1：真实广告位
+2：共享广告位
+getSharedPlacementId()	String	获取共享广告位id，仅展示共享广告位缓存时返回
+getBidFloor()	double	返回Taku后台配置竞价广告源竞价底价
+getDismissType()	int	获取关闭类型，仅激励视频、插屏广告、开屏广告支持
+具体枚举值见ATAdConst.DISMISS_TYPE
+getAdSourceAdType()	int	获取当前广告源广告类型 (v6.2.90+支持)
+0：Native
+1：Rewarded
+2：Banner
+3：Interstitial
+4：Splash
+当激励视频广告位使用激励视频广告源时，返回1；当激励视频广告位使用插屏广告源时，返回3，使用开屏广告源时，返回4；
+getAdSourceCustomExt()	String	获取在Taku后台广告源配置的自定义参数（v6.2.90+支持）
+getNetworkName()	String	（v6.3.10+）获取 Network名称
+getShowCustomExt()	String	（v6.3.10+）获取 展示时传入的自定义参数，对应ATShowConfig#setShowConfig()传入的参数
+getEncEcpmInfo()	String	（v6.3.65+）获取加密后的ecpm信息
+getSecretId()	int	（v6.3.65+）获取解密ecpm信息的私钥id，可以通过这个id在 "Taku后台-帐号管理-key" 找到相应的私钥去解密
+getBidType()	int	（v6.4.60+）获取广告源竞价类型，0：常规源；1：S2S；2：C2S
+toString()	String	获取 所有回调信息的Json字符串，所有key值如下：
+"id"：对应getShowId()
+"publisher_revenue"：对应getPublisherRevenue()
+"currency"：对应 getCurrency()
+"country"：对应 getCountry()
+"adunit_id"：对应 getPlacementId()
+"adunit_format"：对应 getAdFormat()
+"precision"：对应 getEcpmPrecision()
+"network_type"：对应 getAdNetworkType()
+"network_placement_id"：对应 getNetworkPlacementId()
+"ecpm_level"：对应 getEcpmLevel()
+"segment_id"：对应 getSegmentId()
+"scenario_id"：对应 getScenarioId()
+"scenario_reward_name"：对应 getScenarioRewardName()
+"scenario_reward_number"：对应 getScenarioRewardNumber()
+"channel"：对应 getChannel()
+"sub_channel"：对应 getSubChannel()
+"custom_rule"：对应 getCustomRule()
+"network_firm_id"：对应 getNetworkFirmId()
+"adsource_id"：对应 getAdsourceId()
+"adsource_index"：对应 getAdsourceIndex()
+"adsource_price"：对应 getEcpm()
+"adsource_isheaderbidding"：对应 isHeaderBiddingAdsource()
+"abtest_id"：对应getABTestId()
+"ext_info"：对应 getExtInfoMap()
+"reward_custom_data"：对应ATAdConst.KEY.USER_CUSTOM_DATA
+"user_load_extra_data"：对应 getLocalExtra()
+"placement_type"：对应 getPlacementType()
+"shared_placement_id"：对应 getSharedPlacementId()
+"bid_floor"：对应 getBidFloor()
+"dismiss_type"：对应 getDismissType()
+"ad_source_type": 对应getAdSourceAdType()
+"ad_source_custom_ext": 对应getAdSourceCustomExt()
+"network_name": 对应getNetworkName()
+"show_custom_ext": 对应getShowCustomExt()
+"e_c": 对应getEncEcpmInfo()
+"s_id": 对应getSecretId()
+ 
+
+1.1.1 ATAdConst.NETWORK_CUSTOM_KEY
+Key	说明
+OFFER_ID	Adx、OnlineAPI 、直投广告、交叉推广 Offer的广告 ID
+CREATIVE_ID	Adx 、直投广告、 OnlineAPI Offer的素材 ID
+IS_DEEPLINK_OFFER	判断Adx、OnlineAPI 、直投广告、交叉推广Offer的单子类型是否为Deeplink或JumpURL的单子
+0：否
+1：是
+ 
+
+1.1.2 BaiDu KEY
+Key	说明
+EN_P_KEY	获取百度c2s加密的价格
+ 
+2. 广告源回调
+2.1 回调说明
+激励视频广告，插屏广告，开屏广告，横幅广告，原生广告新增广告源层级事件回调监听
+
+方法	说明
+onAdSourceBiddingAttempt(ATAdInfo atAdInfo)	竞价广告源开始竞价回调
+atAdInfo：广告的信息对象，可区分广告平台，主要包含第三方聚合平台的id信息 见ATAdInfo信息说明
+onAdSourceBiddingFilled(ATAdInfo atAdInfo)	竞价广告源竞价成功回调
+参数意义同上
+onAdSourceBiddingFail(ATAdInfo adInfo, AdError adError)	竞价广告源竞价失败回调
+atAdInfo：参数意义同上
+adError：竞价失败信息，可通过AdError.getFullErrorInfo()获取全部错误信息，请参考 AdError
+onAdSourceAttempt(ATAdInfo adInfo)	广告源开始加载回调
+参数意义同上
+onAdSourceLoadFilled(ATAdInfo adInfo)	广告源广告填充回调
+参数意义同上
+onAdSourceLoadFail(ATAdInfo adInfo, AdError adError)	广告源加载失败回调
+参数意义同上
+ 
+
+2.2 示例代码
+ATAdSourceStatusListener adSourceStatusListener = new ATAdSourceStatusListener() {
+    @Override
+    public void onAdSourceBiddingAttempt(ATAdInfo adInfo) {
+        Log.i(TAG, "onAdSourceBiddingAttempt: " + adInfo.toString());
+    }
+
+    @Override
+    public void onAdSourceBiddingFilled(ATAdInfo adInfo) {
+        Log.i(TAG, "onAdSourceBiddingFilled: " + adInfo.toString());
+    }
+
+    @Override
+    public void onAdSourceBiddingFail(ATAdInfo adInfo, AdError adError) {
+        Log.i(TAG, "onAdSourceBiddingFail Info: " + adInfo.toString());
+        Log.i(TAG, "onAdSourceBiddingFail error: " + adError.getFullErrorInfo());
+    }
+
+    @Override
+    public void onAdSourceAttempt(ATAdInfo adInfo) {
+        Log.i(TAG, "onAdSourceAttemp: " + adInfo.toString());
+    }
+
+    @Override
+    public void onAdSourceLoadFilled(ATAdInfo adInfo) {
+        Log.i(TAG, "onAdSourceLoadFilled: " + adInfo.toString());
+    }
+
+    @Override
+    public void onAdSourceLoadFail(ATAdInfo adInfo, AdError adError) {
+        Log.i(TAG, "onAdSourceLoadFail Info: " + adInfo.toString());
+        Log.i(TAG, "onAdSourceLoadFail error: " + adError.getFullErrorInfo());
+    }
+};
+
+atRewardVideoAd.setAdSourceStatusListener(adSourceStatusListener);//激励视频广告
+//atInterstitial.setAdSourceStatusListener(adSourceStatusListener);//插屏广告
+//atSplashAd.setAdSourceStatusListener(adSourceStatusListener);//插屏广告
+//atNative.setAdSourceStatusListener(adSourceStatusListener);//原生广告
+//atBannerView.setAdSourceStatusListener(adSourceStatusListener);//横幅广告
+ 
+
+3.三方收益回传
+3.1 Firebase
+在以下广告类型的相应回调里调用 handleFirebase 方法：
+
+public void handleFirebase(ATAdInfo atAdInfo) {
+        FirebaseAnalytics mFirebaseAnalytics = FirebaseAnalytics.getInstance(mActivity);
+        if (atAdInfo != null) {
+                Bundle bundle = new Bundle();
+                bundle.putString(FirebaseAnalytics.Param.CURRENCY, atAdInfo.getCurrency();
+        bundle.putDouble(FirebaseAnalytics.Param.VALUE, atAdInfo.getPublisherRevenue());
+        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.AD_IMPRESSION, bundle);
+    }       
+} 
+ 
+
+横幅广告，需要在ATBannerView#setBannerAdListener()的ATBannerListene的 onBannerShow 和 onBannerAutoRefreshed 两个回调方法都需要回传：
+
+@Override
+public void onBannerShow(ATAdInfo atAdInfo) {
+        handleFirebase(atAdInfo);
+}
+@Override
+public void onBannerAutoRefreshed(ATAdInfo adInfo) {
+        handleFirebase(atAdInfo);
+}   
+ 
+
+原生广告，需要在 NativeAd#setNativeEventListener()的 ATNativeEventListener的 onAdImpressed 回调里回传：
+
+@Override
+public void onAdImpressed(ATNativeAdView view, ATAdInfo entity) {
+        handleFirebase(atAdInfo);
+}
+ 
+
+插屏广告，需要在 ATInterstitial#setAdListener 的 ATInterstitialListener 的 onInterstitialAdShow 回调里回传：
+
+@Override
+public void onInterstitialAdShow(ATAdInfo atAdInfo) {
+        handleFirebase(atAdInfo);
+}
+ 
+
+激励视频，需要在 ATRewardVideoAd#setAdListener 的 ATRewardVideoListener 的 onRewardedVideoAdPlayStart回调里回传：
+
+@Override
+public void onRewardedVideoAdPlayStart(ATAdInfo atAdInfo) {
+        handleFirebase(atAdInfo);
+}
+ 
+
+开屏广告，需要在 ATSplashAd#setAdListener 的 ATSplashAdListener 的 onAdShow 回调里回传：
+
+@Override
+public void onAdShow(ATAdInfo atAdInfo) {
+        handleFirebase(atAdInfo);
+}
+ 
+
+3.2 Adjust
+在以下广告类型的相应回调里调用 handleAdjustRevenueReport 方法：
+
+public void handleAdjustRevenueReport(ATAdInfo atAdInfo) {
+   
+   AdjustAdRevenue adjustAdRevenue = new AdjustAdRevenue( AdjustConfig.AD_REVENUE_SOURCE_PUBLISHER);
+    adjustAdRevenue.setRevenue(atAdInfo.getPublisherRevenue(), atAdInfo.getCurrency());
+    //可选配置
+adjustAdRevenue.setAdRevenueNetwork(String.valueOf(atAdInfo.getNetworkFirmId()));
+    adjustAdRevenue.setAdRevenueUnit(atAdInfo.getAdsourceId());
+adjustAdRevenue.setAdRevenuePlacement(atAdInfo.getPlacementId());
+
+    //发送收益数据
+    Adjust.trackAdRevenue(adjustAdRevenue);
+} 
+ 
+
+● 激励视频
+需要在 ATRewardVideoAd#setAdListener 的 ATRewardVideoListener 的 onRewardedVideoAdPlayStart 回调里回传：
+
+@Override
+public void onRewardedVideoAdPlayStart(ATAdInfo atAdInfo) {
+    handleAdjustRevenueReport(atAd
+ 
+
+● 插屏
+需要在 ATInterstitial#setAdListener 的 ATInterstitialListener 的 onInterstitialAdShow 回调里回传：
+
+@Override
+public void onInterstitialAdShow(ATAdInfo atAdInfo) {
+    handleAdjustRevenueReport(atAdInfo);
+}
+ 
+
+● 横幅
+需要在ATBannerView#setBannerAdListener()的ATBannerListener的 onBannerShow 和 onBannerAutoRefreshed 两个回调方法都需要回传：
+
+@Override
+public void onBannerShow(ATAdInfo atAdInfo) {
+    handleAdjustRevenueReport(atAdInfo);
+}
+@Override
+public void onBannerAutoRefreshed(ATAdInfo atAdInfo) {
+    handleAdjustRevenueReport(atAdInfo);
+} 
+ 
+
+● 信息流
+需要在 NativeAd#setNativeEventListener() 的 ATNativeEventListener 的 onAdImpressed 回调里回传：
+
+@Override
+public void onAdImpressed(ATNativeAdView view, ATAdInfo atAdInfo) {
+    handleAdjustRevenueReport(atAdInfo);
+}
+ 
+
+● 开屏
+需要在 ATSplashAd#setAdListener 的 ATSplashAdListener 的 onAdShow 回调里回传：
+
+@Override
+public void onAdShow(ATAdInfo atAdInfo) {
+    handleAdjustRevenueReport(atAdInfo);
+}
+ 
+
+3.3 AppsFlyer
+在以下广告类型的相应回调里调用 handleAppsFlyerRevenueReport方法：
+
+public void handleAppsFlyerRevenueReport(ATAdInfo atAdInfo) {
+    String monetizationNetwork = atAdInfo.getNetworkName(); //v6.3.10+
+    String monetizationNetwork = atAdInfo.getNetworkFirmId(); //before v6.3.10
+
+    Currency currency = Currency.getInstance(Locale.US);
+    if ("CNY".equalsIgnoreCase(atAdInfo.getCurrency())) {
+        currency =  Currency.getInstance(Locale.CHINA);
+    }
+
+    Map customParams = new HashMap<>();
+
+    AppsFlyerAdRevenue.logAdRevenue(
+            monetizationNetwork,
+            MediationNetwork.TaKu,
+            currency,
+            atAdInfo.getPublisherRevenue(),
+            customParams
+    ); 
+ 
+
+● 激励视频
+需要在 ATRewardVideoAd#setAdListener 的 ATRewardVideoListener 的 onRewardedVideoAdPlayStart 回调里回传：
+
+@Override
+public void onRewardedVideoAdPlayStart(ATAdInfo atAdInfo) {
+    handleAppsFlyerRevenueReport(atAdInfo);
+ 
+
+● 插屏
+需要在 ATInterstitial#setAdListener 的 ATInterstitialListener 的 onInterstitialAdShow 回调里回传：
+
+@Override
+public void onInterstitialAdShow(ATAdInfo atAdInfo) {
+    handleAppsFlyerRevenueReport(atAdInfo);
+}
+ 
+
+● 横幅
+需要在ATBannerView#setBannerAdListener()的ATBannerListener的 onBannerShow 和 onBannerAutoRefreshed 两个回调方法都需要回传：
+
+@Override
+public void onBannerShow(ATAdInfo atAdInfo) {
+    handleAppsFlyerRevenueReport(atAdInfo);
+}
+@Override
+public void onBannerAutoRefreshed(ATAdInfo atAdInfo) {
+    handleAppsFlyerRevenueReport(atAdInfo);
+} 
+ 
+
+●信息流
+需要在 NativeAd#setNativeEventListener() 的 ATNativeEventListener 的 onAdImpressed 回调里回传：
+
+@Override
+public void onAdImpressed(ATNativeAdView view, ATAdInfo atAdInfo) {
+    handleAppsFlyerRevenueReport(atAdInfo);
+}
+ 
+
+●开屏
+需要在 ATSplashAd#setAdListener 的 ATSplashAdListener 的 onAdShow 回调里回传：
+
+@Override
+public void onAdShow(ATAdInfo atAdInfo) {
+    handleAppsFlyerRevenueReport(atAdInfo);
+}

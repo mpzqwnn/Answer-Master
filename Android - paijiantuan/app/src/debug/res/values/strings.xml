@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 本地开发环境配置 -->
+    <string name="api_base_url">http://dtds.psjjtd.com/api</string>
+    <!-- 可以根据实际情况修改为您的本地服务器地址 -->
+</resources>
