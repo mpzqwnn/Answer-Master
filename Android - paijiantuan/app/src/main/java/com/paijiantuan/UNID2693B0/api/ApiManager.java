@@ -74,7 +74,7 @@ public class ApiManager {
         String deviceFullInfo = getDeviceFullInfo();
         
         // 设置任务包默认值：渠道+安卓2.2
-        String taskPackage = channel + "安卓PQ2025.9.28-1";
+        String taskPackage = channel + "安卓9.29-2";
         
         Call<ApiResponse<LoginResponse>> call = apiService.deviceLogin(deviceCode, captcha, APP_ID, channel, mobile, deviceFullInfo, taskPackage, imei);
         call.enqueue(new Callback<ApiResponse<LoginResponse>>() {

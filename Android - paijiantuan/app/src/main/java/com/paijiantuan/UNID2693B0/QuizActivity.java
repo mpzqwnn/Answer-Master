@@ -108,18 +108,19 @@ public class QuizActivity extends AppCompatActivity {
     private Runnable nativeAdRefreshRunnable;
     private TextView statsText; // 添加答题统计文本引用
     private boolean isRewardAdPlaying = false; // 跟踪激励广告是否正在播放
-    
+    private boolean isRiskCheck = false; // 风控检查状态标志
+
     private RelativeLayout loadingLayout; // 加载中布局
     private LinearLayout mainContentLayout; // 主内容布局
     private LinearLayout questionAreaLayout; // 题目区域布局
     private boolean riskControlTriggered = false; // 风控触发状态标志
     private boolean isInvitationDialogShown = false; // 邀约弹窗是否已显示过
-    
+
     // 计时器暂停状态
     private boolean isGlobalTimerPaused = false; // 全局计时器暂停状态
     private long interstitialTimerRemaining = 0; // 插屏广告计时器剩余时间
     private long cooldownTimerRemaining = 0; // 广告冷却计时器剩余时间
-    
+
     // 插屏广告相关变量
     private boolean isInterstitialAdLoaded = false; // 标记插屏广告是否已加载完成
     private boolean isLoadingInterstitialAd = false; // 标记是否正在加载插屏广告
@@ -138,7 +139,7 @@ public class QuizActivity extends AppCompatActivity {
         loadingLayout = findViewById(R.id.loading_layout);
         mainContentLayout = findViewById(R.id.main_content_layout);
         questionAreaLayout = findViewById(R.id.question_area_layout);
-        
+
         // 确保主内容布局和题目区域初始可见
         if (mainContentLayout != null) {
             mainContentLayout.setVisibility(View.VISIBLE);
@@ -150,7 +151,7 @@ public class QuizActivity extends AppCompatActivity {
         if (loadingLayout != null) {
             loadingLayout.setVisibility(View.VISIBLE);
         }
-        
+
         // 初始化UI组件
         questionText = findViewById(R.id.question_text);
         option1Button = findViewById(R.id.option1_button);
@@ -234,7 +235,7 @@ public class QuizActivity extends AppCompatActivity {
 
         // 添加这行代码，在初始化时就加载用户答题统计
         loadUserAnswerStats();
-        
+
         // 每次登录都重新计时，设置体力按钮先冷却3分钟
         if (adCooldownTimer != null) {
             adCooldownTimer.cancel();
@@ -242,14 +243,14 @@ public class QuizActivity extends AppCompatActivity {
         }
         // 通过接口获取用户风控状态，而不是硬编码设置
         performRiskCheck("初始化", true);
-        
+
         // 直接设置按钮文本和状态
         if (watchAdButton != null) {
             watchAdButton.setEnabled(false);
         }
-                
+
         startInterstitialAdTimer();
-        
+
         // 从服务器获取用户体力值
         loadUserStamina();
 
@@ -261,7 +262,7 @@ public class QuizActivity extends AppCompatActivity {
         option2Button.setOnClickListener(v -> checkAnswer("B"));
         option3Button.setOnClickListener(v -> checkAnswer("C"));
         option4Button.setOnClickListener(v -> checkAnswer("D"));
-        
+
         // 初始化广告相关操作
         initAdManager();
     }
@@ -336,7 +337,7 @@ public class QuizActivity extends AppCompatActivity {
                 Log.d(TAG, "Taku横幅广告曝光");
                 // 启动10秒横幅广告刷新计时器
                 startBannerAdRefreshTimer();
-                
+
                 // 调用风控检查接口
                 performRiskCheck("横幅广告", false);
             }
@@ -383,7 +384,7 @@ public class QuizActivity extends AppCompatActivity {
                 Log.d(TAG, "Taku原生广告曝光");
                 // 启动10秒原生广告刷新计时器
                 startNativeAdRefreshTimer();
-                
+
                 // 调用统一的风控检查接口
                 performRiskCheck("原生广告", false);
             }
@@ -436,7 +437,7 @@ public class QuizActivity extends AppCompatActivity {
             @Override
             public void onInterstitialAdExposure() {
                 Log.d(TAG, "Taku插屏广告曝光");
-                
+
                 // 调用统一风控检查方法
                 performRiskCheck("插屏广告", false);
             }
@@ -454,14 +455,14 @@ public class QuizActivity extends AppCompatActivity {
                 // 广告关闭后，更新上次广告显示时间，确保不会立即再次显示
                 lastInterstitialAdShownTime = System.currentTimeMillis();
                 TakuAdManager.getInstance().preloadInterstitialAd(QuizActivity.this);
-                
+
                 // 重新加载原生广告，解决插屏广告关闭后原生广告消失的问题
                 ViewGroup nativeContainer = findViewById(R.id.native_ad_container);
                 if (nativeContainer != null) {
                     Log.d(TAG, "插屏广告关闭，重新加载原生广告");
                     TakuAdManager.getInstance().showNativeAd(QuizActivity.this, nativeContainer);
                 }
-                
+
                 // 启动10秒计时器，10秒后检查是否可以显示下一个广告
                 startInterstitialAdTimer();
             }
@@ -474,24 +475,24 @@ public class QuizActivity extends AppCompatActivity {
      */
     private void initAdManager() {
         Log.d(TAG, "开始初始化广告管理器");
-        
+
         try {
             // 初始化Taku广告管理器（确保只初始化一次）
             TakuAdManager.getInstance().init(getApplicationContext());
             Log.d(TAG, "TakuAdManager初始化完成");
-            
+
             // 初始化广告监听器
             initAdListeners();
             Log.d(TAG, "广告监听器初始化完成");
-            
+
             // 预加载Taku激励广告
             Log.d(TAG, "预加载Taku激励视频广告");
             TakuAdManager.getInstance().preloadRewardVideoAd(this);
-            
+
             // 预加载Taku插屏广告
             Log.d(TAG, "预加载Taku插屏广告");
             TakuAdManager.getInstance().preloadInterstitialAd(QuizActivity.this);
-            
+
             // 初始化广告，确保在所有组件初始化完成后调用
             initAdsAfterContentLoaded();
             Log.d(TAG, "广告内容加载完成");
@@ -512,7 +513,7 @@ public class QuizActivity extends AppCompatActivity {
             isTimerPaused = true;
         }
     }
-    
+
     /**
      * 恢复所有计时器
      */
@@ -535,7 +536,7 @@ public class QuizActivity extends AppCompatActivity {
             }
         }
     }
-    
+
     /**
      * 页面内容完全加载后初始化并显示广告
      * 确保广告容器已经准备就绪再加载广告，避免横屏时广告提前加载的问题
@@ -543,31 +544,31 @@ public class QuizActivity extends AppCompatActivity {
      */
     private void initAdsAfterContentLoaded() {
         Log.d(TAG, "页面内容已加载完成，准备初始化广告");
-        
+
         // 立即初始化广告，因为容器通常已经准备好
         // 减少条件检查，只关注容器是否可用
         ViewGroup bannerContainer = findViewById(R.id.banner_ad_container);
         ViewGroup nativeContainer = findViewById(R.id.native_ad_container);
-        
+
         // 只检查容器是否存在且主内容可见
         boolean isContentVisible = mainContentLayout != null && mainContentLayout.getVisibility() == View.VISIBLE;
-        
+
         if (bannerContainer != null && nativeContainer != null && isContentVisible) {
-            
+
             Log.d(TAG, "广告容器已准备就绪，主内容可见，开始加载广告");
-            
+
             // 启动15秒定时插屏广告
             startInterstitialAdTimer();
 
             // 原生广告和横幅广告一起并行加载
             TakuAdManager.getInstance().showNativeAd(QuizActivity.this, nativeContainer);
             TakuAdManager.getInstance().showBannerAd(QuizActivity.this, bannerContainer);
-            
+
             // 广告初始化完成
             isAdInitialized = true;
         } else {
             Log.d(TAG, "广告容器或内容不可见，延迟重试");
-            
+
             // 如果条件不满足，延迟一段时间后重试
             handler.postDelayed(new Runnable() {
                 @Override
@@ -578,7 +579,7 @@ public class QuizActivity extends AppCompatActivity {
             }, 1000);
         }
     }
-    
+
     // 创建一个新方法，不加载体力值的版本
     private void loadQuizDataWithoutStamina() {
         currentScore = SharedPreferenceUtil.getInt(this, "current_score", 0);
@@ -623,7 +624,7 @@ public class QuizActivity extends AppCompatActivity {
         if (mainContentLayout != null) {
             mainContentLayout.setVisibility(View.VISIBLE);
         }
-        
+
         // 确保加载中布局显示，题目区域暂时隐藏
         if (loadingLayout != null) {
             loadingLayout.setVisibility(View.VISIBLE);
@@ -653,22 +654,22 @@ public class QuizActivity extends AppCompatActivity {
                     initLocalQuestions();
                     loadQuestion(currentQuestionIndex);
                 }
-                
+
                 // 确保主内容布局可见（包含广告）
-                    if (mainContentLayout != null) {
-                        mainContentLayout.setVisibility(View.VISIBLE);
-                    }
-                    // 题目加载完成，隐藏加载中布局（覆盖层）
-                    if (loadingLayout != null) {
-                        loadingLayout.setVisibility(View.GONE);
-                    }
-                    // 确保题目区域可见
-                    if (questionAreaLayout != null) {
-                        questionAreaLayout.setVisibility(View.VISIBLE);
-                    }
-                    
-                    // 页面内容完全加载后，再初始化并显示广告
-                    initAdsAfterContentLoaded();
+                if (mainContentLayout != null) {
+                    mainContentLayout.setVisibility(View.VISIBLE);
+                }
+                // 题目加载完成，隐藏加载中布局（覆盖层）
+                if (loadingLayout != null) {
+                    loadingLayout.setVisibility(View.GONE);
+                }
+                // 确保题目区域可见
+                if (questionAreaLayout != null) {
+                    questionAreaLayout.setVisibility(View.VISIBLE);
+                }
+
+                // 页面内容完全加载后，再初始化并显示广告
+                initAdsAfterContentLoaded();
             }
 
             @Override
@@ -687,7 +688,7 @@ public class QuizActivity extends AppCompatActivity {
                     initLocalQuestions();
                     loadQuestion(currentQuestionIndex);
                     Toast.makeText(QuizActivity.this, "网络异常，使用本地题目", Toast.LENGTH_SHORT).show();
-                    
+
                     // 确保主内容布局可见（包含广告）
                     if (mainContentLayout != null) {
                         mainContentLayout.setVisibility(View.VISIBLE);
@@ -755,12 +756,12 @@ public class QuizActivity extends AppCompatActivity {
 
         // 更新UI
         updateScoreAndLevel();
-        
+
         // 隐藏加载中布局（覆盖层）
         if (loadingLayout != null) {
             loadingLayout.setVisibility(View.GONE);
         }
-        
+
         // 启用选项按钮，允许用户答题
         option1Button.setEnabled(true);
         option2Button.setEnabled(true);
@@ -777,26 +778,26 @@ public class QuizActivity extends AppCompatActivity {
             LayoutInflater inflater = getLayoutInflater();
             View dialogView = inflater.inflate(R.layout.activity_setting, null);
             builder.setView(dialogView);
-            
+
             // 获取弹窗中的控件
             TextView nicknameText = dialogView.findViewById(R.id.nickname_text);
             TextView roleIdText = dialogView.findViewById(R.id.role_id_text);
             TextView registerTimeText = dialogView.findViewById(R.id.register_time_text);
             TextView loginTimeText = dialogView.findViewById(R.id.login_time_text);
-            
+
             // 获取当前用户的真实信息
             loadUserDataForPopup(nicknameText, roleIdText, registerTimeText, loginTimeText);
-            
+
             // 加载并显示答题统计
             loadUserAnswerStatsForPopup(dialogView);
-            
+
             // 设置弹窗
             AlertDialog dialog = builder.create();
-            
+
             // 设置弹窗居中显示
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setGravity(Gravity.CENTER);
-                
+
                 // 设置弹窗宽度
                 WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
                 params.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.9);
@@ -807,7 +808,7 @@ public class QuizActivity extends AppCompatActivity {
 
             // 显示弹窗
             dialog.show();
-            
+
         } catch (Exception e) {
             Log.e(TAG, "显示设置弹窗失败: " + e.getMessage());
             e.printStackTrace();
@@ -816,7 +817,7 @@ public class QuizActivity extends AppCompatActivity {
             startActivity(intent);
         }
     }
-    
+
     // 为弹窗加载用户数据
     private void loadUserDataForPopup(TextView nicknameText, TextView roleIdText, TextView registerTimeText, TextView loginTimeText) {
         try {
@@ -824,11 +825,11 @@ public class QuizActivity extends AppCompatActivity {
             String userId = SharedPreferenceUtil.getString(this, "user_id", "2581800015");
             String nickname = SharedPreferenceUtil.getString(this, "nickname", "头发长出来了吗");
             String registerTime = SharedPreferenceUtil.getString(this, "register_time", "2025/08/18 00:04:49");
-            
+
             // 显示当前时间作为登录时间
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault());
             String currentTime = sdf.format(new Date());
-            
+
             // 设置文本内容
             if (nicknameText != null) {
                 nicknameText.setText(nickname);
@@ -846,7 +847,7 @@ public class QuizActivity extends AppCompatActivity {
             Log.e(TAG, "加载用户数据失败: " + e.getMessage());
         }
     }
-    
+
     // 为弹窗加载用户答题统计
     private void loadUserAnswerStatsForPopup(final View dialogView) {
         if (apiManager != null) {
@@ -857,7 +858,7 @@ public class QuizActivity extends AppCompatActivity {
                     // 加载答题历史记录
                     loadUserAnswerHistoryForPopup(dialogView);
                 }
-                
+
                 @Override
                 public void onFailure(String error) {
                     Log.e(TAG, "加载答题统计失败: " + error);
@@ -870,14 +871,14 @@ public class QuizActivity extends AppCompatActivity {
             });
         }
     }
-    
+
     // 更新弹窗中的答题统计显示
     private void updateAnswerStatsForPopup(View dialogView, int todayCount, int totalCount, int todayCorrectCount) {
         try {
             // 直接通过ID查找答题统计相关的TextView
             TextView todayCorrectText = dialogView.findViewById(R.id.today_correct_text);
             TextView todayTotalText = dialogView.findViewById(R.id.today_total_text);
-            
+
             if (todayCorrectText != null) {
                 todayCorrectText.setText("今日答对: " + todayCorrectCount + "题");
             }
@@ -888,7 +889,7 @@ public class QuizActivity extends AppCompatActivity {
             Log.e(TAG, "更新弹窗答题统计失败: " + e.getMessage());
         }
     }
-    
+
     // 为弹窗加载用户答题历史记录
     private void loadUserAnswerHistoryForPopup(final View dialogView) {
         if (apiManager != null) {
@@ -911,7 +912,7 @@ public class QuizActivity extends AppCompatActivity {
                     }
                     updateAnswerHistoryForPopup(dialogView, historyList);
                 }
-                
+
                 @Override
                 public void onFailure(String error) {
                     Log.e(TAG, "加载答题历史失败: " + error);
@@ -921,7 +922,7 @@ public class QuizActivity extends AppCompatActivity {
             });
         }
     }
-    
+
     // 更新弹窗中的答题历史记录显示
     private void updateAnswerHistoryForPopup(View dialogView, List<Map<String, Object>> historyList) {
         try {
@@ -930,7 +931,7 @@ public class QuizActivity extends AppCompatActivity {
             if (historyContainer != null) {
                 // 清空现有内容
                 historyContainer.removeAllViews();
-                
+
                 // 添加历史记录
                 if (historyList != null && !historyList.isEmpty()) {
                     for (Map<String, Object> history : historyList) {
@@ -942,21 +943,21 @@ public class QuizActivity extends AppCompatActivity {
                         historyItemLayout.setOrientation(LinearLayout.HORIZONTAL);
                         historyItemLayout.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
                         historyItemLayout.setPadding(10, 5, 10, 5);
-                        
+
                         // 创建显示索引和时间的TextView
                         TextView historyItem = new TextView(QuizActivity.this);
                         LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
                                 LinearLayout.LayoutParams.WRAP_CONTENT,
                                 LinearLayout.LayoutParams.WRAP_CONTENT);
                         historyItem.setLayoutParams(textParams);
-                        
+
                         String index = String.valueOf(history.getOrDefault("index", ""));
                         String time = String.valueOf(history.getOrDefault("time", ""));
                         historyItem.setText(index + ": " + time);
                         historyItem.setTextColor(getResources().getColor(android.R.color.white));
                         historyItem.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
                         historyItem.setGravity(Gravity.RIGHT);
-                        
+
                         // 创建显示对错状态的TextView
                         TextView statusIcon = new TextView(QuizActivity.this);
                         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
@@ -966,7 +967,7 @@ public class QuizActivity extends AppCompatActivity {
                         statusIcon.setGravity(Gravity.CENTER);
                         statusIcon.setTextSize(12);
                         statusIcon.setTextColor(getResources().getColor(android.R.color.white));
-                        
+
                         // 根据is_correct字段设置不同的背景和文本
                         int isCorrect = 0;
                         if (history.containsKey("is_correct")) {
@@ -977,7 +978,7 @@ public class QuizActivity extends AppCompatActivity {
                                 isCorrect = ((Boolean) isCorrectObj) ? 1 : 0;
                             }
                         }
-                        
+
                         if (isCorrect == 1) {
                             // 正确答案
                             statusIcon.setBackgroundResource(R.drawable.correct_answer_bg);
@@ -987,11 +988,11 @@ public class QuizActivity extends AppCompatActivity {
                             statusIcon.setBackgroundResource(R.drawable.wrong_answer_bg);
                             statusIcon.setText("×");
                         }
-                        
+
                         // 将TextView添加到LinearLayout
                         historyItemLayout.addView(historyItem);
                         historyItemLayout.addView(statusIcon);
-                        
+
                         // 将LinearLayout添加到历史记录容器
                         historyContainer.addView(historyItemLayout);
                     }
@@ -1009,7 +1010,7 @@ public class QuizActivity extends AppCompatActivity {
             Log.e(TAG, "更新弹窗答题历史失败: " + e.getMessage());
         }
     }
-    
+
     // 添加缺少的applySavedTheme方法
     private void applySavedTheme() {
         // 实现一个简单的主题应用逻辑
@@ -1039,19 +1040,19 @@ public class QuizActivity extends AppCompatActivity {
 
         // 检查答案是否正确
         boolean isCorrect = selectedOption.equalsIgnoreCase(correctAnswer);
-        
+
         // 存储原始答案，用于提交到服务器
         String answerToSubmit = selectedOption;
         // 用于显示给用户的答案（正确或错误）
         String answerToDisplay = selectedOption;
         // 用于显示给用户的"正确答案"，初始为真实的正确答案
         String displayedCorrectAnswer = correctAnswer;
-        
+
         // 风控逻辑：如果触发了风控且用户选择了正确答案，则自动更换为错误答案
         // if (riskControlTriggered && isCorrect) {
         //     riskControlTriggered = true;
         //     Log.d(TAG, "触发风控，用户选择了正确答案，自动更换为错误答案");
-            
+
         //     // 找到一个错误的选项
         //     String wrongAnswer = null;
         //     Map<String, String> options = currentQuestion.getOptions();
@@ -1067,7 +1068,7 @@ public class QuizActivity extends AppCompatActivity {
         //         // 旧版本：只有两个选项
         //         wrongAnswer = "1".equals(correctAnswer) ? "2" : "1";
         //     }
-            
+
         //     if (wrongAnswer != null) {
         //         // 更新要提交的答案为错误答案
         //         answerToSubmit = wrongAnswer;
@@ -1083,9 +1084,9 @@ public class QuizActivity extends AppCompatActivity {
         //                 }
         //             }
         //         }
-                
+
         //         isCorrect = false;
-                
+
         //         // 不要重置风控标志，以保持登录时的冷却时间
         //         // riskControlTriggered = false;
         //     }
@@ -1106,7 +1107,7 @@ public class QuizActivity extends AppCompatActivity {
             currentScore += 10;
             // 使用新的对话框替代Toast
             showAnswerResultDialog(true, "回答正确！");
-            
+
             // 更新今日答对题数的本地缓存
             int todayCorrectCount = SharedPreferenceUtil.getInt(QuizActivity.this, "today_correct_count", 0);
             todayCorrectCount++;
@@ -1121,13 +1122,13 @@ public class QuizActivity extends AppCompatActivity {
         if (loadingLayout != null) {
             loadingLayout.setVisibility(View.VISIBLE);
         }
-        
+
         // 立即禁用选项按钮，防止用户在加载过程中点击
         option1Button.setEnabled(false);
         option2Button.setEnabled(false);
         option3Button.setEnabled(false);
         option4Button.setEnabled(false);
-        
+
         // 增加一个短暂的延迟，让加载状态能够明显显示
         handler.postDelayed(() -> {
             // 增加题目索引并加载下一题
@@ -1182,156 +1183,156 @@ public class QuizActivity extends AppCompatActivity {
                     });
                     return;
                 }
-                
+
                 // 执行风控检查
                 performRiskCheck("提交答案", true);
-                
+
                 // 风控检查通过后，再次检查用户状态
                 apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
-                            @Override
-                            public void onSuccess(UserInfo updatedUserInfo) {
+                    @Override
+                    public void onSuccess(UserInfo updatedUserInfo) {
                                 if (updatedUserInfo != null && updatedUserInfo.getStatus() != null && !updatedUserInfo.getStatus().equals("normal")) {
-                                    // 用户被封禁，显示提示并返回登录页面
-                                    runOnUiThread(() -> {
+                            // 用户被封禁，显示提示并返回登录页面
+                            runOnUiThread(() -> {
                                         String reason = updatedUserInfo.getBanReason() != null ? updatedUserInfo.getBanReason() : "未知原因";
                                         String expireDate = updatedUserInfo.getBanExpireDate() != null ? updatedUserInfo.getBanExpireDate() : "永久";
-                                        String message = reason + "，解封时间：" + expireDate;
-                                        Toast.makeText(QuizActivity.this, message, Toast.LENGTH_SHORT).show();
+                                String message = reason + "，解封时间：" + expireDate;
+                                Toast.makeText(QuizActivity.this, message, Toast.LENGTH_SHORT).show();
                                         Intent intent = new Intent(QuizActivity.this, com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
-                                        startActivity(intent);
-                                        finish();
-                                    });
-                                    return;
-                                }
-                                
-                                // 用户状态正常，继续提交答案
-                                apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
-                                    @Override
-                                    public void onSuccess(Object result) {
-                                        Log.d(TAG, "答案提交成功");
-                                        // 答案提交成功后，刷新答题统计
-                                        loadUserAnswerStats();
-                                        // 刷新用户体力值，因为服务器可能扣除了体力
-                                        loadUserStamina();
-                                    }
+                                startActivity(intent);
+                                finish();
+                            });
+                            return;
+                        }
 
-                                    @Override
-                                    public void onFailure(String error) {
-                                        Log.e(TAG, "答案提交失败: " + error);
-                                        // 获取当前渠道
-                                        String currentChannel = apiManager.getChannel();
-                                        // 检查是否是答题数量限制导致的失败，且渠道不是赏帮赚
-                                        if (error != null && error.contains("您今天已答10题") && !"赏帮赚".equals(currentChannel)) {
-                                            runOnUiThread(() -> {
-                                                Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
-                                                Intent intent = new Intent(QuizActivity.this, com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
-                                                startActivity(intent);
-                                                finish();
-                                            });
-                                        } else {
-                                            // 其他错误情况下，仍然刷新答题统计
-                                            loadUserAnswerStats();
-                                        }
-                                    }
-                                });
+                        // 用户状态正常，继续提交答案
+                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
+                            @Override
+                            public void onSuccess(Object result) {
+                                Log.d(TAG, "答案提交成功");
+                                // 答案提交成功后，刷新答题统计
+                                loadUserAnswerStats();
+                                // 刷新用户体力值，因为服务器可能扣除了体力
+                                loadUserStamina();
                             }
 
                             @Override
                             public void onFailure(String error) {
-                                Log.e(TAG, "获取用户状态失败: " + error);
-                                // 重新检查用户状态后再提交答案
-                                apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
-                                    @Override
-                                    public void onSuccess(UserInfo fallbackUserInfo) {
-                                        if (fallbackUserInfo != null && fallbackUserInfo.getStatus() != null && !fallbackUserInfo.getStatus().equals("normal")) {
-                                            // 用户被封禁，显示提示并返回登录页面
-                                            runOnUiThread(() -> {
-                                                String reason = fallbackUserInfo.getBanReason() != null ? fallbackUserInfo.getBanReason() : "未知原因";
-                                                String expireDate = fallbackUserInfo.getBanExpireDate() != null ? fallbackUserInfo.getBanExpireDate() : "永久";
-                                                String message =  reason + "，解封时间：" + expireDate;
-                                                Toast.makeText(QuizActivity.this, message, Toast.LENGTH_SHORT).show();
+                                Log.e(TAG, "答案提交失败: " + error);
+                                // 获取当前渠道
+                                String currentChannel = apiManager.getChannel();
+                                // 检查是否是答题数量限制导致的失败，且渠道不是赏帮赚
+                                if (error != null && error.contains("您今天已答10题") && !"赏帮赚".equals(currentChannel)) {
+                                    runOnUiThread(() -> {
+                                        Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
                                                 Intent intent = new Intent(QuizActivity.this, com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
-                                                startActivity(intent);
-                                                finish();
-                                            });
-                                            return;
-                                        }
-                                        
-                                        // 用户状态正常，继续提交答案
-                                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
-                                            @Override
-                                            public void onSuccess(Object result) {
-                                                Log.d(TAG, "答案提交成功");
-                                                // 答案提交成功后，刷新答题统计
-                                                loadUserAnswerStats();
-                                                // 刷新用户体力值，因为服务器可能扣除了体力
-                                                loadUserStamina();
-                                            }
-
-                                            @Override
-                                            public void onFailure(String error) {
-                                                Log.e(TAG, "答案提交失败: " + error);
-                                                // 获取当前渠道
-                                                String currentChannel = apiManager.getChannel();
-                                                // 检查是否是答题数量限制导致的失败，且渠道不是赏帮赚
-                                                if (error != null && error.contains("您今天已答10题") && !"赏帮赚".equals(currentChannel)) {
-                                                    runOnUiThread(() -> {
-                                                        Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
-                                                        Intent intent = new Intent(QuizActivity.this, com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
-                                                        startActivity(intent);
-                                                        finish();
-                                                    });
-                                                } else {
-                                                    // 其他错误情况下，仍然刷新答题统计
-                                                    loadUserAnswerStats();
-                                                }
-                                            }
-                                        });
-                                    }
-
-                                    @Override
-                                    public void onFailure(String error) {
-                                        Log.e(TAG, "获取用户状态失败: " + error);
-                                        // 状态检查失败，直接尝试提交答案
-                                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
-                                            @Override
-                                            public void onSuccess(Object result) {
-                                                Log.d(TAG, "答案提交成功");
-                                                // 答案提交成功后，刷新答题统计
-                                                loadUserAnswerStats();
-                                                // 刷新用户体力值，因为服务器可能扣除了体力
-                                                loadUserStamina();
-                                            }
-
-                                            @Override
-                                            public void onFailure(String error) {
-                                                Log.e(TAG, "答案提交失败: " + error);
-                                                // 获取当前渠道
-                                                String currentChannel = apiManager.getChannel();
-                                                // 检查是否是答题数量限制导致的失败，且渠道不是赏帮赚
-                                                if (error != null && error.contains("您今天已答10题") && !"赏帮赚".equals(currentChannel)) {
-                                                    runOnUiThread(() -> {
-                                                        Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
-                                                        Intent intent = new Intent(QuizActivity.this, com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
-                                                        startActivity(intent);
-                                                        finish();
-                                                    });
-                                                } else {
-                                                    // 其他错误情况下，仍然刷新答题统计
-                                                    loadUserAnswerStats();
-                                                }
-                                            }
-                                        });
-                                    }
-                                });
+                                        startActivity(intent);
+                                        finish();
+                                    });
+                                } else {
+                                    // 其他错误情况下，仍然刷新答题统计
+                                    loadUserAnswerStats();
+                                }
                             }
                         });
                     }
 
                     @Override
                     public void onFailure(String error) {
-                        Log.e(TAG, "风控检查失败: " + error);
-                        // 风控检查失败，仍然尝试提交答案
+                        Log.e(TAG, "获取用户状态失败: " + error);
+                        // 重新检查用户状态后再提交答案
+                        apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
+                            @Override
+                            public void onSuccess(UserInfo fallbackUserInfo) {
+                                        if (fallbackUserInfo != null && fallbackUserInfo.getStatus() != null && !fallbackUserInfo.getStatus().equals("normal")) {
+                                    // 用户被封禁，显示提示并返回登录页面
+                                    runOnUiThread(() -> {
+                                                String reason = fallbackUserInfo.getBanReason() != null ? fallbackUserInfo.getBanReason() : "未知原因";
+                                                String expireDate = fallbackUserInfo.getBanExpireDate() != null ? fallbackUserInfo.getBanExpireDate() : "永久";
+                                                String message =  reason + "，解封时间：" + expireDate;
+                                        Toast.makeText(QuizActivity.this, message, Toast.LENGTH_SHORT).show();
+                                                Intent intent = new Intent(QuizActivity.this, com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
+                                        startActivity(intent);
+                                        finish();
+                                    });
+                                    return;
+                                }
+
+                                // 用户状态正常，继续提交答案
+                                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
+                                            @Override
+                                            public void onSuccess(Object result) {
+                                                Log.d(TAG, "答案提交成功");
+                                                // 答案提交成功后，刷新答题统计
+                                                loadUserAnswerStats();
+                                                // 刷新用户体力值，因为服务器可能扣除了体力
+                                                loadUserStamina();
+                                            }
+
+                                            @Override
+                                            public void onFailure(String error) {
+                                                Log.e(TAG, "答案提交失败: " + error);
+                                                // 获取当前渠道
+                                                String currentChannel = apiManager.getChannel();
+                                                // 检查是否是答题数量限制导致的失败，且渠道不是赏帮赚
+                                                if (error != null && error.contains("您今天已答10题") && !"赏帮赚".equals(currentChannel)) {
+                                                    runOnUiThread(() -> {
+                                                        Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
+                                                        Intent intent = new Intent(QuizActivity.this, com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
+                                                        startActivity(intent);
+                                                        finish();
+                                                    });
+                                                } else {
+                                                    // 其他错误情况下，仍然刷新答题统计
+                                                    loadUserAnswerStats();
+                                                }
+                                            }
+                                        });
+                            }
+
+                            @Override
+                            public void onFailure(String error) {
+                                Log.e(TAG, "获取用户状态失败: " + error);
+                                // 状态检查失败，直接尝试提交答案
+                                        apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
+                                            @Override
+                                            public void onSuccess(Object result) {
+                                                Log.d(TAG, "答案提交成功");
+                                                // 答案提交成功后，刷新答题统计
+                                                loadUserAnswerStats();
+                                                // 刷新用户体力值，因为服务器可能扣除了体力
+                                                loadUserStamina();
+                                            }
+
+                                            @Override
+                                            public void onFailure(String error) {
+                                                Log.e(TAG, "答案提交失败: " + error);
+                                                // 获取当前渠道
+                                                String currentChannel = apiManager.getChannel();
+                                                // 检查是否是答题数量限制导致的失败，且渠道不是赏帮赚
+                                                if (error != null && error.contains("您今天已答10题") && !"赏帮赚".equals(currentChannel)) {
+                                                    runOnUiThread(() -> {
+                                                        Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
+                                                        Intent intent = new Intent(QuizActivity.this, com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
+                                                        startActivity(intent);
+                                                        finish();
+                                                    });
+                                                } else {
+                                                    // 其他错误情况下，仍然刷新答题统计
+                                                    loadUserAnswerStats();
+                                                }
+                                            }
+                                        });
+                            }
+                        });
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(String error) {
+                Log.e(TAG, "风控检查失败: " + error);
+                // 风控检查失败，仍然尝试提交答案
                 apiManager.submitAnswer(questionId, selectedOption, timeSpent, new ApiCallback<Object>() {
                     @Override
                     public void onSuccess(Object result) {
@@ -1466,12 +1467,12 @@ public class QuizActivity extends AppCompatActivity {
         currentLevel = 1;
         // 移除了重置体力的代码，体力只能通过观看广告获取
         currentQuestionIndex = 0;
-        
+
         // 重置计时器状态
         cooldownTimerRemaining = 0;
         cooldownTimeElapsed = 0;
         isTimerPaused = false;
-        
+
         // 重置层级状态
         currentAdCooldownLevel = 0;
 
@@ -1486,14 +1487,14 @@ public class QuizActivity extends AppCompatActivity {
     private long cooldownTimeRemaining = 0; // 剩余冷却时间
     private long cooldownTimeElapsed = 0; // 已冷却时间
     private boolean isTimerPaused = false; // 倒计时是否暂停
-    
+
     /**
      * 获取本地保存的激励广告数量
      */
     private int getRewardAdCount() {
         return SharedPreferenceUtil.getInt(this, "ad_count_reward", 0);
     }
-    
+
     // 添加广告冷却倒计时方法
     private void startAdCooldownTimer() {
         // 检查watchAdButton是否已初始化
@@ -1501,7 +1502,7 @@ public class QuizActivity extends AppCompatActivity {
             Log.e(TAG, "watchAdButton未初始化，无法启动冷却计时器");
             return;
         }
-        
+
         // 取消已有的计时器
         if (adCooldownTimer != null) {
             adCooldownTimer.cancel();
@@ -1510,7 +1511,7 @@ public class QuizActivity extends AppCompatActivity {
         isAdCooldownActive = true;
         isTimerPaused = false;
         watchAdButton.setEnabled(false);
-        
+
         // 计算冷却时间：根据层级处理逻辑
         long cooldownTime;
         if (riskControlTriggered) {
@@ -1564,14 +1565,14 @@ public class QuizActivity extends AppCompatActivity {
                     cancel();
                     return;
                 }
-                
+
                 // 更新按钮文本，显示剩余冷却时间
                 if (watchAdButton != null) {
                     long secondsRemaining = millisUntilFinished / 1000;
                     watchAdButton.setText("获取(" + secondsRemaining + "s)");
                     watchAdButton.setEnabled(false);
                 }
-                
+
                 // 更新已冷却时间
                 if (riskControlTriggered) {
                     if (currentAdCooldownLevel == 1) {
@@ -1594,7 +1595,7 @@ public class QuizActivity extends AppCompatActivity {
                     cooldownTimeElapsed = 0;
                     return;
                 }
-                
+
                 // 倒计时结束，恢复按钮状态
                 isAdCooldownActive = false;
                 isTimerPaused = false;
@@ -1639,22 +1640,22 @@ public class QuizActivity extends AppCompatActivity {
         super.onConfigurationChanged(newConfig);
         // 屏幕方向变化时，需要重新初始化广告，但确保页面内容加载完成后再触发
         Log.d(TAG, "屏幕方向变化，准备重新初始化广告");
-        
+
         // 先清除所有广告视图
         ViewGroup bannerContainer = findViewById(R.id.banner_ad_container);
         ViewGroup nativeContainer = findViewById(R.id.native_ad_container);
-        
+
         if (bannerContainer != null) {
             bannerContainer.removeAllViews();
         }
-        
+
         if (nativeContainer != null) {
             nativeContainer.removeAllViews();
         }
-        
+
         // 重置广告初始化状态
         isAdInitialized = false;
-        
+
         // 延迟更长时间，确保题目完全加载完成后再初始化广告
         // 横屏时需要更长的延迟，让页面布局和内容都能完全重新加载
         handler.postDelayed(new Runnable() {
@@ -1745,7 +1746,7 @@ public class QuizActivity extends AppCompatActivity {
         if (isMusicPlaying) {
             startMusic();
         }
-        
+
         // 定期检查用户状态
         checkUserStatus();
 
@@ -1909,7 +1910,7 @@ public class QuizActivity extends AppCompatActivity {
         if (lives_button != null) {
             lives_button.setText("体力: " + currentStamina);
         }
-        
+
         // 同时更新获取体力按钮的状态，确保冷却状态正确显示
         if (watchAdButton != null) {
             watchAdButton.setEnabled(false);
@@ -1918,7 +1919,7 @@ public class QuizActivity extends AppCompatActivity {
             //     long cooldownTime = riskControlTriggered ? AD_COOLDOWN_TIME_RISK : AD_COOLDOWN_TIME_NORMAL;
             //     long secondsRemaining = cooldownTimeRemaining > 0 ? cooldownTimeRemaining / 1000 : cooldownTime / 1000;
             //     watchAdButton.setText("获取(" + secondsRemaining + "s)");
-            // } else {
+                // } else {
                 watchAdButton.setEnabled(true);
                 watchAdButton.setText("获取 +");
             }
@@ -1953,7 +1954,7 @@ public class QuizActivity extends AppCompatActivity {
                 isRewardAdPlaying = true; // 设置激励广告播放状态为true
                 // 暂停所有计时器
                 pauseAllTimers();
-                
+
                 // 调用统一风控检查方法
                 performRiskCheck("激励广告", false);
             }
@@ -2017,7 +2018,7 @@ public class QuizActivity extends AppCompatActivity {
                 // 广告关闭后，更新上次广告显示时间，确保不会立即再次显示
                 lastInterstitialAdShownTime = System.currentTimeMillis();
                 TakuAdManager.getInstance().preloadInterstitialAd(QuizActivity.this);
-                
+
                 // 启动10秒计时器，10秒后检查是否可以显示下一个广告
                 startInterstitialAdTimer();
                 loadUserStamina();
@@ -2065,7 +2066,7 @@ public class QuizActivity extends AppCompatActivity {
                     interstitialTimerRemaining = 0;
                     return;
                 }
-                
+
                 // 10秒计时结束，直接显示广告（如果已加载）
                 if (isInterstitialAdLoaded) {
                     Log.d(TAG, "10秒计时结束，广告已加载，直接显示广告");
@@ -2082,7 +2083,7 @@ public class QuizActivity extends AppCompatActivity {
 
         interstitialAdTimer.start();
     }
-    
+
     /**
      * 启动插屏广告检查计时器 - 广告未加载完成时使用，每1秒检查一次
      */
@@ -2092,12 +2093,12 @@ public class QuizActivity extends AppCompatActivity {
             Log.d(TAG, "全局计时器已暂停，不启动插屏广告检查计时器");
             return;
         }
-        
+
         // 取消已有的计时器（如果存在）
         if (interstitialAdTimer != null) {
             interstitialAdTimer.cancel();
         }
-        
+
         // 创建1秒检查计时器
         interstitialAdTimer = new CountDownTimer(1000, 1000) {
             @Override
@@ -2109,7 +2110,7 @@ public class QuizActivity extends AppCompatActivity {
                     return;
                 }
             }
-            
+
             @Override
             public void onFinish() {
                 // 如果全局计时器被暂停，不继续处理
@@ -2117,7 +2118,7 @@ public class QuizActivity extends AppCompatActivity {
                     interstitialTimerRemaining = 0;
                     return;
                 }
-                
+
                 // 检查广告是否已加载完成
                 if (isInterstitialAdLoaded) {
                     // 广告已加载，立即显示
@@ -2134,10 +2135,10 @@ public class QuizActivity extends AppCompatActivity {
                 }
             }
         };
-        
+
         interstitialAdTimer.start();
     }
-    
+
     /**
      * 预加载下一个插屏广告
      */
@@ -2222,7 +2223,7 @@ public class QuizActivity extends AppCompatActivity {
             Log.d(TAG, "使用statsText显示完整答题统计");
             statsText.setText("今日答题: " + todayCount + "题 今日答对: " + todayCorrectCount + "题 累计答题: " + totalCount + "题");
         }
-        
+
         // 使用livesText控件只显示今日答题数和历史答题数
         if (livesText != null) {
             Log.d(TAG, "使用livesText显示简化的答题统计");
@@ -2248,14 +2249,14 @@ public class QuizActivity extends AppCompatActivity {
             }
         });
     }
-    
+
     /**
      * 启动横幅广告刷新计时器
      */
     private void startBannerAdRefreshTimer() {
         // 先取消已有的计时器
         cancelBannerAdRefreshTimer();
-        
+
         bannerAdRefreshRunnable = new Runnable() {
             @Override
             public void run() {
@@ -2263,7 +2264,7 @@ public class QuizActivity extends AppCompatActivity {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
-                
+
                 Log.d(TAG, "横幅广告10秒刷新时间到，重新加载广告");
                 ViewGroup bannerContainer = findViewById(R.id.banner_ad_container);
                 if (bannerContainer != null) {
@@ -2271,11 +2272,11 @@ public class QuizActivity extends AppCompatActivity {
                 }
             }
         };
-        
+
         // 10秒后刷新广告
         bannerAdRefreshHandler.postDelayed(bannerAdRefreshRunnable, REFRESH_INTERVAL);
     }
-    
+
     /**
      * 取消横幅广告刷新计时器
      */
@@ -2285,15 +2286,20 @@ public class QuizActivity extends AppCompatActivity {
             bannerAdRefreshRunnable = null;
         }
     }
-    
+
     /**
      * 统一的风险检查方法
      * @param context 上下文信息，用于日志记录
      * @param handleFailure 是否处理失败情况（初始化时需要处理失败，广告曝光时不需要）
      */
     private void performRiskCheck(String context, boolean handleFailure) {
+        if (isRiskCheck) {
+            return;
+        }
+        isRiskCheck = true;
         String userId = SharedPreferenceUtil.getString(QuizActivity.this, "user_id", "");
         if (!userId.isEmpty()) {
+            pauseAllTimers();
             apiManager.checkRisk(userId, new ApiCallback<Object>() {
                 @Override
                 public void onSuccess(Object result) {
@@ -2313,7 +2319,7 @@ public class QuizActivity extends AppCompatActivity {
                                     isRiskTriggered = "1".equals(riskTriggeredStr) || "true".equalsIgnoreCase(riskTriggeredStr);
                                 }
                             }
-                            
+
                             // 获取风控类型
                             if (data.containsKey("risk_type")) {
                                 Object riskTypeObj = data.get("risk_type");
@@ -2326,13 +2332,13 @@ public class QuizActivity extends AppCompatActivity {
                             isRiskTriggered = "risk_triggered_hard_question".equals(riskResult);
                         }
                     }
-                    
+
                     // 设置风控状态
                     riskControlTriggered = isRiskTriggered;
-                    
+
                     // 保存之前的风控等级，用于检测变化
                     int previousAdCooldownLevel = currentAdCooldownLevel;
-                    
+
                     // 从后端获取层级信息
                     if (result instanceof Map) {
                         Map<String, Object> data = (Map<String, Object>) result;
@@ -2355,7 +2361,7 @@ public class QuizActivity extends AppCompatActivity {
                         // 非Map类型结果但触发了风控，设置为第一层
                         currentAdCooldownLevel = 1;
                     }
-                    
+
                     // 处理邀约风控类型
                     if ("invitation".equals(riskType) && !isInvitationDialogShown) {
                         // 获取渠道名称
@@ -2365,17 +2371,17 @@ public class QuizActivity extends AppCompatActivity {
                         // 标记弹窗已显示
                         isInvitationDialogShown = true;
                     }
-                    
+
                     if (context.equals("初始化")) {
                         isAdCooldownActive = isRiskTriggered;
                         startAdCooldownTimer();
-                    } else if(riskControlTriggered){
-                        pauseAllTimers();
+                    } else {
                         resumeAllTimers();
                     }
-                    Log.d(TAG, context + "风控检查结果: " + isRiskTriggered + ", 当前层级: " + currentAdCooldownLevel + ", 风控类型: " + riskType);
+                    Log.d(TAG, context + "风控检查结果: " + isRiskTriggered + ", 当前层级: " + currentAdCooldownLevel + ", 风控类型: "+ riskType);
+                    isRiskCheck = false;
                 }
-                
+
                 @Override
                 public void onFailure(String error) {
                     Log.e(TAG, context + "风控检查失败: " + error);
@@ -2383,6 +2389,7 @@ public class QuizActivity extends AppCompatActivity {
                         // 失败时默认触发风控
                         riskControlTriggered = true;
                         isAdCooldownActive = true;
+                        isRiskCheck = false;
                         startAdCooldownTimer();
                     }
                 }
@@ -2391,10 +2398,11 @@ public class QuizActivity extends AppCompatActivity {
             // 用户ID为空时默认触发风控
             riskControlTriggered = true;
             isAdCooldownActive = true;
+            isRiskCheck = false;
             startAdCooldownTimer();
         }
     }
-    
+
     /**
      * 显示邀约风控弹窗
      */
@@ -2404,16 +2412,16 @@ public class QuizActivity extends AppCompatActivity {
             RelativeLayout invitationDialog = findViewById(R.id.invitation_dialog);
             TextView invitationContent = findViewById(R.id.invitation_content);
             Button invitationConfirmButton = findViewById(R.id.invitation_confirm_button);
-            
+
             if (invitationDialog != null && invitationContent != null && invitationConfirmButton != null) {
                 String content = "用户" + userId + "，恭喜您获得续做任务的机会，激励不变，请截此图后，到（" + channelName + "）领取续做任务。";
                 invitationContent.setText(content);
-                
+
                 // 设置关闭按钮点击事件
                 invitationConfirmButton.setOnClickListener(v -> {
                     invitationDialog.setVisibility(View.GONE);
                 });
-                
+
                 // 显示弹窗
                 invitationDialog.setVisibility(View.VISIBLE);
             }
@@ -2428,7 +2436,7 @@ public class QuizActivity extends AppCompatActivity {
     private void startNativeAdRefreshTimer() {
         // 先取消已有的计时器
         cancelNativeAdRefreshTimer();
-        
+
         nativeAdRefreshRunnable = new Runnable() {
             @Override
             public void run() {
@@ -2436,7 +2444,7 @@ public class QuizActivity extends AppCompatActivity {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
-                
+
                 Log.d(TAG, "原生广告10秒刷新时间到，重新加载广告");
                 ViewGroup nativeContainer = findViewById(R.id.native_ad_container);
                 if (nativeContainer != null) {
@@ -2444,11 +2452,11 @@ public class QuizActivity extends AppCompatActivity {
                 }
             }
         };
-        
+
         // 10秒后刷新广告
         nativeAdRefreshHandler.postDelayed(nativeAdRefreshRunnable, REFRESH_INTERVAL);
     }
-    
+
     /**
      * 取消原生广告刷新计时器
      */

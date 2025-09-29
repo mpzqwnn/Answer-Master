@@ -60,7 +60,7 @@ public class ApiManager {
     }
 
     // 应用ID，从AndroidManifest.xml中获取的Taku广告APP_ID
-    private static final String APP_ID = "a68bab61c2bd06";
+    private static final String APP_ID = "a68afadf78e295";
     
     /**
      * 设备机器码登录 - 支持IMEI优先登录
@@ -74,7 +74,7 @@ public class ApiManager {
         String deviceFullInfo = getDeviceFullInfo();
         
         // 设置任务包默认值：渠道+安卓2.2
-        String taskPackage = channel + "安卓DS9.28-1";
+        String taskPackage = channel + "安卓DS9.29-2";
         
         Call<ApiResponse<LoginResponse>> call = apiService.deviceLogin(deviceCode, captcha, APP_ID, channel, mobile, deviceFullInfo, taskPackage, imei);
         call.enqueue(new Callback<ApiResponse<LoginResponse>>() {
