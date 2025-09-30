@@ -24,8 +24,14 @@ import com.fortunequizking.api.ApiCallback;
 import com.fortunequizking.model.UserInfo;
 import com.fortunequizking.util.AdManager;
 import com.fortunequizking.util.SharedPreferenceUtil;
+import com.fortunequizking.util.TakuAdManager;
 import com.fortunequizking.R;
 import android.widget.CompoundButton;
+
+// 广告相关导入
+import android.view.ViewGroup;
+import com.anythink.core.api.ATAdStatusInfo;
+import com.anythink.banner.api.ATBannerView;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -58,6 +64,10 @@ public class LoginActivity extends AppCompatActivity {
     // 手机号正则表达式（中国大陆手机号格式）
     private static final Pattern PHONE_PATTERN = Pattern.compile("^1[3-9]\\d{9}$");
     
+    // 广告预加载相关变量
+    private Handler adPreloadHandler;
+    private static final long AD_PRELOAD_DELAY_MS = 500; // 延迟500毫秒开始预加载广告
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,8 +76,8 @@ public class LoginActivity extends AppCompatActivity {
         // 请求必要的权限
         requestNecessaryPermissions();
         
-        // 初始化广告管理类
-        AdManager.getInstance().init(this);
+        // 初始化Taku广告管理类
+        TakuAdManager.getInstance().init(this);
         
         // 初始化UI组件
         mAgreementCheckBox = findViewById(R.id.agreement_checkbox);
@@ -87,6 +97,8 @@ public class LoginActivity extends AppCompatActivity {
         // 显示手机号输入框，允许用户手动输入
         mPhoneEditText.setVisibility(View.VISIBLE);
         // 保持输入框始终可用，允许用户手动修改
+        
+        // 移除自动获取手机号，改为在点击按钮后获取
         
         // 获取图形验证码
         loadCaptcha();
@@ -124,6 +136,7 @@ public class LoginActivity extends AppCompatActivity {
                 Log.d(TAG, "手机号已输入，长度: " + s.length() + ", 触发按钮状态更新");
             }
         });
+        // 验证码输入框的监听保持不变
         
         // 添加验证码输入监听，控制下一步按钮状态
         mCaptchaEditText.addTextChangedListener(new TextWatcher() {
@@ -160,6 +173,12 @@ public class LoginActivity extends AppCompatActivity {
         
         // 设置登录按钮的文字颜色选择器
         mNextButton.setTextColor(getResources().getColorStateList(R.color.button_text_color_selector));
+        
+        // 初始化广告预加载Handler
+        adPreloadHandler = new Handler();
+        
+        // 延迟预加载广告
+        startAdPreload();
     }
     
     /**
@@ -899,5 +918,154 @@ public class LoginActivity extends AppCompatActivity {
         // 启动协议显示页面，传递隐私政策类型
         startActivity(new Intent(this, AgreementActivity.class)
                 .putExtra(AgreementActivity.EXTRA_AGREEMENT_TYPE, AgreementActivity.TYPE_PRIVACY_AGREEMENT));
+    }
+    
+    /**
+     * 开始广告预加载
+     * 在登录页面预加载广告，但不显示广告
+     */
+    private void startAdPreload() {
+        Log.d(TAG, "开始广告预加载");
+        
+        adPreloadHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                preloadBannerAd();
+                preloadNativeAd();
+                preloadInterstitialAd();
+                preloadRewardVideoAd();
+                
+                Log.d(TAG, "所有广告预加载任务已启动");
+            }
+        }, AD_PRELOAD_DELAY_MS);
+    }
+    
+    /**
+     * 预加载横幅广告
+     * 只加载不显示，为后续页面使用做准备
+     */
+    private void preloadBannerAd() {
+        try {
+            Log.d(TAG, "开始预加载横幅广告");
+            
+            // 使用TakuAdManager进行横幅广告预加载
+            TakuAdManager adManager = TakuAdManager.getInstance();
+            
+            // 初始化横幅广告但不显示
+            if (adManager.getBannerView() == null) {
+                // 需要先初始化横幅广告视图
+                // 创建一个临时的不可见容器用于初始化
+                ViewGroup tempContainer = new android.widget.FrameLayout(LoginActivity.this);
+                tempContainer.setVisibility(View.GONE);
+                
+                // 调用showBannerAd方法进行初始化，但容器不可见，所以不会显示
+                adManager.showBannerAd(LoginActivity.this, tempContainer);
+                
+                // 立即隐藏广告，确保不显示
+                adManager.hideBannerAd();
+                
+                Log.d(TAG, "横幅广告预加载初始化完成");
+            } else {
+                // 如果横幅广告已经存在，触发重新加载
+                ATBannerView bannerView = adManager.getBannerView();
+                if (bannerView != null) {
+                    try {
+                        ATAdStatusInfo statusInfo = bannerView.checkAdStatus();
+                        if (!statusInfo.isReady()) {
+                            bannerView.loadAd();
+                            Log.d(TAG, "横幅广告重新加载已触发");
+                        } else {
+                            Log.d(TAG, "横幅广告已就绪，无需重新加载");
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "横幅广告状态检查异常: " + e.getMessage());
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "横幅广告预加载失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 预加载原生广告
+     * 只加载不显示，为后续页面使用做准备
+     */
+    private void preloadNativeAd() {
+        try {
+            Log.d(TAG, "开始预加载原生广告");
+            
+            TakuAdManager adManager = TakuAdManager.getInstance();
+            
+            // 创建一个临时的不可见容器用于预加载
+            ViewGroup tempContainer = new android.widget.FrameLayout(LoginActivity.this);
+            tempContainer.setVisibility(View.GONE);
+            
+            // 使用带频率控制的加载方法进行预加载
+            // 由于容器不可见，广告不会显示出来
+            adManager.loadNativeAdWithFrequencyControl(LoginActivity.this, tempContainer);
+            
+            Log.d(TAG, "原生广告预加载已触发");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "原生广告预加载失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 预加载插屏广告
+     * 只加载不显示，为后续页面使用做准备
+     */
+    private void preloadInterstitialAd() {
+        try {
+            Log.d(TAG, "开始预加载插屏广告");
+            
+            TakuAdManager adManager = TakuAdManager.getInstance();
+            
+            // 使用预加载方法，这个方法只加载不显示
+            adManager.preloadInterstitialAd(LoginActivity.this);
+            
+            Log.d(TAG, "插屏广告预加载已触发");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "插屏广告预加载失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 预加载激励视频广告
+     * 只加载不显示，为后续页面使用做准备
+     */
+    private void preloadRewardVideoAd() {
+        try {
+            Log.d(TAG, "开始预加载激励视频广告");
+            
+            TakuAdManager adManager = TakuAdManager.getInstance();
+            
+            // 使用预加载方法，这个方法只加载不显示
+            adManager.preloadRewardVideoAd(LoginActivity.this);
+            
+            Log.d(TAG, "激励视频广告预加载已触发");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "激励视频广告预加载失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 在Activity销毁时清理广告预加载资源
+     */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        
+        // 清理广告预加载Handler
+        if (adPreloadHandler != null) {
+            adPreloadHandler.removeCallbacksAndMessages(null);
+            adPreloadHandler = null;
+        }
+        
+        Log.d(TAG, "登录页面销毁，广告预加载资源已清理");
     }
 }

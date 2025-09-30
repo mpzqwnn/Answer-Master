@@ -57,61 +57,61 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="版本号：3.12 DS9.29-2更新"
+                android:text="版本号：3.13 DS9.30-1更新"
                 android:textColor="@color/white"
                 android:textSize="14sp" />
 
-            <!-- 昵称信息 -->
+            <!-- 个人信息两列布局 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="15dp"
-                android:background="@drawable/settings_item_bg"
-                android:orientation="horizontal"
+                        android:background="@drawable/settings_item_bg"
+                        android:orientation="horizontal"
                 android:paddingVertical="12dp">
 
-                <TextView
+                        <TextView
                     android:layout_width="100dp"
-                    android:layout_height="wrap_content"
-                    android:text="昵称:"
-                    android:textColor="@color/white"
-                    android:textSize="16sp" />
+                            android:layout_height="wrap_content"
+                            android:text="昵称:"
+                            android:textColor="@color/white"
+                            android:textSize="16sp" />
 
-                <TextView
-                    android:id="@+id/nickname_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="繁花"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                        <TextView
+                            android:id="@+id/nickname_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="繁花"
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
             <!-- 角色ID信息 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/settings_item_bg"
-                android:orientation="horizontal"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/settings_item_bg"
+                        android:orientation="horizontal"
                 android:paddingVertical="12dp">
 
-                <TextView
+                        <TextView
                     android:layout_width="100dp"
-                    android:layout_height="wrap_content"
-                    android:text="角色ID:"
-                    android:textColor="@color/white"
-                    android:textSize="16sp" />
+                            android:layout_height="wrap_content"
+                            android:text="角色ID:"
+                            android:textColor="@color/white"
+                            android:textSize="16sp" />
 
-                <TextView
-                    android:id="@+id/role_id_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="2582111002"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                        <TextView
+                            android:id="@+id/role_id_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="2582111002"
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
             <!-- 注册时间信息 -->
             <LinearLayout
@@ -139,30 +139,30 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- 登录时间信息 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/settings_item_bg"
-                android:orientation="horizontal"
+                    <!-- 登录时间信息 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/settings_item_bg"
+                        android:orientation="horizontal"
                 android:paddingVertical="12dp">
 
-                <TextView
+                        <TextView
                     android:layout_width="100dp"
-                    android:layout_height="wrap_content"
+                            android:layout_height="wrap_content"
                     android:text="登录时间:"
-                    android:textColor="@color/white"
-                    android:textSize="16sp" />
+                            android:textColor="@color/white"
+                            android:textSize="16sp" />
 
-                <TextView
-                    android:id="@+id/login_time_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                        <TextView
+                            android:id="@+id/login_time_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                     android:text="2025/08/21 16:12:36"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 
@@ -342,5 +342,41 @@
             </LinearLayout> -->
             </LinearLayout>
         </ScrollView>
+        
+        <!-- 倒计时和获取体力按钮区域 -->
+        <LinearLayout
+            android:id="@+id/countdown_layout"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginTop="15dp"
+                android:visibility="gone" >
+            
+            <!-- 倒计时文本 -->
+            <TextView
+                android:id="@+id/countdown_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="8秒后可获取体力"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:layout_marginBottom="10dp"
+                android:visibility="visible" />
+            
+            <!-- 获取体力按钮 -->
+            <Button
+                android:id="@+id/get_lives_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/ad_button_fresh_bg"
+                android:text="观看广告获取体力"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:layout_marginHorizontal="20dp"
+                android:padding="12dp"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

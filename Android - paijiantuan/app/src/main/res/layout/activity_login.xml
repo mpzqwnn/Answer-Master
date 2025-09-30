@@ -44,12 +44,12 @@
             android:shadowDx="2"
             android:shadowDy="2"
             android:shadowRadius="4"
-            android:text="拍剪团"
+            android:text="快来赚"
             android:textColor="@color/warning_color"
             android:textSize="40sp"
             android:textStyle="bold" />
 
-        <TextView
+        <!-- <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -60,7 +60,7 @@
             android:text="答题大师"
             android:textColor="@color/white"
             android:textSize="32sp"
-            android:textStyle="bold" />
+            android:textStyle="bold" /> -->
 
         <!-- 微信登录按钮 - 使用比重而不是固定marginTop -->
         <!-- 手机号输入框 -->

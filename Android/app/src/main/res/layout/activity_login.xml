@@ -31,7 +31,7 @@
             android:shadowDx="2"
             android:shadowDy="2"
             android:shadowRadius="4"
-            android:text="答题大师"
+            android:text="赚起来"
             android:textColor="@color/warning_color"
             android:textSize="40sp"
             android:textStyle="bold" />

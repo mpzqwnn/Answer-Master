@@ -2,6 +2,6 @@
 <resources>
     <!-- 默认配置 - 通常指向开发环境 -->
     <string name="api_base_url">http://dtds.psjjtd.com/api</string>
-    <string name="app_name">拍剪团</string>
+    <string name="app_name">快来赚</string>
     <!-- <string name="app_name">答题大师</string> -->
 </resources>
