@@ -308,6 +308,23 @@ public class TakuAdManager {
         Map<String, Object> localParams = new HashMap<>();
         localParams.put(com.anythink.core.api.ATAdConst.KEY.AD_WIDTH, width);
         localParams.put(com.anythink.core.api.ATAdConst.KEY.AD_HEIGHT, height);
+        
+        // 添加穿山甲广告特定配置
+        try {
+            // 尝试加载穿山甲广告的常量类
+            Class<?> ttAdConstClass = Class.forName("com.bytedance.sdk.openadsdk.TTAdConstant");
+            Class<?> ttAdSlotClass = Class.forName("com.bytedance.sdk.openadsdk.TTAdSlot");
+            
+            // 添加穿山甲广告的一些常见配置
+            // 这些配置有助于提高穿山甲广告的填充率
+            localParams.put("tt_sdk_version", "latest");
+            localParams.put("tt_ad_type", "banner");
+            
+            Log.d(TAG, "已添加穿山甲广告特定配置");
+        } catch (Exception e) {
+            Log.w(TAG, "添加穿山甲特定配置失败: " + e.getMessage());
+        }
+        
         bannerView.setLocalExtra(localParams);
         
         // 设置布局参数
@@ -323,6 +340,64 @@ public class TakuAdManager {
         
         // 设置收益监听器
         bannerView.setAdRevenueListener(new AdRevenueListenerImpl());
+        
+        // 设置广告源状态监听器，用于调试穿山甲广告问题
+        try {
+            // 使用正确的方法名和参数类型
+            Method setAdSourceStatusListenerMethod = bannerView.getClass().getMethod("setAdSourceStatusListener", com.anythink.core.api.ATAdSourceStatusListener.class);
+            setAdSourceStatusListenerMethod.invoke(bannerView, new com.anythink.core.api.ATAdSourceStatusListener() {
+                public void onAdSourceAttempt(ATAdInfo atAdInfo) {
+                    Log.d(TAG, "广告源尝试: " + atAdInfo.getNetworkName());
+                }
+                
+                public void onAdSourceBiddingAttempt(ATAdInfo atAdInfo) {
+                    Log.d(TAG, "广告源竞价尝试: " + atAdInfo.getNetworkName());
+                }
+                
+                public void onAdSourceBiddingStart(ATAdInfo atAdInfo) {
+                    Log.d(TAG, "广告源竞价开始: " + atAdInfo.getNetworkName());
+                }
+                
+                public void onAdSourceBiddingEnd(ATAdInfo atAdInfo, long l) {
+                    Log.d(TAG, "广告源竞价结束: " + atAdInfo.getNetworkName() + ", 耗时: " + l + "ms");
+                }
+                
+                public void onAdSourceBiddingFail(ATAdInfo atAdInfo, AdError adError) {
+                    Log.e(TAG, "广告源竞价失败: " + atAdInfo.getNetworkName() + ", 错误: " + (adError != null ? adError.getFullErrorInfo() : "未知错误"));
+                }
+                
+                public void onAdSourceBiddingFilled(ATAdInfo atAdInfo) {
+                    Log.d(TAG, "广告源竞价填充: " + atAdInfo.getNetworkName());
+                }
+                
+                public void onAdSourceLoadStart(ATAdInfo atAdInfo) {
+                    Log.d(TAG, "广告源加载开始: " + atAdInfo.getNetworkName());
+                }
+                
+                public void onAdSourceLoadSuccess(ATAdInfo atAdInfo) {
+                    Log.d(TAG, "广告源加载成功: " + atAdInfo.getNetworkName());
+                }
+                
+                public void onAdSourceLoadFail(ATAdInfo atAdInfo, AdError adError) {
+                    Log.e(TAG, "广告源加载失败: " + atAdInfo.getNetworkName() + ", 错误: " + (adError != null ? adError.getFullErrorInfo() : "未知错误"));
+                }
+                
+                public void onAdSourceLoadFilled(ATAdInfo atAdInfo) {
+                    Log.d(TAG, "广告源填充完成: " + atAdInfo.getNetworkName());
+                }
+                
+                public void onAdSourceShowStart(ATAdInfo atAdInfo) {
+                    Log.d(TAG, "广告源显示开始: " + atAdInfo.getNetworkName());
+                }
+                
+                public void onAdSourceShowEnd(ATAdInfo atAdInfo, boolean b) {
+                    Log.d(TAG, "广告源显示结束: " + atAdInfo.getNetworkName() + ", 成功: " + b);
+                }
+            });
+            Log.d(TAG, "已设置广告源状态监听器");
+        } catch (Exception e) {
+            Log.w(TAG, "设置广告源状态监听器失败: " + e.getMessage());
+        }
     }
     
     /**

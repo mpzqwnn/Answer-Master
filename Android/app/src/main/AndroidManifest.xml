@@ -45,8 +45,8 @@
         tools:replace="android:allowBackup"> <!-- 添加这一行解决allowBackup冲突 -->
     
         <!-- Taku SDK 配置 -->
-        <meta-data android:name="com.toponad.ads.APP_ID" android:value="a68bab61c2bd06" />
-        <meta-data android:name="com.toponad.ads.APP_KEY" android:value="a0e037782e35324e11f95d5f1133b396e" />
+        <meta-data android:name="com.toponad.ads.APP_ID" android:value="a68afadf78e295" />
+        <meta-data android:name="com.toponad.ads.APP_KEY" android:value="a3d0f2d8f2e8d08709d1bb74e20edb3e7" />
 
         <!-- 添加hw_ads_sdk_type元数据，并指定tools:replace -->
         <meta-data

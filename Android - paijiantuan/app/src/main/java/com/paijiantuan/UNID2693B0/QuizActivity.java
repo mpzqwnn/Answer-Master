@@ -1,6 +1,7 @@
 package com.paijiantuan.UNID2693B0;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.media.MediaPlayer;
@@ -118,6 +119,7 @@ public class QuizActivity extends AppCompatActivity {
     private long lastInterstitialAdShownTime = 0; // 上次显示插屏广告的时间戳
     private static final long MIN_INTERSTITIAL_AD_INTERVAL = 10000; // 最小广告显示间隔（毫秒）
     private CountDownTimer loadingTimer; // 加载中计时器，新用户登录后显示15秒
+    private boolean isFirstLoading = true; // 标志变量：是否是第一次加载
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -330,7 +332,7 @@ public class QuizActivity extends AppCompatActivity {
                 startBannerAdRefreshTimer();
 
                 // 调用风控检查接口
-                performRiskCheck("横幅广告", false);
+                // performRiskCheck("横幅广告", false);
             }
 
             @Override
@@ -377,7 +379,7 @@ public class QuizActivity extends AppCompatActivity {
                 startNativeAdRefreshTimer();
 
                 // 调用统一的风控检查接口
-                performRiskCheck("原生广告", false);
+                // performRiskCheck("原生广告", false);
             }
 
             @Override
@@ -430,7 +432,7 @@ public class QuizActivity extends AppCompatActivity {
                 Log.d(TAG, "Taku插屏广告曝光");
 
                 // 调用统一风控检查方法
-                performRiskCheck("插屏广告", false);
+                // performRiskCheck("插屏广告", false);
             }
 
             @Override
@@ -1107,9 +1109,15 @@ public class QuizActivity extends AppCompatActivity {
             showAnswerResultDialog(false, "回答错误！\n正确答案：" + displayedCorrectAnswer);
         }
 
-        // 立即显示加载中布局（作为覆盖层）
+        // 立即显示加载中布局，并隐藏题目区域和顶部信息布局
         if (loadingLayout != null) {
             loadingLayout.setVisibility(View.VISIBLE);
+        }
+        if (questionAreaLayout != null) {
+            questionAreaLayout.setVisibility(View.GONE);
+        }
+        if (topUserInfoLayout != null) {
+            topUserInfoLayout.setVisibility(View.GONE);
         }
 
         // 立即禁用选项按钮，防止用户在加载过程中点击
@@ -1122,6 +1130,8 @@ public class QuizActivity extends AppCompatActivity {
         handler.postDelayed(() -> {
             // 增加题目索引并加载下一题
             currentQuestionIndex++;
+            // 调用startLoadingTimer来处理加载布局的隐藏
+            startLoadingTimer();
             loadQuestion(currentQuestionIndex);
         }, 800); // 保持延迟时间，确保加载状态清晰可见
     }
@@ -1176,7 +1186,7 @@ public class QuizActivity extends AppCompatActivity {
                 }
 
                 // 执行风控检查
-                performRiskCheck("提交答案", true);
+                // performRiskCheck("提交答案", true);
 
                 // 风控检查通过后，再次检查用户状态
                 apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
@@ -1970,7 +1980,7 @@ public class QuizActivity extends AppCompatActivity {
                 pauseAllTimers();
 
                 // 调用统一风控检查方法
-                performRiskCheck("激励广告", false);
+                // performRiskCheck("激励广告", false);
             }
 
             @Override
@@ -2042,50 +2052,87 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     /**
-     * 启动15秒加载计时器，新用户登录后加载15秒，期间播放广告
+     * 启动加载计时器，根据是否首次加载决定行为
+     * 第一次加载：显示15秒
+     * 后续加载：检查题目是否已加载完成，如果已完成则立即关闭加载中界面
      */
     private void startLoadingTimer() {
         if (loadingTimer != null) {
             loadingTimer.cancel();
             loadingTimer = null;
         }
+        
+        // 加载过程中暂停所有计时器
+        pauseAllTimers();
 
-        // 15秒后结束加载状态
-        loadingTimer = new CountDownTimer(15000, 1000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-                // 倒计时进行中，不需要特别处理
-            }
-
-            @Override
-            public void onFinish() {
-                // 隐藏加载布局
-                if (loadingLayout != null) {
-                    loadingLayout.setVisibility(View.GONE);
+        if (isFirstLoading) {
+            // 第一次加载：设置15秒计时器
+            loadingTimer = new CountDownTimer(15000, 1000) {
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    // 倒计时进行中，不需要特别处理
                 }
 
-                // 显示题目区域
-                if (questionAreaLayout != null) {
-                    questionAreaLayout.setVisibility(View.VISIBLE);
+                @Override
+                public void onFinish() {
+                    // 隐藏加载布局
+                    if (loadingLayout != null) {
+                        loadingLayout.setVisibility(View.GONE);
+                    }
+
+                    // 显示题目区域
+                    if (questionAreaLayout != null) {
+                        questionAreaLayout.setVisibility(View.VISIBLE);
+                    }
+                    // 显示顶部用户信息布局
+                    if (topUserInfoLayout != null) {
+                        topUserInfoLayout.setVisibility(View.VISIBLE);
+                    }
+
+                    startAdCooldownTimer();
+                    // 通过接口获取用户风控状态，而不是硬编码设置
+                    // performRiskCheck("初始化", true);
+                      
+                    // 启动插屏广告计时器（在体力冷却之后，避免被暂停）
+                    startInterstitialAdTimer();
+                        
+                    // 标记为非首次加载
+                    isFirstLoading = false;
+                    
+                    // 加载完成后恢复全局计时器
+                    resumeAllTimers();
                 }
-                // 显示顶部用户信息布局
-                if (topUserInfoLayout != null) {
-                    topUserInfoLayout.setVisibility(View.VISIBLE);
+            };
+            loadingTimer.start();
+        } else {
+            // 非第一次加载：设置800毫秒计时器
+            loadingTimer = new CountDownTimer(800, 100) {
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    // 不需要处理
                 }
 
-                // 15秒加载完成后，启动体力冷却
-                if (adCooldownTimer != null) {
-                    adCooldownTimer.cancel();
-                    adCooldownTimer = null;
+                @Override
+                public void onFinish() {
+                    // 隐藏加载布局
+                    if (loadingLayout != null) {
+                        loadingLayout.setVisibility(View.GONE);
+                    }
+                    // 显示题目区域
+                    if (questionAreaLayout != null) {
+                        questionAreaLayout.setVisibility(View.VISIBLE);
+                    }
+                    // 显示顶部用户信息布局
+                    if (topUserInfoLayout != null) {
+                        topUserInfoLayout.setVisibility(View.VISIBLE);
+                    }
+                    
+                    // 加载完成后恢复全局计时器
+                    resumeAllTimers();
                 }
-                // 通过接口获取用户风控状态，而不是硬编码设置
-                performRiskCheck("初始化", true);
-                
-                // 启动插屏广告计时器（在体力冷却之后，避免被暂停）
-                startInterstitialAdTimer();
-            }
-        };
-        loadingTimer.start();
+            };
+            loadingTimer.start();
+        }
     }
 
     /**

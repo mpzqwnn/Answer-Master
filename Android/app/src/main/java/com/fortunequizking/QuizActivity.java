@@ -52,7 +52,7 @@ import java.util.Timer;
 public class QuizActivity extends AppCompatActivity {
 
     private static final String TAG = "QuizActivity";
-    
+
     // 用于跟踪设置弹窗状态的变量
     private AlertDialog settingsDialog = null;
     private static final int REWARD_AD_REQUEST_CODE = 1001;
@@ -122,6 +122,7 @@ public class QuizActivity extends AppCompatActivity {
     private long lastInterstitialAdShownTime = 0; // 上次显示插屏广告的时间戳
     private static final long MIN_INTERSTITIAL_AD_INTERVAL = 10000; // 最小广告显示间隔（毫秒）
     private CountDownTimer loadingTimer; // 加载中计时器，新用户登录后显示15秒
+    private boolean isFirstLoading = true; // 标志变量：是否是第一次加载
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,7 +214,6 @@ public class QuizActivity extends AppCompatActivity {
                 toggleMusic();
             }
         });
-
 
         // 加载用户信息
         loadUserInfo();
@@ -324,7 +324,7 @@ public class QuizActivity extends AppCompatActivity {
                 startBannerAdRefreshTimer();
 
                 // 调用风控检查接口
-                performRiskCheck("横幅广告", false);
+                // performRiskCheck("横幅广告", false);
             }
 
             @Override
@@ -371,7 +371,7 @@ public class QuizActivity extends AppCompatActivity {
                 startNativeAdRefreshTimer();
 
                 // 调用统一的风控检查接口
-                performRiskCheck("原生广告", false);
+                // performRiskCheck("原生广告", false);
             }
 
             @Override
@@ -424,7 +424,7 @@ public class QuizActivity extends AppCompatActivity {
                 Log.d(TAG, "Taku插屏广告曝光");
 
                 // 调用统一风控检查方法
-                performRiskCheck("插屏广告", false);
+                // performRiskCheck("插屏广告", false);
             }
 
             @Override
@@ -757,7 +757,7 @@ public class QuizActivity extends AppCompatActivity {
     public void showSettingsPopup(View view) {
         showSettingsPopup(false);
     }
-    
+
     /**
      * 显示带倒计时的设置弹窗
      * 用于activity_quiz.xml中需要显示倒计时和获取体力按钮的场景
@@ -768,6 +768,7 @@ public class QuizActivity extends AppCompatActivity {
 
     /**
      * 显示设置弹窗
+     * 
      * @param fromQuizXml 是否从activity_quiz.xml打开的弹窗
      */
     public void showSettingsPopup(boolean fromQuizXml) {
@@ -804,10 +805,10 @@ public class QuizActivity extends AppCompatActivity {
 
             // 设置弹窗
             final AlertDialog dialog = builder.create();
-            
+
             // 将弹窗赋值给成员变量
             settingsDialog = dialog;
-            
+
             // 添加弹窗关闭监听器，当弹窗关闭时重置settingsDialog
             dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
@@ -837,7 +838,7 @@ public class QuizActivity extends AppCompatActivity {
 
                 final TextView countdownText = dialogView.findViewById(R.id.countdown_text);
                 final Button getLivesButton = dialogView.findViewById(R.id.get_lives_button);
-                
+
                 // 初始时隐藏按钮，显示倒计时
                 if (countdownText != null) {
                     countdownText.setVisibility(View.VISIBLE);
@@ -845,9 +846,9 @@ public class QuizActivity extends AppCompatActivity {
                 if (getLivesButton != null) {
                     getLivesButton.setVisibility(View.GONE);
                 }
-                
+
                 // 实现8秒倒计时
-                final int[] countdownSeconds = {8};
+                final int[] countdownSeconds = { 8 };
                 final CountDownTimer countdownTimer = new CountDownTimer(8000, 1000) {
                     @Override
                     public void onTick(long millisUntilFinished) {
@@ -890,7 +891,7 @@ public class QuizActivity extends AppCompatActivity {
                     getLivesButton.setVisibility(View.GONE);
                 }
             }
-            
+
             /*
              * 注销功能已注释掉
              * // 为注销按钮添加点击事件
@@ -944,7 +945,6 @@ public class QuizActivity extends AppCompatActivity {
 
             // 显示弹窗
             dialog.show();
-
 
         } catch (Exception e) {
             Log.e(TAG, "显示设置弹窗失败: " + e.getMessage());
@@ -1284,9 +1284,15 @@ public class QuizActivity extends AppCompatActivity {
             showAnswerResultDialog(false, "回答错误！\n正确答案：" + displayedCorrectAnswer);
         }
 
-        // 立即显示加载中布局（作为覆盖层）
+        // 立即显示加载中布局，并隐藏题目区域和顶部信息布局
         if (loadingLayout != null) {
             loadingLayout.setVisibility(View.VISIBLE);
+        }
+        if (questionAreaLayout != null) {
+            questionAreaLayout.setVisibility(View.GONE);
+        }
+        if (topUserInfoLayout != null) {
+            topUserInfoLayout.setVisibility(View.GONE);
         }
 
         // 立即禁用选项按钮，防止用户在加载过程中点击
@@ -1299,6 +1305,8 @@ public class QuizActivity extends AppCompatActivity {
         handler.postDelayed(() -> {
             // 增加题目索引并加载下一题
             currentQuestionIndex++;
+            // 调用startLoadingTimer来处理加载布局的隐藏
+            startLoadingTimer();
             loadQuestion(currentQuestionIndex);
         }, 800); // 保持延迟时间，确保加载状态清晰可见
     }
@@ -1353,7 +1361,7 @@ public class QuizActivity extends AppCompatActivity {
                 }
 
                 // 执行风控检查
-                performRiskCheck("提交答案", true);
+                // performRiskCheck("提交答案", true);
 
                 // 风控检查通过后，再次检查用户状态
                 apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
@@ -2147,7 +2155,7 @@ public class QuizActivity extends AppCompatActivity {
                 pauseAllTimers();
 
                 // 调用统一风控检查方法
-                performRiskCheck("激励广告", false);
+                // performRiskCheck("激励广告", false);
             }
 
             @Override
@@ -2219,7 +2227,9 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     /**
-     * 启动15秒加载计时器，新用户登录后加载15秒，期间播放广告
+     * 启动加载计时器，根据是否首次加载决定行为
+     * 第一次加载：显示15秒
+     * 后续加载：检查题目是否已加载完成，如果已完成则立即关闭加载中界面
      */
     private void startLoadingTimer() {
         if (loadingTimer != null) {
@@ -2227,42 +2237,79 @@ public class QuizActivity extends AppCompatActivity {
             loadingTimer = null;
         }
 
-        // 15秒后结束加载状态
-        loadingTimer = new CountDownTimer(15000, 1000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-                // 倒计时进行中，不需要特别处理
-            }
+        // 加载过程中暂停所有计时器
+        pauseAllTimers();
 
-            @Override
-            public void onFinish() {
-                // 隐藏加载布局
-                if (loadingLayout != null) {
-                    loadingLayout.setVisibility(View.GONE);
+        if (isFirstLoading) {
+            // 第一次加载：设置15秒计时器
+            loadingTimer = new CountDownTimer(15000, 1000) {
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    // 倒计时进行中，不需要特别处理
                 }
 
-                // 显示题目区域
-                if (questionAreaLayout != null) {
-                    questionAreaLayout.setVisibility(View.VISIBLE);
+                @Override
+                public void onFinish() {
+                    // 隐藏加载布局
+                    if (loadingLayout != null) {
+                        loadingLayout.setVisibility(View.GONE);
+                    }
+
+                    // 显示题目区域
+                    if (questionAreaLayout != null) {
+                        questionAreaLayout.setVisibility(View.VISIBLE);
+                    }
+                    // 显示顶部用户信息布局
+                    if (topUserInfoLayout != null) {
+                        topUserInfoLayout.setVisibility(View.VISIBLE);
+                    }
+
+                    startAdCooldownTimer();
+                    // 通过接口获取用户风控状态，而不是硬编码设置
+                    // performRiskCheck("初始化", true);
+
+                    // 启动插屏广告计时器（在体力冷却之后，避免被暂停）
+                    startInterstitialAdTimer();
+
+                    // 标记为非首次加载
+                    isFirstLoading = false;
+
+                    // 加载完成后恢复全局计时器
+                    isGlobalTimerPaused = false;
+                    isTimerPaused = false;
                 }
-                // 显示顶部用户信息布局
-                if (topUserInfoLayout != null) {
-                    topUserInfoLayout.setVisibility(View.VISIBLE);
+            };
+            loadingTimer.start();
+        } else {
+            // 非第一次加载：设置800毫秒计时器
+            loadingTimer = new CountDownTimer(800, 100) {
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    // 不需要处理
                 }
 
-                // 15秒加载完成后，启动体力冷却
-                if (adCooldownTimer != null) {
-                    adCooldownTimer.cancel();
-                    adCooldownTimer = null;
+                @Override
+                public void onFinish() {
+                    // 隐藏加载布局
+                    if (loadingLayout != null) {
+                        loadingLayout.setVisibility(View.GONE);
+                    }
+                    // 显示题目区域
+                    if (questionAreaLayout != null) {
+                        questionAreaLayout.setVisibility(View.VISIBLE);
+                    }
+                    // 显示顶部用户信息布局
+                    if (topUserInfoLayout != null) {
+                        topUserInfoLayout.setVisibility(View.VISIBLE);
+                    }
+
+                    // 加载完成后恢复全局计时器
+                    isGlobalTimerPaused = false;
+                    isTimerPaused = false;
                 }
-                // 通过接口获取用户风控状态，而不是硬编码设置
-                performRiskCheck("初始化", true);
-                
-                // 启动插屏广告计时器（在体力冷却之后，避免被暂停）
-                startInterstitialAdTimer();
-            }
-        };
-        loadingTimer.start();
+            };
+            loadingTimer.start();
+        }
     }
 
     /**
@@ -2530,12 +2577,12 @@ public class QuizActivity extends AppCompatActivity {
                 isAdCooldownActive = true;
                 startAdCooldownTimer();
             }
-            
+
             // 只有在非初始化场景时才暂停计时器，避免暂停刚刚启动的体力冷却计时器
             if (!context.equals("初始化")) {
                 pauseAllTimers();
             }
-            
+
             apiManager.checkRisk(userId, new ApiCallback<Object>() {
                 @Override
                 public void onSuccess(Object result) {

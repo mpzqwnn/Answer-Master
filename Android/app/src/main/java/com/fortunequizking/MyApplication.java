@@ -6,6 +6,8 @@ import android.os.Process;
 import android.util.Log;
 import android.webkit.WebView;
 import com.fortunequizking.util.AdManager;
+import com.fortunequizking.util.TakuAdManager;
+
 import java.io.File;
 
 public class MyApplication extends Application {
@@ -33,7 +35,7 @@ public class MyApplication extends Application {
     }
     
     private void initAdSDK() {
-        AdManager.getInstance().init(this);
+        TakuAdManager.getInstance().init(this);
         Log.d(TAG, "广告SDK初始化完成");
     }
     

@@ -1,8 +1,12 @@
 package com.fortunequizking.util;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.fortunequizking.MyApplication;
 import com.google.gson.Gson;
@@ -201,7 +205,7 @@ public class NetworkConfig {
     }
     
     /**
-     * 检查应用是否运行在模拟器上
+     * 响应拦截器，用于检查和处理服务器返回的响应内容
      */
     private static class ResponseInterceptor implements Interceptor {
         private static final Charset UTF8 = Charset.forName("UTF-8");
@@ -213,6 +217,30 @@ public class NetworkConfig {
             
             // 记录请求URL
             Log.d(TAG, "请求URL: " + request.url());
+            
+            // 检查是否是401未授权状态码
+            if (response.code() == 401) {
+                Log.d(TAG, "检测到401未授权响应，将跳转到登录页面");
+                
+                // 在主线程中处理登出和跳转
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // 清除本地保存的用户登录信息
+                        SharedPreferenceUtil.putString(MyApplication.getInstance(), "user_id", "");
+                        SharedPreferenceUtil.putString(MyApplication.getInstance(), "user_token", "");
+                        SharedPreferenceUtil.putString(MyApplication.getInstance(), "nickname", "");
+                        SharedPreferenceUtil.putString(MyApplication.getInstance(), "register_time", "");
+                        SharedPreferenceUtil.putBoolean(MyApplication.getInstance(), "is_login", false);
+                        
+                        // 显示提示并跳转到登录页面
+                        Toast.makeText(MyApplication.getInstance(), "请登录", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(MyApplication.getInstance(), com.fortunequizking.activity.LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        MyApplication.getInstance().startActivity(intent);
+                    }
+                });
+            }
             
             // 检查响应内容
             ResponseBody body = response.body();
