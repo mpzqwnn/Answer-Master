@@ -554,9 +554,44 @@ public class LoginActivity extends AppCompatActivity {
                 // 设置广告请求的用户ID - 将int转换为String
                 AdManager.getInstance().setUserId(String.valueOf(userInfo.getId()));
                 
-                // 跳转到答题页面
-                startActivity(new Intent(LoginActivity.this, QuizActivity.class));
-                finish();
+                // 显示开屏广告，广告关闭后跳转到答题页面
+                TakuAdManager.getInstance().showSplashAd(LoginActivity.this, new TakuAdManager.SplashAdListener() {
+                    @Override
+                    public void onSplashAdLoaded() {
+                        Log.d(TAG, "开屏广告加载成功");
+                    }
+                    
+                    @Override
+                    public void onSplashAdFailedToShow(String errorMessage) {
+                        Log.e(TAG, "开屏广告显示失败: " + errorMessage);
+                        // 广告显示失败，直接跳转到答题页面
+                        startActivity(new Intent(LoginActivity.this, QuizActivity.class));
+                        finish();
+                    }
+                    
+                    @Override
+                    public void onSplashAdShow() {
+                        Log.d(TAG, "开屏广告开始显示");
+                    }
+                    
+                    @Override
+                    public void onSplashAdExposure() {
+                        Log.d(TAG, "开屏广告曝光");
+                    }
+                    
+                    @Override
+                    public void onSplashAdClicked() {
+                        Log.d(TAG, "开屏广告被点击");
+                    }
+                    
+                    @Override
+                    public void onSplashAdClosed() {
+                        Log.d(TAG, "开屏广告关闭");
+                        // 广告关闭后跳转到答题页面
+                        startActivity(new Intent(LoginActivity.this, QuizActivity.class));
+                        finish();
+                    }
+                });
             }
             
             @Override
@@ -683,9 +718,47 @@ public class LoginActivity extends AppCompatActivity {
             public void onSuccess(UserInfo userInfo) {
                 Log.d(TAG, "调试登录成功，用户ID: " + userInfo.getId());
                 
-                // 跳转到答题页面
-                startActivity(new Intent(LoginActivity.this, QuizActivity.class));
-                finish();
+                // 设置广告请求的用户ID - 将int转换为String
+                AdManager.getInstance().setUserId(String.valueOf(userInfo.getId()));
+                
+                // 显示开屏广告，广告关闭后跳转到答题页面
+                TakuAdManager.getInstance().showSplashAd(LoginActivity.this, new TakuAdManager.SplashAdListener() {
+                    @Override
+                    public void onSplashAdLoaded() {
+                        Log.d(TAG, "开屏广告加载成功");
+                    }
+                    
+                    @Override
+                    public void onSplashAdFailedToShow(String errorMessage) {
+                        Log.e(TAG, "开屏广告显示失败: " + errorMessage);
+                        // 广告显示失败，直接跳转到答题页面
+                        startActivity(new Intent(LoginActivity.this, QuizActivity.class));
+                        finish();
+                    }
+                    
+                    @Override
+                    public void onSplashAdShow() {
+                        Log.d(TAG, "开屏广告开始显示");
+                    }
+                    
+                    @Override
+                    public void onSplashAdExposure() {
+                        Log.d(TAG, "开屏广告曝光");
+                    }
+                    
+                    @Override
+                    public void onSplashAdClicked() {
+                        Log.d(TAG, "开屏广告被点击");
+                    }
+                    
+                    @Override
+                    public void onSplashAdClosed() {
+                        Log.d(TAG, "开屏广告关闭");
+                        // 广告关闭后跳转到答题页面
+                        startActivity(new Intent(LoginActivity.this, QuizActivity.class));
+                        finish();
+                    }
+                });
             }
             
             @Override

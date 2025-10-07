@@ -22,6 +22,8 @@ import com.anythink.banner.api.ATBannerExListener;
 import com.anythink.core.api.ATShowConfig;
 import com.anythink.core.api.ATAdRevenueListener;
 import com.anythink.core.api.ATNetworkConfirmInfo;
+import com.anythink.splashad.api.ATSplashAd;
+import com.anythink.splashad.api.ATSplashExListener;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ public class TakuAdManager {
     private static final String TAG = "TakuAdManager";
 
     // 广告位ID常量定义
-    private static final String SPLASH_PLACEMENT_ID = "YOUR_SPLASH_PLACEMENT_ID";
+    private static final String SPLASH_PLACEMENT_ID = "b68e146a660d7d";
     private static final String BANNER_PLACEMENT_ID = "b68d569e095b70";
     private static final String INTERSTITIAL_PLACEMENT_ID = "b68d569ec69030";
     private static final String REWARD_PLACEMENT_ID = "b68d569d27dc77";
@@ -73,6 +75,7 @@ public class TakuAdManager {
     private ATInterstitial interstitialAd;
     private ATRewardVideoAd rewardVideoAd;
     private ATNative nativeAd;
+    private ATSplashAd splashAd;
     
     // 存储最后一个广告容器的引用，解决广告加载成功后无法显示的问题
     private ViewGroup lastBannerContainer;
@@ -87,6 +90,7 @@ public class TakuAdManager {
     private InterstitialAdListener interstitialAdListener;
     private RewardAdListener rewardAdListener;
     private NativeAdListener nativeAdListener;
+    private SplashAdListener splashAdListener;
     
     // 广告收益监听器实现类
     private class AdRevenueListenerImpl implements ATAdRevenueListener {
@@ -192,13 +196,6 @@ public class TakuAdManager {
         } catch (Exception e) {
             Log.e(TAG, "设置调试模式异常: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * 当前SDK版本暂不支持开屏广告功能
-     */
-    public void showSplashAd(Activity activity) {
-        Log.w(TAG, "当前SDK版本暂不支持开屏广告功能");
     }
 
     // ------------------------------ 横幅广告相关方法 ------------------------------
@@ -972,6 +969,95 @@ public class TakuAdManager {
             Log.e(TAG, "激励视频广告加载异常: " + e.getMessage(), e);
             if (listener != null) {
                 listener.onRewardAdFailedToShow();
+            }
+        }
+    }
+
+    /**
+     * 显示开屏广告
+     */
+    public void showSplashAd(Activity activity, SplashAdListener listener) {
+        this.splashAdListener = listener;
+        try {
+            if (!isInitialized) {
+                Log.w(TAG, "SDK尚未初始化，尝试重新初始化");
+                init(activity.getApplicationContext());
+            }
+
+            // 创建开屏广告实例
+            splashAd = new ATSplashAd(activity, SPLASH_PLACEMENT_ID, new ATSplashExListener() {
+                @Override
+                public void onAdLoaded() {
+                    Log.d(TAG, "开屏广告加载成功");
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdLoaded();
+                    }
+                }
+
+                @Override
+                public void onAdLoadTimeout() {
+                    Log.e(TAG, "开屏广告加载超时");
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdFailedToShow("加载超时");
+                    }
+                    // 上传开屏广告错误信息
+                    uploadAdError("splash", SPLASH_PLACEMENT_ID, "加载超时");
+                }
+
+                @Override
+                public void onNoAdError(AdError adError) {
+                    String errorInfo = adError.getFullErrorInfo();
+                    Log.e(TAG, "开屏广告加载失败: " + errorInfo);
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdFailedToShow(errorInfo);
+                    }
+                    // 上传开屏广告错误信息
+                    uploadAdError("splash", SPLASH_PLACEMENT_ID, errorInfo);
+                }
+
+                @Override
+                public void onAdShow(ATAdInfo entity) {
+                    Log.d(TAG, "开屏广告显示");
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdShow();
+                    }
+                    // 上传开屏广告eCPM数据
+                    handleAdEcpm(SPLASH_PLACEMENT_ID, entity);
+                }
+
+                @Override
+                public void onAdClick(ATAdInfo entity) {
+                    Log.d(TAG, "开屏广告点击");
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdClicked();
+                    }
+                }
+
+                @Override
+                public void onAdDismiss(ATAdInfo entity) {
+                    Log.d(TAG, "开屏广告关闭");
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdClosed();
+                    }
+                }
+
+                @Override
+                public void onAdExposure(ATAdInfo entity) {
+                    Log.d(TAG, "开屏广告曝光");
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdExposure();
+                    }
+                }
+            });
+
+            // 显示开屏广告
+            splashAd.showAd();
+            Log.d(TAG, "展示开屏广告");
+
+        } catch (Exception e) {
+            Log.e(TAG, "开屏广告加载异常: " + e.getMessage(), e);
+            if (splashAdListener != null) {
+                splashAdListener.onSplashAdFailedToShow(e.getMessage());
             }
         }
     }
@@ -1952,6 +2038,23 @@ public class TakuAdManager {
     }
 
     /**
+     * 开屏广告监听器接口
+     */
+    public interface SplashAdListener {
+        void onSplashAdLoaded();
+
+        void onSplashAdFailedToShow(String errorMsg);
+
+        void onSplashAdShow();
+
+        void onSplashAdExposure();
+
+        void onSplashAdClicked();
+
+        void onSplashAdClosed();
+    }
+
+    /**
      * 处理广告eCPM数据
      */
     private void handleAdEcpm(String placementId, ATAdInfo atAdInfo) {
@@ -2046,6 +2149,43 @@ public class TakuAdManager {
             return "native";
         }
         return "unknown";
+    }
+
+    /**
+     * 上传广告错误信息
+     */
+    private void uploadAdError(String adType, String positionId, String errorInfo) {
+        try {
+            // 获取用户ID
+            String userId = SharedPreferenceUtil.getString(MyApplication.getInstance(), "user_id", "");
+            if (userId.isEmpty()) {
+                Log.w(TAG, "用户ID为空，无法上传广告错误信息");
+                return;
+            }
+
+            // 构建请求参数
+            Map<String, String> params = new HashMap<>();
+            params.put("user_id", userId);
+            params.put("ad_type", adType);
+            params.put("position_id", positionId);
+            params.put("error_info", errorInfo);
+
+            // 调用API接口上报错误信息
+            ApiManager.getInstance().reportBiddingResult(params, new ApiCallback<Object>() {
+                @Override
+                public void onSuccess(Object data) {
+                    Log.d(TAG, "广告错误信息上传成功: adType=" + adType + ", positionId=" + positionId);
+                }
+
+                @Override
+                public void onFailure(String errorMessage) {
+                    // 上传失败不影响主流程，只记录日志
+                    Log.w(TAG, "广告错误信息上传失败: " + errorMessage);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "上传广告错误信息异常: " + e.getMessage(), e);
+        }
     }
 
     /**

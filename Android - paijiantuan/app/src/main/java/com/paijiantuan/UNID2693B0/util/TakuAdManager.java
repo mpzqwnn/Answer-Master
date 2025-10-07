@@ -22,6 +22,9 @@ import com.anythink.banner.api.ATBannerExListener;
 import com.anythink.core.api.ATShowConfig;
 import com.anythink.core.api.ATAdRevenueListener;
 import com.anythink.core.api.ATNetworkConfirmInfo;
+import com.anythink.splashad.api.ATSplashAd;
+import com.anythink.splashad.api.ATSplashExListener;
+import com.anythink.splashad.api.ATSplashAdExtraInfo;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -43,16 +46,17 @@ public class TakuAdManager {
     private static final String TAG = "TakuAdManager";
 
     // 广告位ID常量定义
-    private static final String SPLASH_PLACEMENT_ID = "YOUR_SPLASH_PLACEMENT_ID";
+    private static final String SPLASH_PLACEMENT_ID = "b68e1427e78486";
     private static final String BANNER_PLACEMENT_ID = "b68bab76437dbf";
     private static final String INTERSTITIAL_PLACEMENT_ID = "b68bab861be9c9";
     private static final String REWARD_PLACEMENT_ID = "b68bab75709b8f";
     private static final String NATIVE_PLACEMENT_ID = "b68bab735815a1";
 
     // 广告刷新间隔常量（毫秒）
-    private static final long MIN_BANNER_REFRESH_INTERVAL = 10000; // 30秒
-    private static final long MIN_INTERSTITIAL_REFRESH_INTERVAL = 10000; // 10秒
-    private static final long MIN_NATIVE_REFRESH_INTERVAL = 10000; // 45秒
+    private static final long MIN_BANNER_REFRESH_INTERVAL = 1000; // 1秒
+    private static final long MIN_INTERSTITIAL_REFRESH_INTERVAL = 1000; // 1秒
+    private static final long MIN_REWARD_REFRESH_INTERVAL = 1000; // 1秒
+    private static final long MIN_NATIVE_REFRESH_INTERVAL = 1000; // 1秒
 
     // 重试延迟基数（毫秒）
     private static final long RETRY_BASE_DELAY = 10000; // 10秒
@@ -73,6 +77,7 @@ public class TakuAdManager {
     private ATInterstitial interstitialAd;
     private ATRewardVideoAd rewardVideoAd;
     private ATNative nativeAd;
+    private ATSplashAd splashAd;
     
     // 存储最后一个广告容器的引用，解决广告加载成功后无法显示的问题
     private ViewGroup lastBannerContainer;
@@ -87,6 +92,7 @@ public class TakuAdManager {
     private InterstitialAdListener interstitialAdListener;
     private RewardAdListener rewardAdListener;
     private NativeAdListener nativeAdListener;
+    private SplashAdListener splashAdListener;
     
     // 广告收益监听器实现类
     private class AdRevenueListenerImpl implements ATAdRevenueListener {
@@ -103,6 +109,11 @@ public class TakuAdManager {
     private boolean isInitialized = false;
     private String userId;
     private boolean isDebugMode = false;
+    
+    // 开屏广告相关变量
+    private Runnable splashAdDismissCallback;
+    private int minSplashTimeWhenNoAD = 2000;
+    private long fetchSplashADTime = 0;
 
     // 广告加载状态
     private boolean isBannerLoading = false;
@@ -194,17 +205,10 @@ public class TakuAdManager {
         }
     }
 
-    /**
-     * 当前SDK版本暂不支持开屏广告功能
-     */
-    public void showSplashAd(Activity activity) {
-        Log.w(TAG, "当前SDK版本暂不支持开屏广告功能");
-    }
-
     // ------------------------------ 横幅广告相关方法 ------------------------------
     
     // 横幅广告配置常量
-    private static final long BANNER_MIN_LOAD_INTERVAL = 60000; // 最小加载间隔：60秒
+    private static final long BANNER_MIN_LOAD_INTERVAL = 1000; // 最小加载间隔：1秒
     private static final int BANNER_HEIGHT_DP = 60; // 横幅高度：60dp
     private static final int MAX_RETRY_COUNT = 3; // 最大重试次数
     private static final long RETRY_INTERVAL_MS = 8000; // 重试间隔：8秒
@@ -227,20 +231,52 @@ public class TakuAdManager {
     public void showBannerAd(Activity activity, ViewGroup container) {
         Log.d(TAG, "请求显示横幅广告");
         
-        // 1. 基础参数验证
-        if (!validateAdContext(activity, container)) {
-            return;
-        }
-        
-        // 2. 保存上下文引用
+        // 1. 保存上下文引用
         this.bannerActivity = activity;
         this.bannerContainer = container;
         
-        // 3. 初始化广告视图
+        // 2. 标记广告需要显示
+        isBannerAdShowing = true;
+        
+        // 3. 检查是否是第二次登录的情况，需要重置广告状态
+        if (bannerView == null && lastBannerLoadTime > 0) {
+            Log.d(TAG, "检测到第二次登录情况，重置横幅广告状态");
+            resetBannerLoadingState();
+            lastBannerLoadTime = 0; // 强制重置加载时间
+            
+            // 第二次登录特殊处理：强制重置加载状态，确保可以立即加载
+            isBannerLoading = false;
+            bannerRetryCount = 0;
+        }
+        
+        // 4. 基础参数验证（修改为延迟验证，避免容器未准备好时直接报错）
+        if (!validateAdContextWithRetry(activity, container)) {
+            // 如果验证失败，但容器只是未附加到窗口，会通过重试机制处理
+            // 直接返回，避免后续操作
+            return;
+        }
+        
+        // 5. 初始化广告视图
         initBannerAd();
         
-        // 4. 尝试立即加载和显示广告
+        // 6. 立即将广告视图添加到容器，即使广告尚未加载完成
+        // 这样可以确保容器可见，避免第二次登录时广告不显示的问题
+        if (bannerView != null && bannerContainer != null) {
+            addBannerToContainer();
+        }
+        
+        // 7. 尝试立即加载和显示广告
         loadAndShowBannerAd();
+        
+        // 8. 第二次登录额外保障：如果广告视图为空，强制重新初始化并加载
+        if (bannerView == null && isBannerAdShowing) {
+            Log.d(TAG, "第二次登录保障：广告视图为空，强制重新初始化");
+            initBannerAd();
+            if (bannerView != null && bannerContainer != null) {
+                addBannerToContainer();
+                loadAndShowBannerAd();
+            }
+        }
     }
     
     /**
@@ -564,13 +600,35 @@ public class TakuAdManager {
         long currentTime = System.currentTimeMillis();
         long elapsedTime = currentTime - lastBannerLoadTime;
         
-        if (elapsedTime < BANNER_MIN_LOAD_INTERVAL && lastBannerLoadTime > 0) {
+        // 修复第二次登录横幅广告不显示问题：如果广告实例被重置，允许立即加载
+        boolean isAdInstanceReset = bannerView == null || lastBannerLoadTime == 0;
+        
+        // 额外检查：如果广告实例被强制重置，但lastBannerLoadTime仍然有值，说明需要重置时间戳
+        if (bannerView == null && lastBannerLoadTime > 0) {
+            Log.d(TAG, "检测到广告实例为空但加载时间戳有值，重置时间戳");
+            lastBannerLoadTime = 0;
+            elapsedTime = currentTime; // 设置为最大值，允许立即加载
+            isAdInstanceReset = true;
+        }
+        
+        // 第二次登录特殊处理：如果广告实例为空且需要显示广告，强制允许加载
+        if (bannerView == null && isBannerAdShowing) {
+            Log.d(TAG, "第二次登录情况：广告实例为空但需要显示，强制允许加载");
+            return true;
+        }
+        
+        if (!isAdInstanceReset && elapsedTime < BANNER_MIN_LOAD_INTERVAL && lastBannerLoadTime > 0) {
             long remainingTime = BANNER_MIN_LOAD_INTERVAL - elapsedTime;
             Log.d(TAG, "未达到最小加载间隔，还需等待" + (remainingTime / 1000) + "秒");
             
             // 安排延迟加载
             scheduleDelayedLoad(remainingTime);
             return false;
+        }
+        
+        // 如果是广告实例重置后的第一次加载，允许立即加载
+        if (isAdInstanceReset) {
+            Log.d(TAG, "广告实例已重置，允许立即加载横幅广告");
         }
         
         return true;
@@ -682,20 +740,125 @@ public class TakuAdManager {
     }
     
     /**
-     * 验证广告上下文是否有效
+     * 验证广告上下文是否有效（带重试机制）
+     */
+    private boolean validateAdContextWithRetry(Activity activity, ViewGroup container) {
+        // 检查Activity状态
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) {
+            Log.w(TAG, "Activity状态无效，不显示广告");
+            // 在页面跳转等过渡状态下，不触发错误上报，避免干扰正常流程
+            if (!isActivityTransitionState(activity)) {
+                notifyBannerError("上下文无效", "Activity状态不正确");
+            }
+            return false;
+        }
+        
+        // 检查容器状态
+        if (container == null) {
+            Log.w(TAG, "广告容器为null，不显示广告");
+            // 在页面跳转等过渡状态下，不触发错误上报
+            if (!isActivityTransitionState(activity)) {
+                notifyBannerError("容器无效", "广告容器不可用");
+            }
+            return false;
+        }
+        
+        // 检查容器是否附加到窗口，如果未附加则延迟重试而不是直接报错
+        if (!container.isAttachedToWindow()) {
+            Log.w(TAG, "广告容器未附加到窗口，检查是否为页面跳转状态");
+            
+            // 如果是页面跳转等过渡状态，静默处理，不触发错误上报
+            if (isActivityTransitionState(activity)) {
+                Log.d(TAG, "检测到页面跳转状态，静默处理容器未附加情况");
+                return false;
+            }
+            
+            // 非过渡状态，安排延迟重试
+            Log.w(TAG, "安排延迟重试");
+            if (bannerActivity != null) {
+                bannerActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // 延迟100ms后再次检查容器状态
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (container.isAttachedToWindow()) {
+                                    Log.d(TAG, "容器已附加到窗口，继续广告显示流程");
+                                    // 容器已准备好，继续执行广告显示
+                                    if (isBannerAdShowing) {
+                                        addBannerToContainer();
+                                        loadAndShowBannerAd();
+                                    }
+                                } else {
+                                    Log.w(TAG, "容器仍未附加到窗口，放弃广告显示");
+                                    notifyBannerError("容器无效", "广告容器不可用");
+                                }
+                            }
+                        }, 100);
+                    }
+                });
+            }
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * 判断Activity是否处于页面跳转等过渡状态
+     */
+    private boolean isActivityTransitionState(Activity activity) {
+        if (activity == null) {
+            return false;
+        }
+        
+        // 检查Activity是否正在暂停或停止（页面跳转的典型状态）
+        try {
+            // 通过反射获取Activity的生命周期状态
+            Method isPausedMethod = activity.getClass().getMethod("isPaused");
+            Method isStoppedMethod = activity.getClass().getMethod("isStopped");
+            
+            boolean isPaused = (Boolean) isPausedMethod.invoke(activity);
+            boolean isStopped = (Boolean) isStoppedMethod.invoke(activity);
+            
+            // 如果Activity正在暂停或停止，认为是过渡状态
+            if (isPaused || isStopped) {
+                Log.d(TAG, "检测到Activity处于过渡状态: paused=" + isPaused + ", stopped=" + isStopped);
+                return true;
+            }
+        } catch (Exception e) {
+            // 如果反射失败，使用备用判断逻辑
+            Log.d(TAG, "反射获取Activity状态失败，使用备用判断逻辑: " + e.getMessage());
+            
+            // 备用逻辑：检查Activity是否正在结束或销毁
+            if (activity.isFinishing() || activity.isDestroyed()) {
+                return true;
+            }
+            
+            // 检查窗口焦点状态
+            if (!activity.hasWindowFocus()) {
+                Log.d(TAG, "Activity失去窗口焦点，可能处于过渡状态");
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 验证广告上下文是否有效（基础验证）
      */
     private boolean validateAdContext(Activity activity, ViewGroup container) {
         // 检查Activity状态
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) {
             Log.w(TAG, "Activity状态无效，不显示广告");
-            notifyBannerError("上下文无效", "Activity状态不正确");
             return false;
         }
         
         // 检查容器状态
-        if (container == null || !container.isAttachedToWindow()) {
-            Log.w(TAG, "广告容器无效或未附加到窗口，不显示广告");
-            notifyBannerError("容器无效", "广告容器不可用");
+        if (container == null) {
+            Log.w(TAG, "广告容器为null，不显示广告");
             return false;
         }
         
@@ -706,9 +869,14 @@ public class TakuAdManager {
      * 通知横幅广告错误
      */
     private void notifyBannerError(String errorType, String errorMessage) {
+        String fullErrorMessage = errorType + ": " + errorMessage;
+        
+        // 上传广告错误信息到服务器
+    //    uploadAdError("banner", BANNER_PLACEMENT_ID, fullErrorMessage);
+        
         if (bannerAdListener != null) {
             try {
-                bannerAdListener.onBannerAdFailedToShow(errorType + ": " + errorMessage);
+                bannerAdListener.onBannerAdFailedToShow(fullErrorMessage);
             } catch (Exception e) {
                 Log.e(TAG, "通知广告错误异常: " + e.getMessage());
             }
@@ -756,13 +924,31 @@ public class TakuAdManager {
      * 显示插屏广告
      */
     public void showInterstitialAd(Activity activity) {
+        // 检查Activity生命周期状态，避免在不适合的时机显示广告
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) {
+            Log.e(TAG, "Activity已处于结束/销毁状态，不显示插屏广告");
+            if (interstitialAdListener != null) {
+                interstitialAdListener.onInterstitialAdFailedToShow("Activity已结束");
+            }
+            return;
+        }
+        
         if (interstitialAd == null) {
+            Log.d(TAG, "插屏广告未初始化，先初始化并加载广告");
             initInterstitialAd(activity);
+            // 广告刚初始化，需要先加载再显示
+            loadInterstitialAdWithFrequencyControl(activity);
+            if (interstitialAdListener != null) {
+                interstitialAdListener.onInterstitialAdFailedToShow("广告未加载，请稍后重试");
+            }
+            // 广告未准备好，直接返回
+            Log.d(TAG, "插屏广告未准备好，等待加载完成后再显示");
+            return;
         }
 
         try {
             ATAdStatusInfo statusInfo = interstitialAd.checkAdStatus();
-            if (statusInfo.isReady()) {
+            if (statusInfo != null && statusInfo.isReady()) {
                 interstitialAd.show(activity);
                 Log.d(TAG, "展示插屏广告");
             } else {
@@ -804,11 +990,15 @@ public class TakuAdManager {
                 }
 
                 public void onInterstitialAdLoadFail(AdError adError) {
-                    Log.e(TAG, "插屏广告加载失败: " + adError.getFullErrorInfo());
+                    String errorInfo = adError.getFullErrorInfo();
+                    Log.e(TAG, "插屏广告加载失败: " + errorInfo);
                     isInterstitialLoading = false;
 
+                    // 上传广告错误信息到服务器
+                //    uploadAdError("interstitial", INTERSTITIAL_PLACEMENT_ID, errorInfo);
+
                     if (interstitialAdListener != null) {
-                        interstitialAdListener.onInterstitialAdFailedToShow(adError.getFullErrorInfo());
+                        interstitialAdListener.onInterstitialAdFailedToShow(errorInfo);
                     }
 
                     // 处理重试逻辑
@@ -937,14 +1127,24 @@ public class TakuAdManager {
 
                     // 添加缺失的onRewardedVideoAdFailed方法
                     public void onRewardedVideoAdFailed(AdError adError) {
-                        Log.e(TAG, "激励视频广告失败: " + adError.getFullErrorInfo());
+                        String errorInfo = adError.getFullErrorInfo();
+                        Log.e(TAG, "激励视频广告失败: " + errorInfo);
+                        
+                        // 上传广告错误信息到服务器
+                    //    uploadAdError("reward", REWARD_PLACEMENT_ID, errorInfo);
+                        
                         if (rewardAdListener != null) {
                             rewardAdListener.onRewardAdFailedToShow();
                         }
                     }
 
                     public void onRewardedVideoAdLoadFail(AdError adError) {
-                        Log.e(TAG, "激励视频广告加载失败: " + adError.getFullErrorInfo());
+                        String errorInfo = adError.getFullErrorInfo();
+                        Log.e(TAG, "激励视频广告加载失败: " + errorInfo);
+                        
+                        // 上传广告错误信息到服务器
+                    //    uploadAdError("reward", REWARD_PLACEMENT_ID, errorInfo);
+                        
                         if (rewardAdListener != null) {
                             rewardAdListener.onRewardAdFailedToShow();
                         }
@@ -1062,11 +1262,15 @@ public class TakuAdManager {
                         new com.anythink.nativead.api.ATNativeNetworkListener() {
                             @Override
                             public void onNativeAdLoadFail(AdError adError) {
-                                Log.e(TAG, "原生广告加载失败: " + adError.getFullErrorInfo());
+                                String errorInfo = adError.getFullErrorInfo();
+                                Log.e(TAG, "原生广告加载失败: " + errorInfo);
                                 isNativeLoading = false;
 
+                                // 上传广告错误信息到服务器
+                            //    uploadAdError("native", NATIVE_PLACEMENT_ID, errorInfo);
+
                                 if (nativeAdListener != null) {
-                                    nativeAdListener.onNativeAdFailedToShow(adError.getFullErrorInfo());
+                                    nativeAdListener.onNativeAdFailedToShow(errorInfo);
                                 }
 
                                 // 处理重试逻辑
@@ -1963,6 +2167,86 @@ public class TakuAdManager {
     }
 
     /**
+     * 重置横幅广告加载状态
+     * 用于解决横幅广告加载频率限制问题
+     */
+    public void resetBannerLoadingState() {
+        synchronized (this) {
+            isBannerLoading = false;
+            bannerRetryCount = 0;
+            lastBannerLoadTime = 0;
+            Log.d(TAG, "横幅广告加载状态已重置");
+        }
+    }
+
+    /**
+     * 重置所有广告加载状态
+     * 用于解决Activity重新创建时广告加载频率限制问题
+     */
+    public void resetAllAdLoadingState() {
+        synchronized (this) {
+            // 重置横幅广告状态
+            isBannerLoading = false;
+            bannerRetryCount = 0;
+            lastBannerLoadTime = 0;
+            
+            // 重置插屏广告状态
+            isInterstitialLoading = false;
+            interstitialRetryCount = 0;
+            lastInterstitialLoadTime = 0;
+            
+            // 重置原生广告状态
+            isNativeLoading = false;
+            nativeRetryCount = 0;
+            lastNativeLoadTime = 0;
+            
+            Log.d(TAG, "所有广告加载状态已重置");
+        }
+    }
+
+    /**
+     * 强制重置广告实例
+     * 用于解决第二次进入时广告无法加载的问题
+     */
+    public void forceResetAdInstances() {
+        synchronized (this) {
+            try {
+                // 重置横幅广告实例
+                if (bannerView != null) {
+                    bannerView = null;
+                    Log.d(TAG, "横幅广告实例已重置");
+                }
+                
+                // 重置插屏广告实例
+                if (interstitialAd != null) {
+                    interstitialAd = null;
+                    Log.d(TAG, "插屏广告实例已重置");
+                }
+                
+                // 重置原生广告实例
+                if (nativeAd != null) {
+                    nativeAd = null;
+                    Log.d(TAG, "原生广告实例已重置");
+                }
+                
+                // 重置激励视频广告实例
+                if (rewardVideoAd != null) {
+                    rewardVideoAd = null;
+                    Log.d(TAG, "激励视频广告实例已重置");
+                }
+                
+                // 重置容器引用
+                bannerContainer = null;
+                bannerActivity = null;
+                
+                Log.d(TAG, "所有广告实例已强制重置");
+            } catch (Exception e) {
+                Log.e(TAG, "强制重置广告实例异常: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
      * 横幅广告监听器接口
      */
     public interface BannerAdListener {
@@ -2297,6 +2581,49 @@ public class TakuAdManager {
         return "0";
     }
 
+   /**
+    * 上传广告错误信息到服务器
+    */
+   private void uploadAdError(String adType, String placementId, String errorInfo) {
+       try {
+           // 创建参数Map
+           Map<String, String> params = new HashMap<>();
+
+           // 添加基本参数
+           params.put("ad_type", adType);
+           params.put("position_id", placementId);
+           params.put("error_info", errorInfo);
+           params.put("platform", "android");
+           params.put("timestamp", String.valueOf(System.currentTimeMillis() / 1000));
+
+           // 获取用户ID
+           String userId = SharedPreferenceUtil.getString(MyApplication.getInstance(), "user_id", "");
+           if (!userId.isEmpty()) {
+               params.put("user_id", userId);
+               params.put("open_id", userId);
+           }
+
+           // 记录日志
+           Log.d(TAG, "准备上传广告错误信息: adType=" + adType + ", placementId=" + placementId + ", errorInfo=" + errorInfo);
+
+           // 调用ApiManager上传错误信息
+           ApiManager.getInstance().uploadAdError(params, new ApiCallback<Object>() {
+               @Override
+               public void onSuccess(Object data) {
+                   Log.d(TAG, "广告错误信息上传成功: adType=" + adType + ", placementId=" + placementId);
+               }
+
+               @Override
+               public void onFailure(String errorMessage) {
+                   Log.w(TAG, "广告错误信息上传失败: " + errorMessage + ", adType=" + adType + ", placementId=" + placementId);
+               }
+           });
+
+       } catch (Exception e) {
+           Log.e(TAG, "上传广告错误信息异常: " + e.getMessage(), e);
+       }
+   }
+
     /**
      * 发送广告eCPM数据
      */
@@ -2354,6 +2681,250 @@ public class TakuAdManager {
             });
         } catch (Exception e) {
             Log.e(TAG, "发送广告eCPM数据异常: " + e.getMessage(), e);
+        }
+    }
+    
+    // ------------------------------ 开屏广告相关方法 ------------------------------
+    
+    /**
+     * 开屏广告监听器接口
+     */
+    public interface SplashAdListener {
+        void onSplashAdLoaded();
+        void onSplashAdFailed(String errorMessage);
+        void onSplashAdShown();
+        void onSplashAdClicked();
+        void onSplashAdDismissed();
+    }
+    
+    /**
+     * 设置开屏广告监听器
+     */
+    public void setSplashAdListener(SplashAdListener listener) {
+        this.splashAdListener = listener;
+    }
+    
+    /**
+     * 显示开屏广告
+     */
+    public void showSplashAd(Activity activity, Runnable onAdDismissed) {
+        this.splashAdDismissCallback = onAdDismissed;
+
+        try {
+            if (!isInitialized) {
+                Log.w(TAG, "SDK尚未初始化，尝试重新初始化");
+                init(activity.getApplicationContext());
+            }
+
+            ViewGroup container = activity.findViewById(android.R.id.content);
+            if (container == null) {
+                Log.e(TAG, "无法获取内容容器，开屏广告无法展示");
+                if (splashAdDismissCallback != null) {
+                    splashAdDismissCallback.run();
+                }
+                return;
+            }
+
+            fetchSplashADTime = System.currentTimeMillis();
+
+            // 创建开屏广告实例
+            splashAd = new ATSplashAd(activity, SPLASH_PLACEMENT_ID, new ATSplashExListener() {
+                @Override
+                public void onDeeplinkCallback(ATAdInfo adInfo, boolean isSuccess) {
+                    Log.d(TAG, "开屏广告深度链接回调: " + adInfo.toString() + "--status:" + isSuccess);
+                }
+
+                @Override
+                public void onDownloadConfirm(Context context, ATAdInfo adInfo, ATNetworkConfirmInfo networkConfirmInfo) {
+                    Log.d(TAG, "开屏广告下载确认: " + adInfo.toString() + "--networkConfirmInfo:" + networkConfirmInfo);
+                }
+
+                @Override
+                public void onAdLoaded(boolean isTimeout) {
+                    Log.d(TAG, "开屏广告加载完成，是否超时: " + isTimeout);
+                    
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdLoaded();
+                    }
+                    
+                    // 广告加载完成后立即展示
+                    if (splashAd != null && splashAd.isAdReady()) {
+                        splashAd.show(activity, container);
+                    } else {
+                        Log.e(TAG, "开屏广告加载完成但广告不可用");
+                        if (splashAdDismissCallback != null) {
+                            splashAdDismissCallback.run();
+                        }
+                    }
+                }
+
+                @Override
+                public void onAdLoadTimeout() {
+                    Log.e(TAG, "开屏广告加载超时");
+                    
+                    // 上传开屏广告错误信息
+                //    uploadAdError("splash", SPLASH_PLACEMENT_ID, "加载超时");
+                    
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdFailed("加载超时");
+                    }
+                    
+                    // 加载超时后直接跳转
+                    if (splashAdDismissCallback != null) {
+                        splashAdDismissCallback.run();
+                    }
+                }
+
+                @Override
+                public void onNoAdError(AdError adError) {
+                    String errorInfo = adError.getFullErrorInfo();
+                    Log.e(TAG, "开屏广告加载失败: " + errorInfo);
+                    
+                    // 上传开屏广告错误信息
+                //    uploadAdError("splash", SPLASH_PLACEMENT_ID, errorInfo);
+                    
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdFailed(errorInfo);
+                    }
+                    
+                    // 加载失败后直接跳转
+                    if (splashAdDismissCallback != null) {
+                        splashAdDismissCallback.run();
+                    }
+                }
+
+                @Override
+                public void onAdShow(ATAdInfo entity) {
+                    Log.d(TAG, "开屏广告展示: " + entity.toString());
+                    
+                    // 上传开屏广告eCPM数据
+                    handleAdEcpm(SPLASH_PLACEMENT_ID, entity);
+                    
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdShown();
+                    }
+                }
+
+                @Override
+                public void onAdClick(ATAdInfo entity) {
+                    Log.d(TAG, "开屏广告点击: " + entity.toString());
+                    
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdClicked();
+                    }
+                }
+
+                @Override
+                public void onAdDismiss(ATAdInfo entity, ATSplashAdExtraInfo splashAdExtraInfo) {
+                    Log.d(TAG, "开屏广告关闭，关闭类型: " + splashAdExtraInfo.getDismissType());
+                    
+                    if (splashAdListener != null) {
+                        splashAdListener.onSplashAdDismissed();
+                    }
+                    
+                    // 广告关闭后执行回调
+                    if (splashAdDismissCallback != null) {
+                        splashAdDismissCallback.run();
+                    }
+                }
+            }, 5000);
+
+            // 检查广告是否已经准备好
+            if (splashAd.isAdReady()) {
+                Log.d(TAG, "开屏广告已准备好，直接展示");
+                splashAd.show(activity, container);
+            } else {
+                Log.d(TAG, "开屏广告未准备好，开始加载");
+                splashAd.loadAd();
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "开屏广告加载异常: " + e.getMessage(), e);
+            if (splashAdDismissCallback != null) {
+                splashAdDismissCallback.run();
+            }
+        }
+    }
+    
+    /**
+     * 检查开屏广告是否准备好
+     */
+    public boolean isSplashAdReady() {
+        return splashAd != null && splashAd.isAdReady();
+    }
+    
+    /**
+     * 预加载开屏广告
+     */
+    public void preloadSplashAd(Activity activity) {
+        try {
+            if (!isInitialized) {
+                init(activity.getApplicationContext());
+            }
+
+            if (splashAd == null) {
+                splashAd = new ATSplashAd(activity, SPLASH_PLACEMENT_ID, new ATSplashExListener() {
+                    @Override
+                    public void onDeeplinkCallback(ATAdInfo adInfo, boolean isSuccess) {
+                        Log.d(TAG, "开屏广告深度链接回调: " + adInfo.toString() + "--status:" + isSuccess);
+                    }
+
+                    @Override
+                    public void onDownloadConfirm(Context context, ATAdInfo adInfo, ATNetworkConfirmInfo networkConfirmInfo) {
+                        Log.d(TAG, "开屏广告下载确认: " + adInfo.toString() + "--networkConfirmInfo:" + networkConfirmInfo);
+                    }
+
+                    @Override
+                    public void onAdLoaded(boolean isTimeout) {
+                        Log.d(TAG, "开屏广告预加载完成，是否超时: " + isTimeout);
+                    }
+
+                    @Override
+                    public void onAdLoadTimeout() {
+                        Log.e(TAG, "开屏广告预加载超时");
+                        
+                        // 上传预加载开屏广告错误信息
+                    //    uploadAdError("splash", SPLASH_PLACEMENT_ID, "预加载超时");
+                    }
+
+                    @Override
+                    public void onNoAdError(AdError adError) {
+                        String errorInfo = adError.getFullErrorInfo();
+                        Log.e(TAG, "开屏广告预加载失败: " + errorInfo);
+                        
+                        // 上传预加载开屏广告错误信息
+                    //    uploadAdError("splash", SPLASH_PLACEMENT_ID, errorInfo);
+                    }
+
+                    @Override
+                    public void onAdShow(ATAdInfo entity) {
+                        Log.d(TAG, "开屏广告展示: " + entity.toString());
+                        
+                        // 上传预加载开屏广告eCPM数据
+                        handleAdEcpm(SPLASH_PLACEMENT_ID, entity);
+                    }
+
+                    @Override
+                    public void onAdClick(ATAdInfo entity) {
+                        Log.d(TAG, "开屏广告点击: " + entity.toString());
+                    }
+
+                    @Override
+                    public void onAdDismiss(ATAdInfo entity, ATSplashAdExtraInfo splashAdExtraInfo) {
+                        Log.d(TAG, "开屏广告关闭，关闭类型: " + splashAdExtraInfo.getDismissType());
+                    }
+                }, 5000);
+            }
+
+            if (!splashAd.isAdReady()) {
+                Log.d(TAG, "开始预加载开屏广告");
+                splashAd.loadAd();
+            } else {
+                Log.d(TAG, "开屏广告已预加载完成");
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "开屏广告预加载异常: " + e.getMessage(), e);
         }
     }
 }

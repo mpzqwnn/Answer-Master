@@ -12,6 +12,29 @@
 
     <!-- 标题区域 - 改进为更灵活的布局 -->
 
+    <!-- 开屏广告加载提示 -->
+    <LinearLayout
+        android:id="@+id/splash_ad_loading_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical">
+        
+        <ProgressBar
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginBottom="20dp"
+            android:indeterminateTint="@color/white" />
+            
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="加载中..."
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <!-- 包含通用防沉迷提示 - 移到协议区域之前 -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -76,14 +99,17 @@
             android:paddingHorizontal="20dp"
             android:textColor="@color/black"
             android:textColorHint="@color/gray"
-            android:textSize="18sp" />
+            android:textSize="18sp"
+            android:visibility="gone" />
 
         <!-- 验证码输入区域 - 直接显示在标题下方 -->
         <LinearLayout
+            android:id="@+id/captcha_input_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:visibility="gone">
 
             <!-- 验证码输入框 -->
             <EditText
@@ -124,7 +150,8 @@
             android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:background="@drawable/login_button_modern_gradient" />
+            android:background="@drawable/login_button_modern_gradient"
+            android:visibility="gone" />
 
         <!-- 原有设备登录按钮，暂时隐藏 -->
         <androidx.appcompat.widget.AppCompatButton
@@ -156,7 +183,8 @@
         android:layout_alignParentBottom="true"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="336dp"

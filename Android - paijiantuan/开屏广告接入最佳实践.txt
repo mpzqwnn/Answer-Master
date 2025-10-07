@@ -1,0 +1,64 @@
+开屏广告接入最佳实践
+● 应用冷启动开屏
+
+
+冷启动开屏最佳实践实现流程图
+
+ 
+
+1. 加载广告
+在应用或游戏启动后，调用ATSplashAd.loadAd方法并传入您的开屏广告超时时间进行开屏广告的加载
+为了避免开屏广告加载超时，将其他形式的广告预加载逻辑和其他消耗网络资源的请求放在开屏广告展示之后执行
+建议使用SDK预置策略以提高首次安装后开屏广告的加载效率
+ 
+
+2. 展示广告
+当onAdLoaded()回调触发时，需满足以下条件再调用ATSplashAd.show(activity,container)进行展示
+
+在加载未超时的情况下（isTimeout为false）
+应用处于前台
+开屏广告展示容器已被添加到布局且处于可视状态
+ 
+
+3. 跳转进界面时机
+广告加载超时（onAdLoadTimeout()回调），不需要继续等待广告填充，直接进入主界面。但请注意，本次开屏广告仍在加载中，若后续加载成功时会触发onAdLoaded(true)回调。
+广告加载失败时（onNoAdError()回调），直接进入主界面
+广告关闭后跳转至主界面（onAdDismiss()回调）
+注意：应用内部需要限制不会重复跳转至主界面
+
+ 
+
+4. 开发者自有定时器开屏最佳实践实现
+
+
+自有定时器+冷启动开屏最佳实践实现流程图
+
+当开发者自有额外定时器逻辑，需要定时器启动后马上调用ATSplashAd.loadAd方法进行开屏广告的加载
+实例ATSplashAd时传入超时时间（fetchAdTimeout），并且超时时间不大于自有定时器时间
+开发者需要自行处理同时触发onAdLoaded和定时器触发场景，避免因为同时触发而造成调用了多次展示
+ 
+
+5. 可选优化点
+应用在开屏广告加载时，切换至后台了，广告填充成功后再切换回来后继续展示开屏广告。
+优化方案：增加变量needShowSplashAd标记是否需要在onResume时展示冷启动开屏广告，在onResume是判断此标记再进行开屏广告展示
+
+具体实现实现可参考Demo的SplashAdShowActivity.java
+
+ 
+
+● 应用热启动开屏
+1. 加载广告
+可以在进入首页后调用ATSplashAd.loadAd发起热启动开屏预加载
+在开屏广告onAdShow展示回调中调用ATSplashAd.loadAd方法进行开屏广告的预加载
+ 
+
+2. 展示广告
+在应用从后台回到前台时，调用ATSplashAd.isAdReady()方法判断当前是否有广告缓存
+
+ATSplashAd.isAdReady()为true，调用ATSplashAd.show()方法展示广告
+ATSplashAd.isAdReady()结果为false，调用ATSplashAd.loadAd()方法进行广告的加载
+可选：参考上方《冷启动开屏最佳实践实现流程图》等待开屏未超时填充后再展示开屏广告
+ 
+
+3. 可选优化点
+在应用切换至后台时可以判断isReady，当无广告缓存时可以执行预加载。避免因为广告缓存过期导致热启动时ATSplashAd.isAdReady()=false，需要重新发起加载，等待加载后才能展示广告

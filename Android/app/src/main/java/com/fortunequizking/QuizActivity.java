@@ -324,7 +324,7 @@ public class QuizActivity extends AppCompatActivity {
                 startBannerAdRefreshTimer();
 
                 // 调用风控检查接口
-                // performRiskCheck("横幅广告", false);
+                performRiskCheck("横幅广告", false);
             }
 
             @Override
@@ -371,7 +371,7 @@ public class QuizActivity extends AppCompatActivity {
                 startNativeAdRefreshTimer();
 
                 // 调用统一的风控检查接口
-                // performRiskCheck("原生广告", false);
+                performRiskCheck("原生广告", false);
             }
 
             @Override
@@ -424,7 +424,7 @@ public class QuizActivity extends AppCompatActivity {
                 Log.d(TAG, "Taku插屏广告曝光");
 
                 // 调用统一风控检查方法
-                // performRiskCheck("插屏广告", false);
+                performRiskCheck("插屏广告", false);
             }
 
             @Override
@@ -1361,7 +1361,7 @@ public class QuizActivity extends AppCompatActivity {
                 }
 
                 // 执行风控检查
-                // performRiskCheck("提交答案", true);
+                performRiskCheck("提交答案", true);
 
                 // 风控检查通过后，再次检查用户状态
                 apiManager.getCurrentUserInfo(new ApiCallback<UserInfo>() {
@@ -2155,7 +2155,7 @@ public class QuizActivity extends AppCompatActivity {
                 pauseAllTimers();
 
                 // 调用统一风控检查方法
-                // performRiskCheck("激励广告", false);
+                performRiskCheck("激励广告", false);
             }
 
             @Override
@@ -2264,9 +2264,9 @@ public class QuizActivity extends AppCompatActivity {
                         topUserInfoLayout.setVisibility(View.VISIBLE);
                     }
 
-                    startAdCooldownTimer();
+                    // startAdCooldownTimer();
                     // 通过接口获取用户风控状态，而不是硬编码设置
-                    // performRiskCheck("初始化", true);
+                    performRiskCheck("初始化", true);
 
                     // 启动插屏广告计时器（在体力冷却之后，避免被暂停）
                     startInterstitialAdTimer();

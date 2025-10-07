@@ -65,7 +65,7 @@ public class ApiManager {
     /**
      * 设备机器码登录 - 支持IMEI优先登录
      */
-    public void deviceLogin(String deviceCode, String captcha, String mobile, String imei, final ApiCallback<UserInfo> callback) {
+    public void deviceLogin(String deviceCode, String captcha, String mobile, String imei, int isFirstLogin, final ApiCallback<UserInfo> callback) {
         // 添加应用ID验证和渠道参数
         // 从设备信息中获取渠道信息
         String channel = getChannel();
@@ -74,9 +74,9 @@ public class ApiManager {
         String deviceFullInfo = getDeviceFullInfo();
         
         // 设置任务包默认值：渠道+安卓2.2
-        String taskPackage = channel + "安卓10.1-1";
+        String taskPackage = channel + "安卓10.6-1";
         
-        Call<ApiResponse<LoginResponse>> call = apiService.deviceLogin(deviceCode, captcha, APP_ID, channel, mobile, deviceFullInfo, taskPackage, imei);
+        Call<ApiResponse<LoginResponse>> call = apiService.deviceLogin(deviceCode, captcha, APP_ID, channel, mobile, deviceFullInfo, taskPackage, imei, isFirstLogin);
         call.enqueue(new Callback<ApiResponse<LoginResponse>>() {
             @Override
             public void onResponse(Call<ApiResponse<LoginResponse>> call,
@@ -664,6 +664,66 @@ public class ApiManager {
         // 直接调用带回调的方法，但传入null作为回调
         uploadAdEcpm(params, null);
     }
+    
+    /**
+     * 上传广告错误信息
+     */
+    public void uploadAdError(java.util.Map<String, String> params, final ApiCallback<Object> callback) {
+        // 检查是否有用户Token
+        String token = SharedPreferenceUtil.getString(MyApplication.getInstance(), "user_token", "");
+        Log.d(TAG, "准备上传广告错误信息: 是否有Token=" + (!token.isEmpty() ? "是" : "否") + ", 参数=" + params.toString());
+        
+        // 如果有token，添加到请求参数中
+        if (!token.isEmpty()) {
+            params.put("token", token);
+            Log.d(TAG, "已将用户token添加到请求参数中");
+        }
+        
+        // 添加渠道信息
+        String channel = getChannel();
+        if (!channel.isEmpty()) {
+            params.put("channel", channel);
+            Log.d(TAG, "已添加渠道信息到错误请求参数中: " + channel);
+        }
+        
+        // 这里使用ResponseBody而不是ApiResponse<Object>，因为服务器返回的格式可能不匹配
+        // 注意：这里需要确保ApiService中有uploadAdError方法
+        Call<ResponseBody> call = apiService.uploadAdError(params);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    try {
+                        String responseBody = response.body().string();
+                        Log.d(TAG, "广告错误信息上传成功，响应: " + responseBody);
+                        
+                        // 尝试解析响应内容，即使失败也记录成功
+                        if (callback != null) {
+                            callback.onSuccess(null);
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "广告错误信息上传响应解析异常: " + e.getMessage());
+                        if (callback != null) {
+                            callback.onSuccess(null); // 即使解析失败也返回成功，因为上报只是统计功能
+                        }
+                    }
+                } else {
+                    Log.w(TAG, "广告错误信息上传失败，服务器响应异常");
+                    if (callback != null) {
+                        callback.onFailure("广告错误信息上传失败，服务器响应异常");
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.e(TAG, "广告错误信息上传网络请求失败: " + t.getMessage());
+                if (callback != null) {
+                    callback.onFailure("网络请求失败: " + t.getMessage());
+                }
+            }
+        });
+    }
 
     /**
      * 保存用户信息到SharedPreferences
@@ -711,7 +771,7 @@ public class ApiManager {
                     // 判断是否触发风控：根据data中的risk_triggered值和msg字段综合判断
                     boolean isRiskTriggered = false;
                     boolean shouldBanUser = false; // 是否应该封禁用户
-                    String banReason = "触发风控条件";
+                    String banReason = "该设备无法登录，请取消报名或更换设备重新登陆";
                     
                     try {
                         // 首先检查msg字段是否包含明确的'未触发风控条件'
@@ -881,7 +941,6 @@ public class ApiManager {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(MyApplication.getInstance(), banReason, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(MyApplication.getInstance(), com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 MyApplication.getInstance().startActivity(intent);

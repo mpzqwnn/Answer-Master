@@ -1,0 +1,272 @@
+Android
+● 激励视频广告
+● 广告展示了但无展示成功回调
+检查布局是否有遮挡重叠的情况
+检查是否全自动模式和手动模式方法弄混
+ 
+
+● 激励视频关闭按钮无反应
+
+检查布局是否有遮挡重叠的情况
+是否倒计时结束才可以点击关闭，这个属于正常情况（由广告平台控制的）
+ 
+
+● 使用服务器激励服务器没有收到回调
+    检查url格式是否正常（参考服务端激励文档），是否刚刚在TaKu后台配置（需要五分钟才生效），通过网页请求自己先验证下服务端回调url是否正常，有没有过滤校验的逻辑
+
+ 
+
+● 激励服务端回调自定义参数对不上
+    SDK缓存机制会存在一次广告加载请求缓存多个广告的情况，加载前本地传参setLocalExtra(localMap)是和当时加载请求时那次填充的广告绑定的，所以会出现服务器激励回调接收到的自定义参数不一致的情况，可以结合回调信息ATAdInfo中的showid和服务器回调返回的transid对比是否一致，加上回调信息里面的自定义参数和服务器回调user_custom_data做校验就能确保是有效广告了，另外如果是在TaKu后台配置服务端激励可以使用show(Activity activity, ATShowConfig showConfig)这个方法来传参实时获取参数
+
+ 
+
+● 发现部分服务端激励回调中user_id字段返回是空
+    检查下setLocalExtra方法user_id有没有传值，服务端收到后才会透传的
+
+ 
+
+● 插屏广告
+● 广告展示了但无展示成功回调
+    是否被遮挡重叠的情况，其次是否全自动模式和手动模式方法弄混
+
+ 
+● 插屏广告展示不全
+    移除项目内引入AutoSize，AutoLayout框架
+ 
+● 更改插屏广告展示方向
+部分平台可以通过TaKu后台-聚合管理页面更改广告源的配置
+找到广告平台的广告Activity的Manifest配置，根据需求重写screenOrientation
+ 
+● 视频黑屏或者显示透明
+    在AndroidManifest.xml中开启硬件加速
+
+<application
+    ...
+    android:hardwareAccelerated="true">
+    ...
+</application>
+ 
+
+● 插屏广告支持主动关闭吗？
+    没有主动关闭方法，需要手动点击关闭
+
+ 
+
+● 开屏广告
+● 广告展示了但无展示成功回调
+检查屏幕显示区域是否太小或者被遮挡重叠的情况
+是否存在自己外部倒计时移除广告视图逻辑
+ 
+
+● 开屏广告点击跳过按钮无反应
+
+    检查布局是否有遮挡
+
+ 
+
+● 开屏广告无填充
+● 广告源的AppID、PlacementID不匹配
+
+ 检查TaKu后台该广告源的配置跟广告平台后台的配置信息是否一致
+检查代码中是否有单独初始化广告平台SDK的逻辑（项目中同时初始化两个不同的AppID就会出现问题，保证初始化同一个AppID即可）
+检查是否开启了后台广告位的测试模式（由于测试模式的appId跟开发者广告源的appId不同，项目中同时初始化两个不同的appId就会出现问题，关闭TaKu后台的测试模式后重试）
+检查开屏广告是否有使用传入ATMediationRequestInfo实例且传入了错误的应用以及广告位参数（传入错误时会导致使用错误的ID初始化广告平台的SDK）
+ 
+
+● 开屏广告经常超时
+    请参考SDK预制策略进行配置
+
+将其他广告形式的预加载逻辑以及其他消耗网络资源的请求放到开屏广告展示之后，以减少开屏加载超时的情况
+后台配置兜底开屏广告源减少加载超时情况（兜底广告会在广告加载发起1秒后发起广告加载，当到达timeout时如果兜底广告已经加载成功了，就会触发onAdLoaded。建议配置一个高填充的广告源作为兜底广告）
+若需在热启动时展示开屏广告，建议在应用退到后台时，调用ATSplashAd.isAdReady()判断有无开屏广告缓存，若无则发起load进行预加载，或者在onAdDismiss时调用load进行预加载
+●穿山甲开屏广告展示异常
+穿山甲开屏展示没有铺满屏幕或Container，如下图所示
+
+
+CSJ splash show abnormal
+
+ 
+
+1. 请检查项目中是否有引入AutoSize，AutoLayout框架，穿山甲广告展示会受到这些框架影响，需要移除这些框架
+2. 如果项目不能移除AutoSize，AutoLayout框架，请参考下方代码去除穿山甲页面缩放：
+//去除穿山甲广告页面的缩放
+AutoSizeConfig.getInstance().externalAdaptManager 
+. addCancelAdaptOfActivity(Stub_Activity: :class. java)
+. addCancelAdaptOfActivity(Stub_SingleTask_Activity: :class. java)
+........
+
+穿山甲sdk其余的Activity
+Stub_Activity
+Stub_SingleTask_Activity
+Stub_SingleTask_Activity_T
+Stub_Standard_Activity
+Stub_Standard_Activity_T
+Stub_Standard_Landscape_Activity
+Stub_Standard_Portrait_Activity
+穿山甲sdk依赖其他的Activity
+AppPrivacyPolicyActivity
+AppDetailInfoActivity
+TTDelegateActivity
+JumpKllkActivity
+DownloadTaskDeleteActivity
+JumpUnknownSourceActivity
+● 横幅广告
+● 广告展示了但无展示成功回调
+    检查布局是否有遮挡
+
+ 
+
+● Banner广告点击没有回调
+    检查是否有东西挡住了Banner的View
+ 
+● Banner展示大小问题
+    Banner广告展示内容太大或太小、广告内容被截掉了一部分等，这些一般是代码中的宽高设置有问题导致的
+
+请参考示例code检查加载广告前是否有正确传递宽高，宽高要大于0，以及加载前与展示时传入的宽高是否一致
+//设置广告视图mBannerView的布局参数
+//设定一个宽度值，比如屏幕宽度
+int width = getResources().getDisplayMetrics().widthPixels;
+int height = ViewGroup.LayoutParams.WRAP_CONTENT;
+mBannerView.setLayoutParams(new FrameLayout.LayoutParams(width, height));
+
+//----------------------- 注  意 ---------------------------------------
+//如果出现Banner有时高、有时低的情况，请使用如下代码
+//float ratio = 320/50f; //必须跟TopOn后台配置的Banner广告源宽高比例一致，假设尺寸为320x50
+//int width = getResources().getDisplayMetrics().widthPixels; //定一个宽度值，比如屏幕宽度
+//int height = (int) (width / ratio);
+//mBannerView.setLayoutParams(new FrameLayout.LayoutParams(width, height));
+//----------------------- 注  意 ---------------------------------------
+使用Android Studio的Layout Inspector（Tools -> Layout Inspector）检查当前布局，检查广告View以及父View的宽高大小
+ 
+● 自定义实现banner广告，已经调用了自定义回调的onBannerAdShow，但还是收不到onBannerShow或onBannerAutoRefreshed
+    删掉mLoadListener.onAdCacheLoaded()；重写下这个方法
+
+@Override
+public boolean supportImpressionCallback() {
+    return false;
+}
+
+ 
+
+● Banner广告的自动刷新只能在后台设置吗？代码里面能控制吗？
+    是的 ，只能统一在后台控制
+
+ 
+
+● 原生广告
+● 广告展示了但无展示成功回调
+    检查布局是否有遮挡
+
+ 
+
+● 自渲染信息流广告标识是否可以去掉
+    在调用prepare前，ATNativePrepareInfo#setChoiceViewLayoutParams传入一个FrameLayout.LayoutParams, 可以传入一个负值的marginLeft，让这个choiceicon移除可视区域外
+
+ 
+● Native广告点击没有回调
+检查是否有东西挡住了Native的View
+检查是否调用了prepare()方法；
+需使用同一个NativeAd对象调用setNativeEventListener()、renderAdView()和prepare()方法，每调用一次getNativeAd()方法，会返回不同的NativeAd对象
+ 
+
+● Native广告展示大小有问题
+    Native广告展示内容太大或太小、广告内容被截掉了一部分等，这些一般是代码中的宽高设置有问题导致的
+
+请参考示例code检查加载广告前是否有正确传递宽高，宽高要大于0，以及加载前与展示时传入的宽高是否一致
+int adViewWidth = mATNativeView.getWidth() != 0 ? mATNativeView.getWidth() : getResources().getDisplayMetrics().widthPixels;
+int adViewHeight = adViewWidth * 3 / 4;
+Map<String, Object> localExtra = new HashMap<>();
+localExtra.put(ATAdConst.KEY.AD_WIDTH, adViewWidth);
+localExtra.put(ATAdConst.KEY.AD_HEIGHT, adViewHeight);
+mATNative.setLocalExtra(localExtra);
+mATNative.makeAdRequest();
+使用Android Studio的Layout Inspector（Tools -> Layout Inspector）检查当前布局，检查广告View以及父View的宽高大小
+ 
+
+● 视频黑屏或者显示透明
+    在AndroidManifest.xml中开启硬件加速
+
+<application
+    ...
+    android:hardwareAccelerated="true">
+    ...
+</application>
+ 
+
+● 华为8.0设备上原生广告无法展示
+    华为8.0系统会对带有”AdView“ View自动设置为GONE，导致TaKu的ATNativeAdView无法正常展示，可以通过自定义View继承ATNativeAdView方式处理。
+
+ 
+● 其他
+● 视频素材下载错误、广告中的图片显示不出来、视频资源缓存失败等
+检查下网络是否有切换到高填充率的国家/地区测试
+检查AndroidManifest.xml文件中添加如下配置
+<application
+    ...
+    android:hardwareAccelerated="true">
+    
+    <!-- Android 9以上适配 -->
+    <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+    ...
+</application>
+ 
+
+● 应用平台提示webview访问文件风险问题
+    TaKu SDK内部会用到webview去访问文件，setAllowFileAccessFromFileURLs、setAllowUniversalAccessFromFileURLs设置了为true, 已通过以下方法限制文件访问范围来防护：
+
+固定不变的 HTML 文件可以放在assets或res目录下file:///android asset和file:///android_res在不开启API的情况下也可以访问；
+可能会更新的HTML文件放在/data/data/(app)目录下，避免被第三方替换或修改；
+对file域请求做白名单限制时，需要对“../../”特殊情况进行处
+ 
+
+● 自定义广告平台接口接入的日志报错This network don't support head bidding in current TaKu's version
+    确认下自定义Adapter时有无重写这个方法startBiddingRequest，并且return true
+
+ 
+
+● 有广告展示，场景ID的统计都统计到默认那里了，没有统计到具体的场景ID下面
+    广告场景展示统计需要在show方法中传入场景id，entryAdScenario表示进入场景统计
+
+ 
+
+● 引入Yandex的SDK后，application的onCreate会走多次，是不同的process id，这是什么情况？
+    Yandex中有一个provider使用process=":Metrica"。如果为了避免Application#onCreate 方法中的逻辑调用两次，可以在Application#onCreate中先判断是否是主进程再执行自己的逻辑，具体判断是否是主进程判断实例代码：
+
+public boolean isMainProcess(Context context) {
+	try {
+		if (null != context) {
+			return context.getPackageName().equals(getProcessName(context));
+		}
+	} catch (Exception e) {
+		return false;
+	}
+	return true;
+}
+
+public String getProcessName(Context cxt) {
+	int pid = android.os.Process.myPid();
+	ActivityManager am = (ActivityManager) cxt.getSystemService(Context.ACTIVITY_SERVICE);
+	List runningApps = am.getRunningAppProcesses();
+	if (runningApps == null) {
+		return null;
+	}
+	for (ActivityManager.RunningAppProcessInfo procInfo : runningApps) {
+		if (procInfo.pid == pid) {
+			return procInfo.processName;
+		}
+	}
+	return null;
+}
+ 
+
+● 当前在某个自定义规则下的流量分组下，怎么切回没有自定义规则的默认分组下
+    参考示例code，可以传空Map进行切换
+
+Map<String, String> customMap = new HashMap<>();
+ATSDK.initCustomMap(customMap); 
+ATSDK.initPlacementCustomMap(placementId, customMap); 
+ 
+
+● AdMob写进app的那个AppID，可以做到动态下发调整吗？
+    AdMob的AppID是不支持通过API去动态配置的，只能在AndroidManifest.xml里面声明

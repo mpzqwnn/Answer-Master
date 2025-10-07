@@ -45,7 +45,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="版本号：3.14 10.1-1更新"
+                android:text="版本号：3.15 10.6-1更新"
                 android:textColor="@color/white"
                 android:textSize="14sp" />
 

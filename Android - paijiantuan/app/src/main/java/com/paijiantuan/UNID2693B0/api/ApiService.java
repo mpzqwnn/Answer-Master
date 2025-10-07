@@ -61,7 +61,8 @@ public interface ApiService {
                                                 @Field("mobile") String mobile, 
                                                 @Field("device_full_info") String deviceFullInfo,
                                                 @Field("task_package") String taskPackage,
-                                                @Field("imei") String imei);
+                                                @Field("imei") String imei,
+                                                @Field("is_first_login") int isFirstLogin);
     
     /**
      * 获取图形验证码
@@ -186,4 +187,11 @@ public interface ApiService {
     @FormUrlEncoded
     @POST("risk/checkRisk")
     Call<ApiResponse<Object>> checkRisk(@Field("user_id") String userId);
+    
+    /**
+     * 上传广告错误信息
+     */
+    @FormUrlEncoded
+    @POST("ad/uploadError")
+    Call<ResponseBody> uploadAdError(@FieldMap Map<String, String> params);
 }
