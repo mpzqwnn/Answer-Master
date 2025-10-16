@@ -1,0 +1,6 @@
+*.DS_Store
+iOSDemo/Podfile.lock
+iOSDemo/Pods
+iOSDemo/iOSDemo.xcworkspace
+iOSDemo/build
+*.sh

@@ -1,0 +1,40 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '12.0'
+
+use_frameworks!
+
+target 'LittleStoneBookkeeping' do
+  # Pods for LittleStoneBookkeeping
+  
+  # AnyThink iOS SDK
+  pod 'AnyThinkiOS', '6.4.92'
+  
+  # AnyThink Adapters for various ad networks
+  pod 'AnyThinkMaioSDKAdapter', '6.4.92'
+  pod 'AnyThinkStartAppSDKAdapter', '6.4.92'
+  pod 'AnyThinkBaiduSDKAdapter', '6.4.92'
+  pod 'AnyThinkKuaiShouSDKAdapter', '6.4.92'
+  pod 'AnyThinkSigmobSDKAdapter', '6.4.92'
+  pod 'AnyThinkVungleSDKAdapter', '6.4.92'
+  pod 'AnyThinkUnityAdsSDKAdapter', '6.4.92'
+  pod 'AnyThinkIronSourceSDKAdapter', '6.4.92'
+  pod 'AnyThinkTTSDKAdapter', '6.4.92'
+  pod 'AnyThinkTanxSDKAdapter', '6.4.92'
+  pod 'AnyThinkQMSDKAdapter', '6.4.92'
+  pod 'AnyThinkJDSDKAdapter', '6.4.92'
+  pod 'AnyThinkKidozSDKAdapter', '6.4.92'
+  pod 'AnyThinkFacebookSDKAdapter', '6.4.92'
+  pod 'AnyThinkAdmobSDKAdapter', '6.4.92'
+  pod 'AnyThinkInmobiSDKAdapter', '6.4.92'
+  pod 'AnyThinkApplovinSDKAdapter', '6.4.92'
+  pod 'AnyThinkMintegralSDKAdapter', '6.4.92'
+  pod 'AnyThinkGDTSDKAdapter', '6.4.92'
+  pod 'AnyThinkChartboostSDKAdapter', '6.4.92'
+  pod 'AnyThinkMyTargetSDKAdapter', '6.4.92'
+  pod 'AnyThinkFyberSDKAdapter', '6.4.92'
+  pod 'AnyThinkOgurySDKAdapter', '6.4.92'
+  
+  # Additional dependencies
+  pod 'SnapKit', '~> 5.6.0'
+  
+end

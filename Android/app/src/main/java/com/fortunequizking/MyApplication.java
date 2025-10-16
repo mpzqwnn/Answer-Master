@@ -5,10 +5,9 @@ import android.os.Build;
 import android.os.Process;
 import android.util.Log;
 import android.webkit.WebView;
-import com.fortunequizking.util.AdManager;
 import com.fortunequizking.util.TakuAdManager;
-
 import java.io.File;
+import java.lang.reflect.Method;
 
 public class MyApplication extends Application {
 
@@ -35,8 +34,13 @@ public class MyApplication extends Application {
     }
     
     private void initAdSDK() {
-        TakuAdManager.getInstance().init(this);
-        Log.d(TAG, "广告SDK初始化完成");
+        try {
+            // 初始化Taku广告SDK，而不是AdManager
+            TakuAdManager.getInstance().init(this);
+            Log.d(TAG, "Taku广告SDK初始化完成");
+        } catch (Exception e) {
+            Log.e(TAG, "Taku广告SDK初始化失败: " + e.getMessage(), e);
+        }
     }
     
     private String getCurrentProcessName() {

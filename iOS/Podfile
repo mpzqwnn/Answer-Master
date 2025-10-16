@@ -1,0 +1,68 @@
+# 使用国内镜像源，解决网络连接问题
+source 'https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git'
+# 备用源
+# source 'https://gitee.com/mirrors/CocoaPods-Specs.git'
+
+platform :ios, '13.0'
+
+post_install do |installer|
+  installer.generated_projects.each do |project|
+    project.targets.each do |target|
+        target.build_configurations.each do |config|
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+         end
+    end
+  end
+end
+
+target 'LittleStoneBookkeeping' do
+  use_frameworks!
+  
+  # Taku SDK - AnyThink广告框架
+  pod 'AnyThinkiOS','6.4.92'
+
+  # DebugUI,调试时建议接入,上线后去掉
+  pod 'AnyThinkDebugUISDK','1.0.6'
+  
+  # 常用广告平台适配器
+  pod 'AnyThinkBaiduSDKAdapter','6.4.92.1'
+  pod 'AnyThinkKuaiShouSDKAdapter','6.4.92.1'
+  pod 'AnyThinkTTSDKAdapter','6.4.92.1'
+  pod 'AnyThinkGDTSDKAdapter','6.4.92'
+  pod 'AnyThinkAdmobSDKAdapter','6.4.92'
+ 
+  # 其他广告平台适配器
+  pod 'AnyThinkMaioSDKAdapter','6.4.92'
+  pod 'AnyThinkStartAppSDKAdapter','6.4.92'
+  pod 'AnyThinkSigmobSDKAdapter','6.4.92'
+  pod 'AnyThinkVungleSDKAdapter','6.4.92'
+  pod 'AnyThinkUnityAdsSDKAdapter','6.4.92'
+  pod 'AnyThinkIronSourceSDKAdapter','6.4.92'
+  pod 'AnyThinkTanxSDKAdapter','6.4.92'
+  pod 'AnyThinkQMSDKAdapter','6.4.92'
+  pod 'AnyThinkJDSDKAdapter','6.4.92'
+  pod 'AnyThinkKidozSDKAdapter','6.4.92'
+  pod 'AnyThinkFacebookSDKAdapter','6.4.92'
+  pod 'AnyThinkInmobiSDKAdapter','6.4.92'
+  pod 'AnyThinkApplovinSDKAdapter','6.4.92'
+  pod 'AnyThinkMintegralSDKAdapter','6.4.92'
+  pod 'AnyThinkChartboostSDKAdapter','6.4.92'
+  pod 'AnyThinkMyTargetSDKAdapter','6.4.92'
+  pod 'AnyThinkFyberSDKAdapter','6.4.92'
+  pod 'AnyThinkOgurySDKAdapter','6.4.92'
+ 
+  # Admob Interactive-media-ads广告类型,iOS13+
+  pod 'AnyThinkIMASDKAdapter','6.4.92'
+     
+  # 第三方数据统计SDK（可选）
+  # pod 'AppsFlyerFramework'
+  # pod 'Adjust'
+  # pod 'FirebaseAnalytics'
+ 
+  # 常用UI依赖库
+  pod 'Masonry'
+  pod 'SDWebImage'
+  pod 'MJRefresh'
+  pod 'SVProgressHUD'
+ 
+end

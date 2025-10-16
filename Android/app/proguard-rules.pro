@@ -50,37 +50,37 @@
 -keep class com.fortunequizking.bean.** { *; }
 
 # 保留SharedPreference相关代码不被混淆
--keep class com.paijiantuan.UNID2693B0.utils.SharedPreferenceUtil { *; }
--keep class com.paijiantuan.UNID2693B0.utils.StorageUtil { *; }
+-keep class com.fortunequizking.utils.SharedPreferenceUtil { *; }
+-keep class com.fortunequizking.utils.StorageUtil { *; }
 
 # 保留ApiManager中的AnswerStats内部类不被混淆
--keep class com.paijiantuan.UNID2693B0.api.ApiManager$AnswerStats { 
+-keep class com.fortunequizking.api.ApiManager$AnswerStats { 
     <fields>;
     <methods>;
 }
 
 # 保留ApiManager中的ApiCallback接口不被混淆
--keep interface com.paijiantuan.UNID2693B0.api.ApiManager$ApiCallback { 
+-keep interface com.fortunequizking.api.ApiManager$ApiCallback { 
     <methods>;
 }
 
 # 保留QuizActivity中的关键方法不被混淆
--keepclassmembers class com.paijiantuan.UNID2693B0.QuizActivity { 
+-keepclassmembers class com.fortunequizking.QuizActivity { 
     void updateAnswerStats(int, int);
     void loadUserAnswerStats();
-    void submitAnswerToServer(int, int, int, com.paijiantuan.UNID2693B0.api.ApiManager$ApiCallback);
+    void submitAnswerToServer(int, int, int, com.fortunequizking.api.ApiManager$ApiCallback);
 }
 
 # 保留SettingActivity中的关键方法不被混淆
--keepclassmembers class com.paijiantuan.UNID2693B0.SettingActivity { 
+-keepclassmembers class com.fortunequizking.SettingActivity { 
     void updateAnswerStats(int, int);
     void loadUserAnswerStats();
 }
 
 # 保留ApiManager中的关键方法不被混淆
--keepclassmembers class com.paijiantuan.UNID2693B0.api.ApiManager { 
-    void getUserAnswerStats(com.paijiantuan.UNID2693B0.api.ApiManager$ApiCallback);
-    void saveUserInfo(com.paijiantuan.UNID2693B0.model.UserInfo);
+-keepclassmembers class com.fortunequizking.api.ApiManager { 
+    void getUserAnswerStats(com.fortunequizking.api.ApiManager$ApiCallback);
+    void saveUserInfo(com.fortunequizking.model.UserInfo);
 }
 
 # Taku SDK混淆配置

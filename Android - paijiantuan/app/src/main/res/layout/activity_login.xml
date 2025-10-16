@@ -67,7 +67,7 @@
             android:shadowDx="2"
             android:shadowDy="2"
             android:shadowRadius="4"
-            android:text="快来赚"
+            android:text="一起赢"
             android:textColor="@color/warning_color"
             android:textSize="40sp"
             android:textStyle="bold" />

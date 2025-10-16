@@ -205,7 +205,7 @@ public class NetworkConfig {
     }
     
     /**
-     * 响应拦截器，用于检查和处理服务器返回的响应内容
+     * 检查应用是否运行在模拟器上
      */
     private static class ResponseInterceptor implements Interceptor {
         private static final Charset UTF8 = Charset.forName("UTF-8");
@@ -234,7 +234,7 @@ public class NetworkConfig {
                         SharedPreferenceUtil.putBoolean(MyApplication.getInstance(), "is_login", false);
                         
                         // 显示提示并跳转到登录页面
-                        Toast.makeText(MyApplication.getInstance(), "请登录", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MyApplication.getInstance(), "请登录后", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(MyApplication.getInstance(), com.fortunequizking.activity.LoginActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         MyApplication.getInstance().startActivity(intent);

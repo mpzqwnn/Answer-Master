@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.ViewGroup;
 
@@ -61,10 +62,10 @@ public class TakuAdManager {
     // 重试延迟基数（毫秒）
     private static final long RETRY_BASE_DELAY = 10000; // 10秒
     private static final long MAX_RETRY_DELAY = 120000; // 120秒
-    
+
     // 横幅广告尺寸常量（dp）
     private static final int BANNER_WIDTH_DP = -1; // -1表示MATCH_PARENT
-    
+
     // 横幅广告场景ID和展示自定义扩展参数
     private static final String BANNER_SCENARIO = "banner_ad_show_1";
     private static final String BANNER_SHOW_CUSTOM_EXT = "banner_ad_show_custom_ext";
@@ -78,10 +79,10 @@ public class TakuAdManager {
     private ATRewardVideoAd rewardVideoAd;
     private ATNative nativeAd;
     private ATSplashAd splashAd;
-    
+
     // 存储最后一个广告容器的引用，解决广告加载成功后无法显示的问题
     private ViewGroup lastBannerContainer;
-    
+
     // 获取横幅广告视图实例的方法
     public ATBannerView getBannerView() {
         return bannerView;
@@ -93,7 +94,7 @@ public class TakuAdManager {
     private RewardAdListener rewardAdListener;
     private NativeAdListener nativeAdListener;
     private SplashAdListener splashAdListener;
-    
+
     // 广告收益监听器实现类
     private class AdRevenueListenerImpl implements ATAdRevenueListener {
         @Override
@@ -102,14 +103,12 @@ public class TakuAdManager {
             Log.d(TAG, "广告收益数据: " + atAdInfo.toString());
         }
     }
-    
-
 
     // 状态变量
     private boolean isInitialized = false;
     private String userId;
     private boolean isDebugMode = false;
-    
+
     // 开屏广告相关变量
     private Runnable splashAdDismissCallback;
     private int minSplashTimeWhenNoAD = 2000;
@@ -124,19 +123,24 @@ public class TakuAdManager {
     // 重试计数
     private int interstitialRetryCount = 0;
     private int nativeRetryCount = 0;
+    private int rewardVideoRetryCount = 0;
 
     // 上次加载时间
     private long lastBannerLoadTime = 0;
     private long lastInterstitialLoadTime = 0;
     private long lastNativeLoadTime = 0;
+    private long lastSplashLoadTime = 0;
+    private long lastRewardLoadTime = 0;
 
     // 重试任务
     private Runnable interstitialRetryRunnable;
     private Runnable nativeRetryRunnable;
+    private Runnable rewardVideoRetryRunnable;
 
     // Handler
     private Handler interstitialHandler;
     private Handler nativeHandler;
+    private Handler rewardVideoHandler;
 
     // APP_ID和APP_KEY从AndroidManifest中获取
     private static final String APP_ID = "a68bab61c2bd06";
@@ -149,6 +153,7 @@ public class TakuAdManager {
         // 初始化Handler
         interstitialHandler = new Handler(Looper.getMainLooper());
         nativeHandler = new Handler(Looper.getMainLooper());
+        rewardVideoHandler = new Handler(Looper.getMainLooper());
     }
 
     // 获取单例实例
@@ -206,132 +211,142 @@ public class TakuAdManager {
     }
 
     // ------------------------------ 横幅广告相关方法 ------------------------------
-    
+
     // 横幅广告配置常量
     private static final long BANNER_MIN_LOAD_INTERVAL = 1000; // 最小加载间隔：1秒
-    private static final int BANNER_HEIGHT_DP = 60; // 横幅高度：60dp
+    private static final Double BANNER_HEIGHT_DP = 56.25; // 横幅高度：60dp
     private static final int MAX_RETRY_COUNT = 3; // 最大重试次数
     private static final long RETRY_INTERVAL_MS = 8000; // 重试间隔：8秒
-    
+
     // 广告容器引用
     private ViewGroup bannerContainer;
     private Activity bannerActivity;
-    
+
     // 横幅广告状态
     private boolean isBannerAdShowing = false;
     private int bannerRetryCount = 0;
-    
+
     /**
      * 显示横幅广告
      * 全新实现，简化流程，提高稳定性
-     * 
-     * @param activity 活动上下文
+     *
+     * @param activity  活动上下文
      * @param container 广告容器
      */
     public void showBannerAd(Activity activity, ViewGroup container) {
         Log.d(TAG, "请求显示横幅广告");
-        
-        // 1. 保存上下文引用
+
+        // 1. 检查页面切换情况：如果Activity发生变化，需要重新初始化广告
+        boolean isActivityChanged = bannerActivity != null && bannerActivity != activity;
+        boolean isContainerChanged = bannerContainer != null && bannerContainer != container;
+
+        if (isActivityChanged || isContainerChanged) {
+            Log.d(TAG, "检测到页面切换，重置广告状态。Activity变化: " + isActivityChanged + ", 容器变化: " + isContainerChanged);
+
+            // 先移除旧的广告视图
+            removeBannerView();
+
+            // 重置广告视图和相关状态
+            bannerView = null;
+            resetBannerLoadingState();
+            lastBannerLoadTime = 0;
+
+            Log.d(TAG, "页面切换：广告状态已重置");
+        }
+
+        // 2. 保存上下文引用
         this.bannerActivity = activity;
         this.bannerContainer = container;
-        
-        // 2. 标记广告需要显示
+
+        // 3. 标记广告需要显示
         isBannerAdShowing = true;
-        
-        // 3. 检查是否是第二次登录的情况，需要重置广告状态
-        if (bannerView == null && lastBannerLoadTime > 0) {
+
+        // 4. 检查是否是第二次登录的情况，需要重置广告状态
+        boolean isSecondLogin = bannerView == null && lastBannerLoadTime > 0;
+        if (isSecondLogin) {
             Log.d(TAG, "检测到第二次登录情况，重置横幅广告状态");
             resetBannerLoadingState();
             lastBannerLoadTime = 0; // 强制重置加载时间
-            
+
             // 第二次登录特殊处理：强制重置加载状态，确保可以立即加载
             isBannerLoading = false;
             bannerRetryCount = 0;
         }
-        
-        // 4. 基础参数验证（修改为延迟验证，避免容器未准备好时直接报错）
+
+        // 添加第二次登录标记，用于后续逻辑判断
+        boolean isSecondLoginScenario = isSecondLogin
+                || (bannerView != null && lastBannerLoadTime > 0 && isActivityTransitionState(activity));
+
+        // 5. 基础参数验证（修改为延迟验证，避免容器未准备好时直接报错）
         if (!validateAdContextWithRetry(activity, container)) {
             // 如果验证失败，但容器只是未附加到窗口，会通过重试机制处理
             // 直接返回，避免后续操作
             return;
         }
-        
-        // 5. 初始化广告视图
+
+        // 6. 初始化广告视图
         initBannerAd();
-        
-        // 6. 立即将广告视图添加到容器，即使广告尚未加载完成
-        // 这样可以确保容器可见，避免第二次登录时广告不显示的问题
-        if (bannerView != null && bannerContainer != null) {
-            addBannerToContainer();
-        }
-        
+
         // 7. 尝试立即加载和显示广告
-        loadAndShowBannerAd();
-        
-        // 8. 第二次登录额外保障：如果广告视图为空，强制重新初始化并加载
-        if (bannerView == null && isBannerAdShowing) {
-            Log.d(TAG, "第二次登录保障：广告视图为空，强制重新初始化");
-            initBannerAd();
-            if (bannerView != null && bannerContainer != null) {
-                addBannerToContainer();
-                loadAndShowBannerAd();
-            }
-        }
+        triggerBannerLoad();
     }
-    
+
     /**
      * 隐藏横幅广告
      * 安全地移除广告视图并清理资源
      */
     public void hideBannerAd() {
         Log.d(TAG, "隐藏横幅广告");
-        
+
         // 标记状态
         isBannerAdShowing = false;
-        
+
         // 移除广告视图
         removeBannerView();
-        
+
         // 清理引用
         bannerContainer = null;
     }
-    
+
     /**
      * 初始化横幅广告视图
      * 全新实现，确保正确配置广告参数
      */
     private void initBannerAd() {
         Log.d(TAG, "初始化横幅广告");
-        
+
         // 检查是否已初始化
         if (bannerView != null) {
             return;
         }
-        
+
         try {
             // 创建广告视图实例
             bannerView = new ATBannerView(bannerActivity);
             bannerView.setPlacementId(BANNER_PLACEMENT_ID);
-            
-            // 设置广告尺寸
-            int width = ViewGroup.LayoutParams.MATCH_PARENT;
+
+            // 设置广告尺寸 - 修复LayoutParams为null的问题
+            // 使用屏幕宽度作为广告宽度，高度自适应
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            bannerActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+            int width = displayMetrics.widthPixels;
             int height = dpToPixel(BANNER_HEIGHT_DP);
-            
+
             // 配置广告参数
             configureBannerAd(width, height);
-            
+
             // 设置监听器
             setupBannerAdCallbacks();
-            
+
             Log.d(TAG, "横幅广告初始化成功，尺寸: " + width + "x" + height);
-            
+
         } catch (Exception e) {
             Log.e(TAG, "横幅广告初始化失败: " + e.getMessage(), e);
             bannerView = null;
             notifyBannerError("初始化失败", e.getMessage());
         }
     }
-    
+
     /**
      * 配置横幅广告参数
      */
@@ -339,103 +354,29 @@ public class TakuAdManager {
         if (bannerView == null || bannerActivity == null) {
             return;
         }
-        
+
         // 设置本地额外参数
         Map<String, Object> localParams = new HashMap<>();
         localParams.put(com.anythink.core.api.ATAdConst.KEY.AD_WIDTH, width);
         localParams.put(com.anythink.core.api.ATAdConst.KEY.AD_HEIGHT, height);
-        
-        // 添加穿山甲广告特定配置
-        try {
-            // 尝试加载穿山甲广告的常量类
-            Class<?> ttAdConstClass = Class.forName("com.bytedance.sdk.openadsdk.TTAdConstant");
-            Class<?> ttAdSlotClass = Class.forName("com.bytedance.sdk.openadsdk.TTAdSlot");
-            
-            // 添加穿山甲广告的一些常见配置
-            // 这些配置有助于提高穿山甲广告的填充率
-            localParams.put("tt_sdk_version", "latest");
-            localParams.put("tt_ad_type", "banner");
-            
-            Log.d(TAG, "已添加穿山甲广告特定配置");
-        } catch (Exception e) {
-            Log.w(TAG, "添加穿山甲特定配置失败: " + e.getMessage());
-        }
-        
+
         bannerView.setLocalExtra(localParams);
-        
+
         // 设置布局参数
         ViewGroup.LayoutParams layoutParams = new ViewGroup.LayoutParams(width, height);
         bannerView.setLayoutParams(layoutParams);
-        
+
         // 设置广告场景
         ATShowConfig showConfig = new ATShowConfig.Builder()
                 .scenarioId("main_banner")
                 .showCustomExt("{\"source\":\"main_screen\"}")
                 .build();
         bannerView.setShowConfig(showConfig);
-        
+
         // 设置收益监听器
         bannerView.setAdRevenueListener(new AdRevenueListenerImpl());
-        
-        // 设置广告源状态监听器，用于调试穿山甲广告问题
-        try {
-            // 使用正确的方法名和参数类型
-            Method setAdSourceStatusListenerMethod = bannerView.getClass().getMethod("setAdSourceStatusListener", com.anythink.core.api.ATAdSourceStatusListener.class);
-            setAdSourceStatusListenerMethod.invoke(bannerView, new com.anythink.core.api.ATAdSourceStatusListener() {
-                public void onAdSourceAttempt(ATAdInfo atAdInfo) {
-                    Log.d(TAG, "广告源尝试: " + atAdInfo.getNetworkName());
-                }
-                
-                public void onAdSourceBiddingAttempt(ATAdInfo atAdInfo) {
-                    Log.d(TAG, "广告源竞价尝试: " + atAdInfo.getNetworkName());
-                }
-                
-                public void onAdSourceBiddingStart(ATAdInfo atAdInfo) {
-                    Log.d(TAG, "广告源竞价开始: " + atAdInfo.getNetworkName());
-                }
-                
-                public void onAdSourceBiddingEnd(ATAdInfo atAdInfo, long l) {
-                    Log.d(TAG, "广告源竞价结束: " + atAdInfo.getNetworkName() + ", 耗时: " + l + "ms");
-                }
-                
-                public void onAdSourceBiddingFail(ATAdInfo atAdInfo, AdError adError) {
-                    Log.e(TAG, "广告源竞价失败: " + atAdInfo.getNetworkName() + ", 错误: " + (adError != null ? adError.getFullErrorInfo() : "未知错误"));
-                }
-                
-                public void onAdSourceBiddingFilled(ATAdInfo atAdInfo) {
-                    Log.d(TAG, "广告源竞价填充: " + atAdInfo.getNetworkName());
-                }
-                
-                public void onAdSourceLoadStart(ATAdInfo atAdInfo) {
-                    Log.d(TAG, "广告源加载开始: " + atAdInfo.getNetworkName());
-                }
-                
-                public void onAdSourceLoadSuccess(ATAdInfo atAdInfo) {
-                    Log.d(TAG, "广告源加载成功: " + atAdInfo.getNetworkName());
-                }
-                
-                public void onAdSourceLoadFail(ATAdInfo atAdInfo, AdError adError) {
-                    Log.e(TAG, "广告源加载失败: " + atAdInfo.getNetworkName() + ", 错误: " + (adError != null ? adError.getFullErrorInfo() : "未知错误"));
-                }
-                
-                public void onAdSourceLoadFilled(ATAdInfo atAdInfo) {
-                    Log.d(TAG, "广告源填充完成: " + atAdInfo.getNetworkName());
-                }
-                
-                public void onAdSourceShowStart(ATAdInfo atAdInfo) {
-                    Log.d(TAG, "广告源显示开始: " + atAdInfo.getNetworkName());
-                }
-                
-                public void onAdSourceShowEnd(ATAdInfo atAdInfo, boolean b) {
-                    Log.d(TAG, "广告源显示结束: " + atAdInfo.getNetworkName() + ", 成功: " + b);
-                }
-            });
-            Log.d(TAG, "已设置广告源状态监听器");
-        } catch (Exception e) {
-            Log.w(TAG, "设置广告源状态监听器失败: " + e.getMessage());
-        }
     }
-    
+
     /**
      * 设置横幅广告回调监听器
      * 全新实现，简化回调处理逻辑
@@ -444,7 +385,7 @@ public class TakuAdManager {
         if (bannerView == null) {
             return;
         }
-        
+
         bannerView.setBannerAdListener(new ATBannerExListener() {
             @Override
             public void onBannerLoaded() {
@@ -452,31 +393,45 @@ public class TakuAdManager {
                 isBannerLoading = false;
                 bannerRetryCount = 0;
                 lastBannerLoadTime = System.currentTimeMillis();
-                
+
+                // 添加详细的广告状态检查
+                if (bannerView != null) {
+                    ATAdStatusInfo statusInfo = bannerView.checkAdStatus();
+                    if (statusInfo != null) {
+                        Log.d(TAG, "广告状态检查 - 是否就绪: " + statusInfo.isReady() +
+                                ", 广告: " + statusInfo);
+                    }
+                }
+
                 // 广告加载成功后，如果需要显示则立即添加到容器
                 if (isBannerAdShowing && bannerContainer != null) {
                     addBannerToContainer();
                 }
-                
+
                 // 通知外部监听器
                 if (bannerAdListener != null) {
                     bannerAdListener.onBannerAdLoaded();
                 }
             }
-            
+
             @Override
             public void onBannerFailed(AdError adError) {
                 String errorInfo = adError != null ? adError.getFullErrorInfo() : "未知错误";
-                Log.e(TAG, "横幅广告加载失败: " + errorInfo);
+                String errorCode = adError != null ? String.valueOf(adError.getCode()) : "未知";
+                String errorMsg = adError != null ? adError.getDesc() : "未知错误描述";
+
+                Log.e(TAG, "横幅广告加载失败 - 错误码: " + errorCode +
+                        ", 错误信息: " + errorMsg +
+                        ", 完整错误: " + errorInfo);
                 isBannerLoading = false;
-                
+
                 // 通知错误
                 notifyBannerError("加载失败", errorInfo);
-                
+
                 // 处理重试逻辑
                 handleBannerRetry();
             }
-            
+
             @Override
             public void onBannerClicked(ATAdInfo adInfo) {
                 Log.d(TAG, "横幅广告点击");
@@ -484,46 +439,50 @@ public class TakuAdManager {
                     bannerAdListener.onBannerAdClicked();
                 }
             }
-            
+
             @Override
             public void onBannerShow(ATAdInfo adInfo) {
                 Log.d(TAG, "横幅广告展示");
                 if (bannerAdListener != null) {
                     bannerAdListener.onBannerAdExposure();
                 }
-                
+
                 // 处理eCPM数据
                 handleAdEcpm(BANNER_PLACEMENT_ID, adInfo);
             }
-            
+
             @Override
             public void onBannerClose(ATAdInfo adInfo) {
                 Log.d(TAG, "横幅广告关闭");
-                
+
                 // 移除广告视图
                 removeBannerView();
-                
+
                 // 通知外部监听器
                 if (bannerAdListener != null) {
                     bannerAdListener.onBannerAdClosed();
                 }
             }
-            
+
             // 以下是SDK要求实现的其他方法，保持空实现以避免不必要的操作
             @Override
-            public void onDeeplinkCallback(boolean isRefresh, ATAdInfo adInfo, boolean isSuccess) {}
-            
+            public void onDeeplinkCallback(boolean isRefresh, ATAdInfo adInfo, boolean isSuccess) {
+            }
+
             @Override
-            public void onDownloadConfirm(Context context, ATAdInfo adInfo, ATNetworkConfirmInfo networkConfirmInfo) {}
-            
+            public void onDownloadConfirm(Context context, ATAdInfo adInfo, ATNetworkConfirmInfo networkConfirmInfo) {
+            }
+
             @Override
-            public void onBannerAutoRefreshed(ATAdInfo adInfo) {}
-            
+            public void onBannerAutoRefreshed(ATAdInfo adInfo) {
+            }
+
             @Override
-            public void onBannerAutoRefreshFail(AdError adError) {}
+            public void onBannerAutoRefreshFail(AdError adError) {
+            }
         });
     }
-    
+
     /**
      * 加载并显示横幅广告
      * 整合加载和显示逻辑
@@ -533,20 +492,25 @@ public class TakuAdManager {
             Log.w(TAG, "广告视图或活动上下文为空，无法加载广告");
             return;
         }
-        
+
         // 标记为显示中
         isBannerAdShowing = true;
-        
+
         // 检查广告是否已就绪
-        if (isBannerAdReady()) {
+        boolean isReady = isBannerAdReady();
+        Log.d(TAG, "广告就绪状态检查: " + isReady + ", bannerView: " + (bannerView != null));
+
+        if (isReady) {
             // 广告已就绪，直接显示
+            Log.d(TAG, "广告已就绪，直接添加到容器");
             addBannerToContainer();
         } else {
             // 广告未就绪，触发加载
+            Log.d(TAG, "广告未就绪，触发加载流程");
             triggerBannerLoad();
         }
     }
-    
+
     /**
      * 检查横幅广告是否就绪
      */
@@ -555,15 +519,23 @@ public class TakuAdManager {
             if (bannerView == null) {
                 return false;
             }
-            
+
+            // 第二次登录特殊处理：如果检测到页面切换，强制重新加载广告
+            if (bannerActivity != null && isActivityTransitionState(bannerActivity)) {
+                Log.d(TAG, "页面切换场景：强制重新加载广告，忽略缓存状态");
+                return false;
+            }
+
             ATAdStatusInfo statusInfo = bannerView.checkAdStatus();
-            return statusInfo != null && statusInfo.isReady();
+            boolean isReady = statusInfo != null && statusInfo.isReady();
+            Log.d(TAG, "广告状态检查结果: " + isReady + ", statusInfo: " + statusInfo);
+            return isReady;
         } catch (Exception e) {
             Log.w(TAG, "检查广告状态异常: " + e.getMessage());
             return false;
         }
     }
-    
+
     /**
      * 触发横幅广告加载
      * 包含频率控制逻辑
@@ -574,12 +546,12 @@ public class TakuAdManager {
             Log.d(TAG, "横幅广告正在加载中，避免重复请求");
             return;
         }
-        
+
         // 频率控制检查
         if (!checkLoadFrequency()) {
             return;
         }
-        
+
         // 执行加载
         try {
             isBannerLoading = true;
@@ -592,17 +564,17 @@ public class TakuAdManager {
             handleBannerRetry();
         }
     }
-    
+
     /**
      * 检查加载频率
      */
     private boolean checkLoadFrequency() {
         long currentTime = System.currentTimeMillis();
         long elapsedTime = currentTime - lastBannerLoadTime;
-        
+
         // 修复第二次登录横幅广告不显示问题：如果广告实例被重置，允许立即加载
         boolean isAdInstanceReset = bannerView == null || lastBannerLoadTime == 0;
-        
+
         // 额外检查：如果广告实例被强制重置，但lastBannerLoadTime仍然有值，说明需要重置时间戳
         if (bannerView == null && lastBannerLoadTime > 0) {
             Log.d(TAG, "检测到广告实例为空但加载时间戳有值，重置时间戳");
@@ -610,30 +582,59 @@ public class TakuAdManager {
             elapsedTime = currentTime; // 设置为最大值，允许立即加载
             isAdInstanceReset = true;
         }
-        
-        // 第二次登录特殊处理：如果广告实例为空且需要显示广告，强制允许加载
-        if (bannerView == null && isBannerAdShowing) {
-            Log.d(TAG, "第二次登录情况：广告实例为空但需要显示，强制允许加载");
-            return true;
+
+        // 第二次登录特殊处理：为第二次登录场景提供更宽松的频率控制
+        if (isBannerAdShowing) {
+            // 检查是否是页面切换场景（通常是第二次登录）
+            boolean isPageSwitching = bannerActivity != null && isActivityTransitionState(bannerActivity);
+
+            // 如果是页面切换场景，完全忽略频率限制
+            if (isPageSwitching) {
+                Log.d(TAG, "页面切换场景：完全忽略频率限制，强制允许加载横幅广告");
+                return true;
+            }
+
+            // 广告实例为空时强制允许加载
+            if (bannerView == null) {
+                Log.d(TAG, "广告实例为空：强制允许加载横幅广告");
+                return true;
+            }
+
+            // 对于第二次登录场景，放宽频率限制：将1秒限制放宽到500毫秒
+            if (elapsedTime < BANNER_MIN_LOAD_INTERVAL && lastBannerLoadTime > 0) {
+                // 如果是第二次登录场景，使用更宽松的阈值
+                long relaxedThreshold = 500; // 500毫秒
+                if (elapsedTime >= relaxedThreshold) {
+                    Log.d(TAG, "第二次登录场景：使用宽松频率限制（500ms），允许加载横幅广告");
+                    return true;
+                } else {
+                    long remainingTime = relaxedThreshold - elapsedTime;
+                    Log.d(TAG, "第二次登录场景：仍需等待" + remainingTime + "ms，使用宽松频率限制");
+
+                    // 安排延迟加载，但使用更短的延迟时间
+                    scheduleDelayedLoad(remainingTime);
+                    return false;
+                }
+            }
         }
-        
+
         if (!isAdInstanceReset && elapsedTime < BANNER_MIN_LOAD_INTERVAL && lastBannerLoadTime > 0) {
             long remainingTime = BANNER_MIN_LOAD_INTERVAL - elapsedTime;
             Log.d(TAG, "未达到最小加载间隔，还需等待" + (remainingTime / 1000) + "秒");
-            
+
             // 安排延迟加载
             scheduleDelayedLoad(remainingTime);
             return false;
         }
-        
+
         // 如果是广告实例重置后的第一次加载，允许立即加载
         if (isAdInstanceReset) {
             Log.d(TAG, "广告实例已重置，允许立即加载横幅广告");
         }
-        
+
         return true;
     }
-    
+
     /**
      * 安排延迟加载
      */
@@ -647,7 +648,7 @@ public class TakuAdManager {
             }
         }, delayMs);
     }
-    
+
     /**
      * 处理横幅广告重试逻辑
      */
@@ -656,7 +657,7 @@ public class TakuAdManager {
             bannerRetryCount++;
             long retryDelay = RETRY_INTERVAL_MS * bannerRetryCount;
             Log.d(TAG, "安排横幅广告重试，第" + bannerRetryCount + "次，延迟" + retryDelay + "ms");
-            
+
             new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -670,7 +671,7 @@ public class TakuAdManager {
             bannerRetryCount = 0;
         }
     }
-    
+
     /**
      * 将横幅广告添加到容器
      */
@@ -679,7 +680,7 @@ public class TakuAdManager {
             Log.w(TAG, "无法添加广告到容器：缺少必要的引用");
             return;
         }
-        
+
         try {
             // 确保在UI线程操作
             if (Looper.myLooper() != Looper.getMainLooper()) {
@@ -691,22 +692,37 @@ public class TakuAdManager {
                 });
                 return;
             }
-            
+
             // 先移除已有的广告视图
             removeBannerView();
-            
+
+            // 为容器设置白色背景色
+            bannerContainer.setBackgroundColor(Color.WHITE);
+
             // 添加广告视图到容器
             bannerContainer.addView(bannerView);
+
+            // 强制设置可见性，确保广告视图正确显示
             bannerView.setVisibility(View.VISIBLE);
-            
-            Log.d(TAG, "横幅广告已成功添加到容器");
-            
+            bannerView.bringToFront(); // 确保广告视图在最上层
+
+            // 添加额外的日志，检查广告视图的实际状态
+            int measuredWidth = bannerView.getMeasuredWidth();
+            int measuredHeight = bannerView.getMeasuredHeight();
+            boolean isShown = bannerView.isShown();
+
+            Log.d(TAG, "横幅广告已成功添加到容器，广告尺寸: " + measuredWidth + "x" + measuredHeight + ", 可见状态: " + isShown);
+
+            // 请求布局刷新，确保广告视图能够正确测量和布局
+            bannerView.requestLayout();
+            bannerContainer.requestLayout();
+
         } catch (Exception e) {
             Log.e(TAG, "添加广告到容器异常: " + e.getMessage(), e);
             notifyBannerError("显示失败", e.getMessage());
         }
     }
-    
+
     /**
      * 移除横幅广告视图
      */
@@ -714,7 +730,7 @@ public class TakuAdManager {
         if (bannerView == null) {
             return;
         }
-        
+
         try {
             // 确保在UI线程操作
             if (Looper.myLooper() != Looper.getMainLooper() && bannerActivity != null) {
@@ -726,19 +742,19 @@ public class TakuAdManager {
                 });
                 return;
             }
-            
+
             // 从父容器中移除
             if (bannerView.getParent() instanceof ViewGroup) {
                 ViewGroup parent = (ViewGroup) bannerView.getParent();
                 parent.removeView(bannerView);
                 Log.d(TAG, "横幅广告已从父容器移除");
             }
-            
+
         } catch (Exception e) {
             Log.w(TAG, "移除广告视图异常: " + e.getMessage());
         }
     }
-    
+
     /**
      * 验证广告上下文是否有效（带重试机制）
      */
@@ -752,7 +768,7 @@ public class TakuAdManager {
             }
             return false;
         }
-        
+
         // 检查容器状态
         if (container == null) {
             Log.w(TAG, "广告容器为null，不显示广告");
@@ -762,17 +778,17 @@ public class TakuAdManager {
             }
             return false;
         }
-        
+
         // 检查容器是否附加到窗口，如果未附加则延迟重试而不是直接报错
         if (!container.isAttachedToWindow()) {
             Log.w(TAG, "广告容器未附加到窗口，检查是否为页面跳转状态");
-            
+
             // 如果是页面跳转等过渡状态，静默处理，不触发错误上报
             if (isActivityTransitionState(activity)) {
                 Log.d(TAG, "检测到页面跳转状态，静默处理容器未附加情况");
                 return false;
             }
-            
+
             // 非过渡状态，安排延迟重试
             Log.w(TAG, "安排延迟重试");
             if (bannerActivity != null) {
@@ -801,10 +817,10 @@ public class TakuAdManager {
             }
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * 判断Activity是否处于页面跳转等过渡状态
      */
@@ -812,16 +828,16 @@ public class TakuAdManager {
         if (activity == null) {
             return false;
         }
-        
+
         // 检查Activity是否正在暂停或停止（页面跳转的典型状态）
         try {
             // 通过反射获取Activity的生命周期状态
             Method isPausedMethod = activity.getClass().getMethod("isPaused");
             Method isStoppedMethod = activity.getClass().getMethod("isStopped");
-            
+
             boolean isPaused = (Boolean) isPausedMethod.invoke(activity);
             boolean isStopped = (Boolean) isStoppedMethod.invoke(activity);
-            
+
             // 如果Activity正在暂停或停止，认为是过渡状态
             if (isPaused || isStopped) {
                 Log.d(TAG, "检测到Activity处于过渡状态: paused=" + isPaused + ", stopped=" + isStopped);
@@ -830,22 +846,22 @@ public class TakuAdManager {
         } catch (Exception e) {
             // 如果反射失败，使用备用判断逻辑
             Log.d(TAG, "反射获取Activity状态失败，使用备用判断逻辑: " + e.getMessage());
-            
+
             // 备用逻辑：检查Activity是否正在结束或销毁
             if (activity.isFinishing() || activity.isDestroyed()) {
                 return true;
             }
-            
+
             // 检查窗口焦点状态
             if (!activity.hasWindowFocus()) {
                 Log.d(TAG, "Activity失去窗口焦点，可能处于过渡状态");
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * 验证广告上下文是否有效（基础验证）
      */
@@ -855,25 +871,25 @@ public class TakuAdManager {
             Log.w(TAG, "Activity状态无效，不显示广告");
             return false;
         }
-        
+
         // 检查容器状态
         if (container == null) {
             Log.w(TAG, "广告容器为null，不显示广告");
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * 通知横幅广告错误
      */
     private void notifyBannerError(String errorType, String errorMessage) {
         String fullErrorMessage = errorType + ": " + errorMessage;
-        
+
         // 上传广告错误信息到服务器
-    //    uploadAdError("banner", BANNER_PLACEMENT_ID, fullErrorMessage);
-        
+        uploadAdError("banner", BANNER_PLACEMENT_ID, fullErrorMessage);
+
         if (bannerAdListener != null) {
             try {
                 bannerAdListener.onBannerAdFailedToShow(fullErrorMessage);
@@ -882,15 +898,27 @@ public class TakuAdManager {
             }
         }
     }
-    
+
+    /**
+     * 获取屏幕宽度
+     */
+    private int getScreenWidth() {
+        if (bannerActivity == null) {
+            return 320; // 默认宽度
+        }
+
+        DisplayMetrics displayMetrics = bannerActivity.getResources().getDisplayMetrics();
+        return displayMetrics.widthPixels;
+    }
+
     /**
      * dp转像素
      */
-    private int dpToPixel(int dpValue) {
+    private int dpToPixel(Double dpValue) {
         if (bannerActivity == null) {
-            return dpValue;
+            return dpValue.intValue();
         }
-        
+
         final float scale = bannerActivity.getResources().getDisplayMetrics().density;
         return (int) (dpValue * scale + 0.5f);
     }
@@ -908,6 +936,12 @@ public class TakuAdManager {
             if (!statusInfo.isReady()) {
                 Log.d(TAG, "插屏广告未就绪，开始加载");
                 loadInterstitialAdWithFrequencyControl(activity);
+            } else {
+                Log.d(TAG, "插屏广告已就绪，触发加载成功回调");
+                // 广告已经就绪，触发加载成功回调
+                if (interstitialAdListener != null) {
+                    interstitialAdListener.onInterstitialAdLoaded();
+                }
             }
 
         } catch (Exception e) {
@@ -932,7 +966,7 @@ public class TakuAdManager {
             }
             return;
         }
-        
+
         if (interstitialAd == null) {
             Log.d(TAG, "插屏广告未初始化，先初始化并加载广告");
             initInterstitialAd(activity);
@@ -995,13 +1029,13 @@ public class TakuAdManager {
                     isInterstitialLoading = false;
 
                     // 上传广告错误信息到服务器
-                //    uploadAdError("interstitial", INTERSTITIAL_PLACEMENT_ID, errorInfo);
+                    uploadAdError("interstitial", INTERSTITIAL_PLACEMENT_ID, errorInfo);
 
                     if (interstitialAdListener != null) {
                         interstitialAdListener.onInterstitialAdFailedToShow(errorInfo);
                     }
 
-                    // 处理重试逻辑
+                    // 处理重试逻辑 - 延迟重试，避免直接重试
                     if (activity != null && !activity.isFinishing() && !activity.isDestroyed()) {
                         scheduleInterstitialRetry(activity);
                     }
@@ -1029,6 +1063,8 @@ public class TakuAdManager {
                     if (interstitialAdListener != null) {
                         interstitialAdListener.onInterstitialAdExposure();
                     }
+                    // 处理eCPM数据
+                    handleAdEcpm(INTERSTITIAL_PLACEMENT_ID, atAdInfo);
                 }
 
                 public void onInterstitialAdClose(ATAdInfo atAdInfo) {
@@ -1120,6 +1156,10 @@ public class TakuAdManager {
                     // 移除所有@Override注解
                     public void onRewardedVideoAdLoaded() {
                         Log.d(TAG, "激励视频广告加载成功");
+                        
+                        // 设置激励视频广告加载时间
+                        lastRewardLoadTime = System.currentTimeMillis();
+                        
                         if (rewardAdListener != null) {
                             rewardAdListener.onRewardAdLoaded();
                         }
@@ -1129,25 +1169,31 @@ public class TakuAdManager {
                     public void onRewardedVideoAdFailed(AdError adError) {
                         String errorInfo = adError.getFullErrorInfo();
                         Log.e(TAG, "激励视频广告失败: " + errorInfo);
-                        
+
                         // 上传广告错误信息到服务器
-                    //    uploadAdError("reward", REWARD_PLACEMENT_ID, errorInfo);
-                        
+                        uploadAdError("reward", REWARD_PLACEMENT_ID, errorInfo);
+
                         if (rewardAdListener != null) {
                             rewardAdListener.onRewardAdFailedToShow();
                         }
+
+                        // 延迟重试机制，避免直接重试
+                        scheduleRewardVideoRetry(activity);
                     }
 
                     public void onRewardedVideoAdLoadFail(AdError adError) {
                         String errorInfo = adError.getFullErrorInfo();
                         Log.e(TAG, "激励视频广告加载失败: " + errorInfo);
-                        
+
                         // 上传广告错误信息到服务器
-                    //    uploadAdError("reward", REWARD_PLACEMENT_ID, errorInfo);
-                        
+                        uploadAdError("reward", REWARD_PLACEMENT_ID, errorInfo);
+
                         if (rewardAdListener != null) {
                             rewardAdListener.onRewardAdFailedToShow();
                         }
+
+                        // 延迟重试机制，避免直接重试
+                        scheduleRewardVideoRetry(activity);
                     }
 
                     public void onRewardedVideoAdPlayStart(ATAdInfo atAdInfo) {
@@ -1267,7 +1313,7 @@ public class TakuAdManager {
                                 isNativeLoading = false;
 
                                 // 上传广告错误信息到服务器
-                            //    uploadAdError("native", NATIVE_PLACEMENT_ID, errorInfo);
+                                uploadAdError("native", NATIVE_PLACEMENT_ID, errorInfo);
 
                                 if (nativeAdListener != null) {
                                     nativeAdListener.onNativeAdFailedToShow(errorInfo);
@@ -1287,7 +1333,8 @@ public class TakuAdManager {
                                 nativeRetryCount = 0;
 
                                 // 广告加载成功后，确保将广告视图添加到容器中
-                                if (activity != null && !activity.isFinishing() && !activity.isDestroyed() && container != null) {
+                                if (activity != null && !activity.isFinishing() && !activity.isDestroyed()
+                                        && container != null) {
                                     try {
                                         // 先清空容器，避免旧广告残留
                                         container.removeAllViews();
@@ -1341,21 +1388,26 @@ public class TakuAdManager {
             // 清空容器
             container.removeAllViews();
             
+            // 设置容器背景色为白色
+            container.setBackgroundColor(Color.WHITE);
+
             // 获取NativeAd对象
             com.anythink.nativead.api.NativeAd nativeAdObj = null;
             try {
                 // 根据原生广告文档，直接使用getNativeAd()方法
                 nativeAdObj = nativeAd.getNativeAd();
-                Log.d(TAG, "成功获取NativeAd对象: " + (nativeAdObj != null ? nativeAdObj.getClass().getSimpleName() : "null"));
+                Log.d(TAG,
+                        "成功获取NativeAd对象: " + (nativeAdObj != null ? nativeAdObj.getClass().getSimpleName() : "null"));
             } catch (Exception e) {
                 Log.e(TAG, "获取NativeAd对象失败: " + e.getMessage());
             }
-            
+
             if (nativeAdObj != null) {
                 // 创建ATNativeAdView
-                com.anythink.nativead.api.ATNativeAdView nativeAdView = new com.anythink.nativead.api.ATNativeAdView(activity);
+                com.anythink.nativead.api.ATNativeAdView nativeAdView = new com.anythink.nativead.api.ATNativeAdView(
+                        activity);
                 Log.d(TAG, "成功创建ATNativeAdView");
-                
+
                 // 改进宽高计算逻辑，确保广告占满容器
                 int width = 0;
                 if (container.getWidth() > 0) {
@@ -1369,19 +1421,18 @@ public class TakuAdManager {
                 }
                 int height = (int) (width / 2.0f); // 设置合适的高度比例
                 Log.d(TAG, "设置广告宽高: 宽=" + width + ", 高=" + height);
-                
+
                 // 设置布局参数，使用MATCH_PARENT确保占满容器
                 ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, 
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                );
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
                 nativeAdView.setLayoutParams(params);
                 Log.d(TAG, "已设置ATNativeAdView布局参数");
-                
+
                 // 为内部类引用创建final临时变量
                 final com.anythink.nativead.api.NativeAd finalNativeAdObj = nativeAdObj;
                 final com.anythink.nativead.api.ATNativeAdView finalNativeAdView = nativeAdView;
-                
+
                 // 判断是否为模板渲染类型
                 boolean isExpress = false;
                 try {
@@ -1390,18 +1441,18 @@ public class TakuAdManager {
                 } catch (Exception e) {
                     Log.w(TAG, "获取广告渲染类型失败，默认为自渲染: " + e.getMessage());
                 }
-                
+
                 if (isExpress) {
                     try {
                         // 模板渲染，selfRenderView传null
                         nativeAdObj.renderAdContainer(nativeAdView, null);
                         Log.d(TAG, "已调用模板渲染renderAdContainer");
-                        
+
                         // 配置广告点击事件等
                         com.anythink.nativead.api.ATNativePrepareInfo prepareInfo = new com.anythink.nativead.api.ATNativePrepareInfo();
                         nativeAdObj.prepare(nativeAdView, prepareInfo);
                         Log.d(TAG, "已调用模板渲染prepare");
-                        
+
                         // 添加到容器
                         container.addView(nativeAdView);
                         Log.d(TAG, "模板渲染广告视图已添加到容器");
@@ -1415,23 +1466,23 @@ public class TakuAdManager {
                         View selfRenderView = createSelfRenderView(activity);
                         if (selfRenderView != null) {
                             Log.d(TAG, "成功创建自渲染视图");
-                            
+
                             // 设置自渲染视图的宽高
                             selfRenderView.setLayoutParams(new ViewGroup.LayoutParams(width, height));
-                            
+
                             // 渲染广告容器
                             nativeAdObj.renderAdContainer(nativeAdView, selfRenderView);
                             Log.d(TAG, "已调用自渲染renderAdContainer");
-                            
+
                             // 配置广告点击事件等
                             com.anythink.nativead.api.ATNativePrepareInfo prepareInfo = new com.anythink.nativead.api.ATNativePrepareInfo();
                             nativeAdObj.prepare(nativeAdView, prepareInfo);
                             Log.d(TAG, "已调用自渲染prepare");
-                            
+
                             // 添加到容器
                             container.addView(nativeAdView);
                             Log.d(TAG, "自渲染广告视图已添加到容器");
-                            
+
                             // 绑定广告素材
                             bindAdMaterialToView(nativeAdObj, selfRenderView);
                         } else {
@@ -1443,7 +1494,7 @@ public class TakuAdManager {
                         addDefaultAdView(activity, container, "广告加载失败");
                     }
                 }
-                
+
                 // 设置广告事件监听
                 nativeAdObj.setNativeEventListener(new com.anythink.nativead.api.ATNativeEventListener() {
                     @Override
@@ -1479,7 +1530,7 @@ public class TakuAdManager {
                         Log.d(TAG, "原生广告视频播放进度: " + progress);
                     }
                 });
-                
+
                 // 设置广告关闭事件回调
                 nativeAdObj.setDislikeCallbackListener(new com.anythink.nativead.api.ATNativeDislikeListener() {
                     @Override
@@ -1492,9 +1543,9 @@ public class TakuAdManager {
                         finalNativeAdObj.clear(view);
                     }
                 });
-                
+
                 Log.d(TAG, "原生广告视图已添加到容器");
-                
+
                 if (nativeAdListener != null) {
                     nativeAdListener.onNativeAdRenderSuccess();
                 }
@@ -1503,7 +1554,7 @@ public class TakuAdManager {
                 if (nativeAdListener != null) {
                     nativeAdListener.onNativeAdRenderFail();
                 }
-                
+
                 // 添加默认提示信息
                 TextView errorText = new TextView(activity);
                 errorText.setText("广告内容准备中...");
@@ -1522,48 +1573,51 @@ public class TakuAdManager {
     }
 
     /**
-     * 创建自渲染视图
+     * 创建自渲染视图（优化内存版本）
      */
     private View createSelfRenderView(Context context) {
         try {
-            LinearLayout adContainer = new LinearLayout(context);
+            // 使用应用上下文，避免Activity泄漏
+            Context appContext = context.getApplicationContext();
+            
+            LinearLayout adContainer = new LinearLayout(appContext);
             adContainer.setLayoutParams(new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, 
+                    LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT));
             adContainer.setOrientation(LinearLayout.VERTICAL);
             adContainer.setPadding(10, 10, 10, 10);
             adContainer.setBackgroundColor(Color.parseColor("#F5F5F5"));
-            
+
             // 添加"广告"标签
-            TextView adLabel = new TextView(context);
+            TextView adLabel = new TextView(appContext);
             adLabel.setText("广告");
             adLabel.setTextSize(10);
             adLabel.setTextColor(Color.WHITE);
             adLabel.setBackgroundColor(Color.parseColor("#FF6B6B"));
             adLabel.setPadding(4, 1, 4, 1);
             adLabel.setLayoutParams(new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT));
             adContainer.addView(adLabel);
-            
+
             // 创建广告标题
-            TextView titleView = new TextView(context);
+            TextView titleView = new TextView(appContext);
             titleView.setId(View.generateViewId());
             titleView.setTextSize(16);
             titleView.setTextColor(Color.BLACK);
             titleView.setPadding(0, 8, 0, 4);
             adContainer.addView(titleView);
-            
+
             // 创建广告描述
-            TextView descView = new TextView(context);
+            TextView descView = new TextView(appContext);
             descView.setId(View.generateViewId());
             descView.setTextSize(14);
             descView.setTextColor(Color.GRAY);
             descView.setPadding(0, 0, 0, 8);
             adContainer.addView(descView);
-            
+
             // 创建"查看详情"按钮
-            TextView actionBtn = new TextView(context);
+            TextView actionBtn = new TextView(appContext);
             actionBtn.setId(View.generateViewId());
             actionBtn.setText("查看详情");
             actionBtn.setTextSize(14);
@@ -1572,13 +1626,18 @@ public class TakuAdManager {
             actionBtn.setPadding(16, 8, 16, 8);
             actionBtn.setGravity(Gravity.CENTER);
             LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
             btnParams.gravity = Gravity.END;
             actionBtn.setLayoutParams(btnParams);
             adContainer.addView(actionBtn);
-            
+
             return adContainer;
+        } catch (OutOfMemoryError e) {
+            Log.e(TAG, "创建自渲染视图内存溢出: " + e.getMessage());
+            // 强制垃圾回收
+            System.gc();
+            return null;
         } catch (Exception e) {
             Log.e(TAG, "创建自渲染视图失败: " + e.getMessage(), e);
             return null;
@@ -1586,50 +1645,58 @@ public class TakuAdManager {
     }
 
     /**
-     * 添加默认的广告提示视图
+     * 添加默认的广告提示视图（优化内存版本）
      */
     private void addDefaultAdView(Activity activity, ViewGroup container, String text) {
         try {
             // 清空容器
             container.removeAllViews();
+
+            // 使用应用上下文，避免Activity泄漏
+            Context appContext = activity.getApplicationContext();
             
-            LinearLayout defaultView = new LinearLayout(activity);
+            LinearLayout defaultView = new LinearLayout(appContext);
             defaultView.setOrientation(LinearLayout.VERTICAL);
             defaultView.setGravity(Gravity.CENTER);
             defaultView.setBackgroundColor(Color.parseColor("#F5F5F5"));
-            
+
             // 设置宽高
-            int width = container.getWidth() > 0 ? container.getWidth() : activity.getResources().getDisplayMetrics().widthPixels;
+            int width = container.getWidth() > 0 ? container.getWidth()
+                    : activity.getResources().getDisplayMetrics().widthPixels;
             int height = (int) (width / 2.0f);
             ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(width, height);
             defaultView.setLayoutParams(params);
-            
+
             // 添加广告标签
-            TextView adLabel = new TextView(activity);
+            TextView adLabel = new TextView(appContext);
             adLabel.setText("广告");
             adLabel.setTextSize(10);
             adLabel.setTextColor(Color.WHITE);
             adLabel.setBackgroundColor(Color.parseColor("#FF6B6B"));
             adLabel.setPadding(4, 1, 4, 1);
             LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
             labelParams.gravity = Gravity.CENTER_HORIZONTAL;
             adLabel.setLayoutParams(labelParams);
-            
+
             // 添加提示文本
-            TextView hintText = new TextView(activity);
+            TextView hintText = new TextView(appContext);
             hintText.setText(text);
             hintText.setTextSize(14);
             hintText.setTextColor(Color.GRAY);
             hintText.setPadding(0, 20, 0, 20);
             hintText.setGravity(Gravity.CENTER);
-            
+
             defaultView.addView(adLabel);
             defaultView.addView(hintText);
-            
+
             container.addView(defaultView);
             Log.d(TAG, "已添加默认广告提示视图: " + text);
+        } catch (OutOfMemoryError e) {
+            Log.e(TAG, "添加默认广告提示视图内存溢出: " + e.getMessage());
+            // 强制垃圾回收
+            System.gc();
         } catch (Exception e) {
             Log.e(TAG, "添加默认广告提示视图失败: " + e.getMessage(), e);
         }
@@ -1643,19 +1710,23 @@ public class TakuAdManager {
             if (nativeAd == null || !(selfRenderView instanceof ViewGroup)) {
                 return;
             }
-            
+
             ViewGroup container = (ViewGroup) selfRenderView;
             TextView titleView = null;
             TextView descView = null;
             TextView actionBtn = null;
-            
+
             // 查找视图
             for (int i = 0; i < container.getChildCount(); i++) {
                 View child = container.getChildAt(i);
                 if (child instanceof TextView) {
-                    if (titleView == null && ((TextView) child).getTextSize() == 16 * container.getResources().getDisplayMetrics().scaledDensity) {
+                    if (titleView == null && ((TextView) child).getTextSize() == 16
+                            * container.getResources().getDisplayMetrics().scaledDensity) {
                         titleView = (TextView) child;
-                    } else if (descView == null && ((TextView) child).getTextSize() == 14 * container.getResources().getDisplayMetrics().scaledDensity &&
+                    } else if (descView == null
+                            && ((TextView) child).getTextSize() == 14
+                                    * container.getResources().getDisplayMetrics().scaledDensity
+                            &&
                             ((TextView) child).getCurrentTextColor() == Color.GRAY) {
                         descView = (TextView) child;
                     } else if (actionBtn == null && "查看详情".equals(((TextView) child).getText().toString())) {
@@ -1663,7 +1734,7 @@ public class TakuAdManager {
                     }
                 }
             }
-            
+
             // 填充广告素材
             if (titleView != null) {
                 try {
@@ -1681,7 +1752,7 @@ public class TakuAdManager {
                             Log.e(TAG, "获取广告标题失败: " + ex.getMessage());
                         }
                     }
-                    
+
                     if (title != null && !title.isEmpty()) {
                         titleView.setText(title);
                     } else {
@@ -1692,7 +1763,7 @@ public class TakuAdManager {
                     titleView.setText("精彩内容推荐");
                 }
             }
-            
+
             if (descView != null) {
                 try {
                     // 使用反射方式获取描述
@@ -1709,7 +1780,7 @@ public class TakuAdManager {
                             Log.e(TAG, "获取广告描述失败: " + ex.getMessage());
                         }
                     }
-                    
+
                     if (description != null && !description.isEmpty()) {
                         descView.setText(description);
                     } else {
@@ -1720,7 +1791,7 @@ public class TakuAdManager {
                     descView.setText("点击查看更多详情");
                 }
             }
-            
+
             // 为按钮添加点击事件
             if (actionBtn != null) {
                 actionBtn.setOnClickListener(new View.OnClickListener() {
@@ -1738,14 +1809,16 @@ public class TakuAdManager {
                                     Object nativeAdView = null;
                                     try {
                                         if (v.getContext() != null) {
-                                            nativeAdView = Class.forName("com.anythink.nativead.api.ATNativeAdView").getConstructor(Context.class).newInstance(v.getContext());
+                                            nativeAdView = Class.forName("com.anythink.nativead.api.ATNativeAdView")
+                                                    .getConstructor(Context.class).newInstance(v.getContext());
                                         }
                                     } catch (Exception ex) {
                                         Log.e(TAG, "创建ATNativeAdView失败: " + ex.getMessage());
                                     }
-                                    
+
                                     if (nativeAdView != null) {
-                                        Method handleClickMethod = nativeAd.getClass().getMethod("handleClick", nativeAdView.getClass(), View.class);
+                                        Method handleClickMethod = nativeAd.getClass().getMethod("handleClick",
+                                                nativeAdView.getClass(), View.class);
                                         handleClickMethod.invoke(nativeAd, nativeAdView, v);
                                     }
                                 } catch (Exception ex) {
@@ -1758,7 +1831,7 @@ public class TakuAdManager {
                     }
                 });
             }
-            
+
             Log.d(TAG, "广告素材绑定完成");
         } catch (Exception e) {
             Log.e(TAG, "绑定广告素材失败: " + e.getMessage(), e);
@@ -1770,22 +1843,22 @@ public class TakuAdManager {
      */
     private class ATNativeAdRenderer {
         private Activity activity;
-        
+
         public ATNativeAdRenderer(Activity activity) {
             this.activity = activity;
         }
-        
+
         public View createAdView(Context context, ViewGroup parent) {
             return createSelfRenderView(context);
         }
-        
+
         public void renderAdView(View adView, ATNative nativeAd) {
             try {
                 // 清空容器
                 if (adView instanceof ViewGroup) {
-                    ((ViewGroup)adView).removeAllViews();
+                    ((ViewGroup) adView).removeAllViews();
                 }
-                
+
                 // 添加"广告"标签
                 TextView adLabel = new TextView(adView.getContext());
                 adLabel.setText("广告");
@@ -1794,12 +1867,12 @@ public class TakuAdManager {
                 adLabel.setBackgroundColor(Color.parseColor("#FF6B6B"));
                 adLabel.setPadding(4, 1, 4, 1);
                 adLabel.setLayoutParams(new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT, 
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT));
                 if (adView instanceof ViewGroup) {
-                    ((ViewGroup)adView).addView(adLabel);
+                    ((ViewGroup) adView).addView(adLabel);
                 }
-                
+
                 // 获取NativeAd对象
                 com.anythink.nativead.api.NativeAd nativeAdObj = null;
                 try {
@@ -1807,7 +1880,7 @@ public class TakuAdManager {
                 } catch (Exception e) {
                     Log.e(TAG, "获取NativeAd对象失败: " + e.getMessage());
                 }
-                
+
                 // 创建广告标题
                 TextView titleView = new TextView(adView.getContext());
                 titleView.setId(View.generateViewId());
@@ -1815,9 +1888,9 @@ public class TakuAdManager {
                 titleView.setTextColor(Color.BLACK);
                 titleView.setPadding(0, 8, 0, 4);
                 if (adView instanceof ViewGroup) {
-                    ((ViewGroup)adView).addView(titleView);
+                    ((ViewGroup) adView).addView(titleView);
                 }
-                
+
                 // 创建广告描述
                 TextView descView = new TextView(adView.getContext());
                 descView.setId(View.generateViewId());
@@ -1825,9 +1898,9 @@ public class TakuAdManager {
                 descView.setTextColor(Color.GRAY);
                 descView.setPadding(0, 0, 0, 8);
                 if (adView instanceof ViewGroup) {
-                    ((ViewGroup)adView).addView(descView);
+                    ((ViewGroup) adView).addView(descView);
                 }
-                
+
                 // 创建"查看详情"按钮
                 TextView actionBtn = new TextView(adView.getContext());
                 actionBtn.setId(View.generateViewId());
@@ -1838,15 +1911,15 @@ public class TakuAdManager {
                 actionBtn.setPadding(16, 8, 16, 8);
                 actionBtn.setGravity(Gravity.CENTER);
                 LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT, 
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
                 btnParams.gravity = Gravity.END;
                 actionBtn.setLayoutParams(btnParams);
-                
+
                 // 创建final副本，以便在内部类中使用
                 final com.anythink.nativead.api.NativeAd finalNativeAdObj = nativeAdObj;
                 final View finalAdView = adView;
-                
+
                 // 为按钮添加点击事件
                 actionBtn.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -1855,7 +1928,8 @@ public class TakuAdManager {
                             if (finalNativeAdObj != null) {
                                 // 使用反射方式调用handleClick方法，避免参数不匹配问题
                                 try {
-                                    Method handleClickMethod = finalNativeAdObj.getClass().getMethod("handleClick", View.class);
+                                    Method handleClickMethod = finalNativeAdObj.getClass().getMethod("handleClick",
+                                            View.class);
                                     handleClickMethod.invoke(finalNativeAdObj, v);
                                 } catch (Exception e) {
                                     // 尝试两个参数的版本
@@ -1863,13 +1937,15 @@ public class TakuAdManager {
                                         // 获取ATNativeAdView
                                         Object nativeAdView = null;
                                         try {
-                                            nativeAdView = Class.forName("com.anythink.nativead.api.ATNativeAdView").getConstructor(Context.class).newInstance(activity);
+                                            nativeAdView = Class.forName("com.anythink.nativead.api.ATNativeAdView")
+                                                    .getConstructor(Context.class).newInstance(activity);
                                         } catch (Exception ex) {
                                             Log.e(TAG, "创建ATNativeAdView失败: " + ex.getMessage());
                                         }
-                                        
+
                                         if (nativeAdView != null) {
-                                            Method handleClickMethod = finalNativeAdObj.getClass().getMethod("handleClick", nativeAdView.getClass(), View.class);
+                                            Method handleClickMethod = finalNativeAdObj.getClass()
+                                                    .getMethod("handleClick", nativeAdView.getClass(), View.class);
                                             handleClickMethod.invoke(finalNativeAdObj, nativeAdView, v);
                                         }
                                     } catch (Exception ex) {
@@ -1882,11 +1958,11 @@ public class TakuAdManager {
                         }
                     }
                 });
-                
+
                 if (adView instanceof ViewGroup) {
-                    ((ViewGroup)adView).addView(actionBtn);
+                    ((ViewGroup) adView).addView(actionBtn);
                 }
-                
+
                 // 尝试填充广告素材
                 if (nativeAdObj != null) {
                     try {
@@ -1904,7 +1980,7 @@ public class TakuAdManager {
                                 Log.e(TAG, "获取广告标题失败: " + ex.getMessage());
                             }
                         }
-                        
+
                         if (title != null && !title.isEmpty()) {
                             titleView.setText(title);
                         } else {
@@ -1914,7 +1990,7 @@ public class TakuAdManager {
                         Log.e(TAG, "获取广告标题失败: " + e.getMessage());
                         titleView.setText("精彩内容推荐");
                     }
-                    
+
                     try {
                         // 使用反射方式获取描述
                         String description = null;
@@ -1930,7 +2006,7 @@ public class TakuAdManager {
                                 Log.e(TAG, "获取广告描述失败: " + ex.getMessage());
                             }
                         }
-                        
+
                         if (description != null && !description.isEmpty()) {
                             descView.setText(description);
                         } else {
@@ -1977,7 +2053,7 @@ public class TakuAdManager {
                     localMap.put(com.anythink.core.api.ATAdConst.KEY.AD_WIDTH, width);
                     localMap.put(com.anythink.core.api.ATAdConst.KEY.AD_HEIGHT, height);
                     nativeAd.setLocalExtra(localMap);
-                    
+
                     // 调用makeAdRequest方法加载原生广告
                     nativeAd.makeAdRequest();
                     Log.d(TAG, "开始加载原生广告");
@@ -2009,7 +2085,7 @@ public class TakuAdManager {
                         localMap.put(com.anythink.core.api.ATAdConst.KEY.AD_WIDTH, width);
                         localMap.put(com.anythink.core.api.ATAdConst.KEY.AD_HEIGHT, height);
                         nativeAd.setLocalExtra(localMap);
-                        
+
                         // 调用makeAdRequest方法加载原生广告
                         nativeAd.makeAdRequest();
                         Log.d(TAG, "延迟后开始加载原生广告");
@@ -2043,6 +2119,24 @@ public class TakuAdManager {
         };
 
         nativeHandler.postDelayed(nativeRetryRunnable, retryDelay);
+    }
+
+    /**
+     * 安排激励视频广告重试加载
+     */
+    private void scheduleRewardVideoRetry(Activity activity) {
+        rewardVideoRetryCount++;
+        long retryDelay = Math.min(RETRY_BASE_DELAY * (long) Math.pow(2, rewardVideoRetryCount - 1), MAX_RETRY_DELAY);
+
+        Log.d(TAG, "安排激励视频广告重试，第" + rewardVideoRetryCount + "次，延迟 " + retryDelay + "ms");
+
+        rewardVideoRetryRunnable = () -> {
+            if (activity != null && !activity.isFinishing() && !activity.isDestroyed() && rewardVideoAd != null) {
+                preloadRewardVideoAd(activity);
+            }
+        };
+
+        rewardVideoHandler.postDelayed(rewardVideoRetryRunnable, retryDelay);
     }
 
     /**
@@ -2117,6 +2211,13 @@ public class TakuAdManager {
                 nativeHandler = null;
             }
 
+            if (rewardVideoHandler != null) {
+                if (rewardVideoRetryRunnable != null) {
+                    rewardVideoHandler.removeCallbacks(rewardVideoRetryRunnable);
+                }
+                rewardVideoHandler = null;
+            }
+
             // 释放广告资源
             if (bannerView != null) {
                 try {
@@ -2189,17 +2290,21 @@ public class TakuAdManager {
             isBannerLoading = false;
             bannerRetryCount = 0;
             lastBannerLoadTime = 0;
-            
+
             // 重置插屏广告状态
             isInterstitialLoading = false;
             interstitialRetryCount = 0;
             lastInterstitialLoadTime = 0;
-            
+
             // 重置原生广告状态
             isNativeLoading = false;
             nativeRetryCount = 0;
             lastNativeLoadTime = 0;
-            
+
+            // 重置激励视频广告状态
+            rewardVideoRetryCount = 0;
+            lastRewardLoadTime = 0;
+
             Log.d(TAG, "所有广告加载状态已重置");
         }
     }
@@ -2216,29 +2321,29 @@ public class TakuAdManager {
                     bannerView = null;
                     Log.d(TAG, "横幅广告实例已重置");
                 }
-                
+
                 // 重置插屏广告实例
                 if (interstitialAd != null) {
                     interstitialAd = null;
                     Log.d(TAG, "插屏广告实例已重置");
                 }
-                
+
                 // 重置原生广告实例
                 if (nativeAd != null) {
                     nativeAd = null;
                     Log.d(TAG, "原生广告实例已重置");
                 }
-                
+
                 // 重置激励视频广告实例
                 if (rewardVideoAd != null) {
                     rewardVideoAd = null;
                     Log.d(TAG, "激励视频广告实例已重置");
                 }
-                
+
                 // 重置容器引用
                 bannerContainer = null;
                 bannerActivity = null;
-                
+
                 Log.d(TAG, "所有广告实例已强制重置");
             } catch (Exception e) {
                 Log.e(TAG, "强制重置广告实例异常: " + e.getMessage(), e);
@@ -2318,12 +2423,12 @@ public class TakuAdManager {
             String adType = getAdTypeByPlacementId(placementId);
             String ecpmValue = "0";
             String networkName = "";
-            
+
             // 直接从ATAdInfo对象获取eCPM值和network_name
             if (atAdInfo != null) {
                 double ecpm = atAdInfo.getEcpm();
                 ecpmValue = String.valueOf(ecpm);
-                
+
                 // 尝试获取network_name
                 try {
                     // 由于ATAdInfo类没有直接提供getNetworkName方法，我们使用反射获取
@@ -2350,8 +2455,19 @@ public class TakuAdManager {
                         Log.d(TAG, "无法获取network_name: " + ex.getMessage());
                     }
                 }
+
+                Log.d(TAG, "从ATAdInfo获取eCPM成功: " + ecpmValue + ", currency: " + atAdInfo.getCurrency() + ", precision: "
+                        + atAdInfo.getEcpmPrecision() + ", network_name: " + networkName);
                 
-                Log.d(TAG, "从ATAdInfo获取eCPM成功: " + ecpmValue + ", currency: " + atAdInfo.getCurrency() + ", precision: " + atAdInfo.getEcpmPrecision() + ", network_name: " + networkName);
+                // 调用ECPM回调
+                if (ecpmCallback != null) {
+                    try {
+                        double ecpmDouble = Double.parseDouble(ecpmValue);
+                        ecpmCallback.onEcpmReceived(adType, placementId, ecpmDouble);
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "ECPM值格式错误: " + ecpmValue);
+                    }
+                }
             } else {
                 // 如果ATAdInfo为空，回退到原来的反射方式获取
                 Log.w(TAG, "ATAdInfo为空，回退到反射方式获取eCPM");
@@ -2366,22 +2482,32 @@ public class TakuAdManager {
                 } else if (adType.equals("native")) {
                     ecpmValue = getNativeAdECPMLevel(placementId);
                 }
+                
+                // 调用ECPM回调（对于反射方式获取的值）
+                if (ecpmCallback != null) {
+                    try {
+                        double ecpmDouble = Double.parseDouble(ecpmValue);
+                        ecpmCallback.onEcpmReceived(adType, placementId, ecpmDouble);
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "ECPM值格式错误: " + ecpmValue);
+                    }
+                }
             }
-            
+
             // 发送eCPM数据
             sendAdEcpmData(adType, placementId, ecpmValue, networkName, atAdInfo);
         } catch (Exception e) {
             Log.e(TAG, "处理广告eCPM数据异常: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * 兼容旧的调用方式
      */
     private void handleAdEcpm(String placementId) {
         handleAdEcpm(placementId, null);
     }
-    
+
     /**
      * 兼容旧的调用方式（不包含atAdInfo）
      */
@@ -2581,53 +2707,54 @@ public class TakuAdManager {
         return "0";
     }
 
-   /**
-    * 上传广告错误信息到服务器
-    */
-   private void uploadAdError(String adType, String placementId, String errorInfo) {
-       try {
-           // 创建参数Map
-           Map<String, String> params = new HashMap<>();
+    /**
+     * 上传广告错误信息到服务器
+     */
+    private void uploadAdError(String adType, String placementId, String errorInfo) {
+        try {
+            // 创建参数Map
+            Map<String, String> params = new HashMap<>();
 
-           // 添加基本参数
-           params.put("ad_type", adType);
-           params.put("position_id", placementId);
-           params.put("error_info", errorInfo);
-           params.put("platform", "android");
-           params.put("timestamp", String.valueOf(System.currentTimeMillis() / 1000));
+            // 添加基本参数
+            params.put("ad_type", adType);
+            params.put("position_id", placementId);
+            params.put("error_info", errorInfo);
+            params.put("platform", "android");
+            params.put("timestamp", String.valueOf(System.currentTimeMillis() / 1000));
 
-           // 获取用户ID
-           String userId = SharedPreferenceUtil.getString(MyApplication.getInstance(), "user_id", "");
-           if (!userId.isEmpty()) {
-               params.put("user_id", userId);
-               params.put("open_id", userId);
-           }
+            // 获取用户ID
+            String userId = SharedPreferenceUtil.getString(MyApplication.getInstance(), "user_id", "");
+            if (!userId.isEmpty()) {
+                params.put("user_id", userId);
+                params.put("open_id", userId);
+            }
 
-           // 记录日志
-           Log.d(TAG, "准备上传广告错误信息: adType=" + adType + ", placementId=" + placementId + ", errorInfo=" + errorInfo);
+            // 记录日志
+            Log.d(TAG, "准备上传广告错误信息: adType=" + adType + ", placementId=" + placementId + ", errorInfo=" + errorInfo);
 
-           // 调用ApiManager上传错误信息
-           ApiManager.getInstance().uploadAdError(params, new ApiCallback<Object>() {
-               @Override
-               public void onSuccess(Object data) {
-                   Log.d(TAG, "广告错误信息上传成功: adType=" + adType + ", placementId=" + placementId);
-               }
+            // 调用ApiManager上传错误信息
+            ApiManager.getInstance().uploadAdError(params, new ApiCallback<Object>() {
+                @Override
+                public void onSuccess(Object data) {
+                    Log.d(TAG, "广告错误信息上传成功: adType=" + adType + ", placementId=" + placementId);
+                }
 
-               @Override
-               public void onFailure(String errorMessage) {
-                   Log.w(TAG, "广告错误信息上传失败: " + errorMessage + ", adType=" + adType + ", placementId=" + placementId);
-               }
-           });
+                @Override
+                public void onFailure(String errorMessage) {
+                    Log.w(TAG, "广告错误信息上传失败: " + errorMessage + ", adType=" + adType + ", placementId=" + placementId);
+                }
+            });
 
-       } catch (Exception e) {
-           Log.e(TAG, "上传广告错误信息异常: " + e.getMessage(), e);
-       }
-   }
+        } catch (Exception e) {
+            Log.e(TAG, "上传广告错误信息异常: " + e.getMessage(), e);
+        }
+    }
 
     /**
      * 发送广告eCPM数据
      */
-    private void sendAdEcpmData(String adType, String positionId, String ecpmValue, String networkName, ATAdInfo atAdInfo) {
+    private void sendAdEcpmData(String adType, String positionId, String ecpmValue, String networkName,
+            ATAdInfo atAdInfo) {
         try {
             // 获取用户ID
             String userId = SharedPreferenceUtil.getString(MyApplication.getInstance(), "user_id", "");
@@ -2641,14 +2768,18 @@ public class TakuAdManager {
             params.put("user_id", userId);
             params.put("ad_type", adType);
             params.put("position_id", positionId);
-            params.put("ecpm_level", ecpmValue); 
-            params.put("ecpm", ecpmValue);  // 修改为正确的字段名
-            
+            params.put("ecpm_level", ecpmValue);
+            params.put("ecpm", ecpmValue); // 修改为正确的字段名
+
+            // 计算并添加广告加载时间（毫秒）
+            long loadTime = calculateLoadTime(adType);
+            params.put("load_time", String.valueOf(loadTime));
+
             // 如果network_name不为空，则添加到参数中
             if (!networkName.isEmpty()) {
                 params.put("ad_network_name", networkName);
             }
-            
+
             // 如果atAdInfo不为空，则添加at_ad_info字段
             if (atAdInfo != null) {
                 params.put("at_ad_info", atAdInfo.toString());
@@ -2665,12 +2796,14 @@ public class TakuAdManager {
                             // 保存广告数量到本地存储
                             String key = "ad_count_" + adType;
                             SharedPreferenceUtil.putInt(MyApplication.getInstance(), key, adCount);
-                            Log.d(TAG, "发送广告eCPM数据成功，并保存广告数量: " + key + "=" + adCount + ", adType=" + adType + ", positionId=" + positionId + ", ecpm=" + ecpmValue);
+                            Log.d(TAG, "发送广告eCPM数据成功，并保存广告数量: " + key + "=" + adCount + ", adType=" + adType
+                                    + ", positionId=" + positionId + ", ecpm=" + ecpmValue);
                         } catch (Exception e) {
                             Log.e(TAG, "解析广告数量失败: " + e.getMessage());
                         }
                     } else {
-                        Log.d(TAG, "发送广告eCPM数据成功: adType=" + adType + ", positionId=" + positionId + ", ecpm=" + ecpmValue);
+                        Log.d(TAG, "发送广告eCPM数据成功: adType=" + adType + ", positionId=" + positionId + ", ecpm="
+                                + ecpmValue);
                     }
                 }
 
@@ -2683,31 +2816,110 @@ public class TakuAdManager {
             Log.e(TAG, "发送广告eCPM数据异常: " + e.getMessage(), e);
         }
     }
-    
+
+    /**
+     * 计算广告加载时间
+     */
+    private long calculateLoadTime(String adType) {
+        try {
+            long currentTime = System.currentTimeMillis();
+            long lastLoadTime = 0;
+            
+            // 根据广告类型获取对应的上次加载时间
+            switch (adType) {
+                case "banner":
+                    lastLoadTime = lastBannerLoadTime;
+                    break;
+                case "interstitial":
+                    lastLoadTime = lastInterstitialLoadTime;
+                    break;
+                case "native":
+                    lastLoadTime = lastNativeLoadTime;
+                    break;
+                case "splash":
+                    lastLoadTime = lastSplashLoadTime;
+                    break;
+                case "reward":
+                    lastLoadTime = lastRewardLoadTime;
+                    break;
+                default:
+                    // 对于其他广告类型，返回默认值
+                    return 0;
+            }
+            
+            // 如果上次加载时间为0，说明是首次加载，返回0
+            if (lastLoadTime == 0) {
+                return 0;
+            }
+            
+            // 计算加载时间（毫秒）
+            long loadTime = currentTime - lastLoadTime;
+            
+            // 确保加载时间不为负数
+            if (loadTime < 0) {
+                loadTime = 0;
+            }
+            
+            Log.d(TAG, "计算广告加载时间 - adType: " + adType + ", loadTime: " + loadTime + "ms");
+            return loadTime;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "计算广告加载时间异常: " + e.getMessage());
+            return 0;
+        }
+    }
+
     // ------------------------------ 开屏广告相关方法 ------------------------------
-    
+
     /**
      * 开屏广告监听器接口
      */
     public interface SplashAdListener {
         void onSplashAdLoaded();
+
         void onSplashAdFailed(String errorMessage);
+
         void onSplashAdShown();
+
         void onSplashAdClicked();
+
         void onSplashAdDismissed();
     }
-    
+
+    /**
+     * ECPM值回调接口
+     */
+    public interface EcpmCallback {
+        void onEcpmReceived(String adType, String placementId, double ecpmValue);
+    }
+
+    private EcpmCallback ecpmCallback;
+
     /**
      * 设置开屏广告监听器
      */
     public void setSplashAdListener(SplashAdListener listener) {
         this.splashAdListener = listener;
     }
-    
+
+    /**
+     * 设置ECPM回调
+     */
+    public void setEcpmCallback(EcpmCallback callback) {
+        this.ecpmCallback = callback;
+    }
+
     /**
      * 显示开屏广告
      */
     public void showSplashAd(Activity activity, Runnable onAdDismissed) {
+        showSplashAd(activity, onAdDismissed, null);
+    }
+
+    /**
+     * 显示开屏广告（带失败回调）
+     */
+    public void showSplashAd(Activity activity, Runnable onAdDismissed, Runnable onAdFailed) {
         this.splashAdDismissCallback = onAdDismissed;
 
         try {
@@ -2735,18 +2947,22 @@ public class TakuAdManager {
                 }
 
                 @Override
-                public void onDownloadConfirm(Context context, ATAdInfo adInfo, ATNetworkConfirmInfo networkConfirmInfo) {
+                public void onDownloadConfirm(Context context, ATAdInfo adInfo,
+                        ATNetworkConfirmInfo networkConfirmInfo) {
                     Log.d(TAG, "开屏广告下载确认: " + adInfo.toString() + "--networkConfirmInfo:" + networkConfirmInfo);
                 }
 
                 @Override
                 public void onAdLoaded(boolean isTimeout) {
                     Log.d(TAG, "开屏广告加载完成，是否超时: " + isTimeout);
-                    
+
+                    // 设置开屏广告加载时间
+                    lastSplashLoadTime = System.currentTimeMillis();
+
                     if (splashAdListener != null) {
                         splashAdListener.onSplashAdLoaded();
                     }
-                    
+
                     // 广告加载完成后立即展示
                     if (splashAd != null && splashAd.isAdReady()) {
                         splashAd.show(activity, container);
@@ -2761,45 +2977,50 @@ public class TakuAdManager {
                 @Override
                 public void onAdLoadTimeout() {
                     Log.e(TAG, "开屏广告加载超时");
-                    
+
                     // 上传开屏广告错误信息
-                //    uploadAdError("splash", SPLASH_PLACEMENT_ID, "加载超时");
-                    
-                    if (splashAdListener != null) {
-                        splashAdListener.onSplashAdFailed("加载超时");
-                    }
-                    
-                    // 加载超时后直接跳转
-                    if (splashAdDismissCallback != null) {
-                        splashAdDismissCallback.run();
-                    }
+                    // uploadAdError("splash", SPLASH_PLACEMENT_ID, "加载超时");
+
+                    // if (splashAdListener != null) {
+                    // splashAdListener.onSplashAdFailed("加载超时");
+                    // }
+
+                    // // 加载超时后直接跳转
+                    // if (splashAdDismissCallback != null) {
+                    // splashAdDismissCallback.run();
+                    // }
                 }
 
                 @Override
                 public void onNoAdError(AdError adError) {
                     String errorInfo = adError.getFullErrorInfo();
                     Log.e(TAG, "开屏广告加载失败: " + errorInfo);
-                    
+
                     // 上传开屏广告错误信息
-                //    uploadAdError("splash", SPLASH_PLACEMENT_ID, errorInfo);
-                    
+                    uploadAdError("splash", SPLASH_PLACEMENT_ID, errorInfo);
+
                     if (splashAdListener != null) {
                         splashAdListener.onSplashAdFailed(errorInfo);
                     }
-                    
-                    // 加载失败后直接跳转
-                    if (splashAdDismissCallback != null) {
-                        splashAdDismissCallback.run();
+
+                    // 只在真正的加载失败时触发重试逻辑
+                    if (onAdFailed != null) {
+                        onAdFailed.run();
+                    } else {
+                        // 如果没有失败回调，则执行默认的跳转逻辑
+                        if (splashAdDismissCallback != null) {
+                            splashAdDismissCallback.run();
+                        }
                     }
                 }
 
                 @Override
                 public void onAdShow(ATAdInfo entity) {
                     Log.d(TAG, "开屏广告展示: " + entity.toString());
-                    
+
                     // 上传开屏广告eCPM数据
                     handleAdEcpm(SPLASH_PLACEMENT_ID, entity);
-                    
+
                     if (splashAdListener != null) {
                         splashAdListener.onSplashAdShown();
                     }
@@ -2808,7 +3029,7 @@ public class TakuAdManager {
                 @Override
                 public void onAdClick(ATAdInfo entity) {
                     Log.d(TAG, "开屏广告点击: " + entity.toString());
-                    
+
                     if (splashAdListener != null) {
                         splashAdListener.onSplashAdClicked();
                     }
@@ -2817,11 +3038,11 @@ public class TakuAdManager {
                 @Override
                 public void onAdDismiss(ATAdInfo entity, ATSplashAdExtraInfo splashAdExtraInfo) {
                     Log.d(TAG, "开屏广告关闭，关闭类型: " + splashAdExtraInfo.getDismissType());
-                    
+
                     if (splashAdListener != null) {
                         splashAdListener.onSplashAdDismissed();
                     }
-                    
+
                     // 广告关闭后执行回调
                     if (splashAdDismissCallback != null) {
                         splashAdDismissCallback.run();
@@ -2845,14 +3066,14 @@ public class TakuAdManager {
             }
         }
     }
-    
+
     /**
      * 检查开屏广告是否准备好
      */
     public boolean isSplashAdReady() {
         return splashAd != null && splashAd.isAdReady();
     }
-    
+
     /**
      * 预加载开屏广告
      */
@@ -2870,36 +3091,40 @@ public class TakuAdManager {
                     }
 
                     @Override
-                    public void onDownloadConfirm(Context context, ATAdInfo adInfo, ATNetworkConfirmInfo networkConfirmInfo) {
+                    public void onDownloadConfirm(Context context, ATAdInfo adInfo,
+                            ATNetworkConfirmInfo networkConfirmInfo) {
                         Log.d(TAG, "开屏广告下载确认: " + adInfo.toString() + "--networkConfirmInfo:" + networkConfirmInfo);
                     }
 
                     @Override
                     public void onAdLoaded(boolean isTimeout) {
                         Log.d(TAG, "开屏广告预加载完成，是否超时: " + isTimeout);
+                        
+                        // 设置开屏广告预加载时间
+                        lastSplashLoadTime = System.currentTimeMillis();
                     }
 
                     @Override
                     public void onAdLoadTimeout() {
                         Log.e(TAG, "开屏广告预加载超时");
-                        
+
                         // 上传预加载开屏广告错误信息
-                    //    uploadAdError("splash", SPLASH_PLACEMENT_ID, "预加载超时");
+                        uploadAdError("splash", SPLASH_PLACEMENT_ID, "预加载超时");
                     }
 
                     @Override
                     public void onNoAdError(AdError adError) {
                         String errorInfo = adError.getFullErrorInfo();
                         Log.e(TAG, "开屏广告预加载失败: " + errorInfo);
-                        
+
                         // 上传预加载开屏广告错误信息
-                    //    uploadAdError("splash", SPLASH_PLACEMENT_ID, errorInfo);
+                        uploadAdError("splash", SPLASH_PLACEMENT_ID, errorInfo);
                     }
 
                     @Override
                     public void onAdShow(ATAdInfo entity) {
                         Log.d(TAG, "开屏广告展示: " + entity.toString());
-                        
+
                         // 上传预加载开屏广告eCPM数据
                         handleAdEcpm(SPLASH_PLACEMENT_ID, entity);
                     }

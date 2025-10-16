@@ -27,14 +27,17 @@ public class SplashActivity extends AppCompatActivity {
                 String userId = SharedPreferenceUtil.getString(SplashActivity.this, "user_id", "");
                 String userToken = SharedPreferenceUtil.getString(SplashActivity.this, "user_token", "");
                 
-                Log.d(TAG, "检查用户登录状态: isLoggedIn=" + isLoggedIn + ", userId=" + userId + ", token=" + userToken);
+                // 检查是否是第二次登录（通过检查是否有登录次数记录）
+                boolean isSecondLogin = SharedPreferenceUtil.getBoolean(SplashActivity.this, "is_second_login", false);
                 
-                // 如果用户已登录并且有有效的用户ID和Token，则直接跳转到主界面
-                if (isLoggedIn && !userId.isEmpty() && !userToken.isEmpty()) {
-                    Log.d(TAG, "用户已登录，直接跳转到主界面");
+                Log.d(TAG, "检查用户登录状态: isLoggedIn=" + isLoggedIn + ", userId=" + userId + ", token=" + userToken + ", isSecondLogin=" + isSecondLogin);
+                
+                // 只有第二次登录以后的用户才能直接跳转到答题页
+                if (isLoggedIn && !userId.isEmpty() && !userToken.isEmpty() && isSecondLogin) {
+                    Log.d(TAG, "用户已登录且是第二次登录，直接跳转到主界面");
                     startActivity(new Intent(SplashActivity.this, QuizActivity.class));
                 } else {
-                    Log.d(TAG, "用户未登录或登录信息不完整，跳转到登录界面");
+                    Log.d(TAG, "用户未登录或登录信息不完整或第一次登录，跳转到登录界面");
                     startActivity(new Intent(SplashActivity.this, LoginActivity.class));
                 }
                 

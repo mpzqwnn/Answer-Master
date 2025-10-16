@@ -3,6 +3,9 @@ package com.paijiantuan.UNID2693B0.activity;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.Editable;
@@ -24,6 +27,7 @@ import com.paijiantuan.UNID2693B0.api.ApiManager;
 import com.paijiantuan.UNID2693B0.api.ApiCallback;
 import com.paijiantuan.UNID2693B0.model.UserInfo;
 import com.paijiantuan.UNID2693B0.util.AdManager;
+import com.paijiantuan.UNID2693B0.util.NetworkUtils;
 import com.paijiantuan.UNID2693B0.util.SharedPreferenceUtil;
 import com.paijiantuan.UNID2693B0.util.TakuAdManager;
 import com.paijiantuan.UNID2693B0.R;
@@ -74,12 +78,25 @@ public class LoginActivity extends AppCompatActivity {
     private boolean isFirstLogin = true; // 是否为第一次登录
     private boolean isSecondLogin = false; // 是否为第二次登录
 
+    // 用户信息
+    private UserInfo userInfo; // 用户信息对象
+
     // 开屏广告加载提示相关变量
     private LinearLayout splashAdLoadingLayout;
+    private double splashAdEcpm = 0.0; // 开屏广告ECPM值
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 检查网络连接，如果未连接则退出应用
+        if (!NetworkUtils.checkNetworkAndExitIfDisconnected(this)) {
+            return;
+        }
+
+        // 开始持续网络检测（在整个应用生命周期中运行）
+        NetworkUtils.startContinuousNetworkMonitoring(this);
+
         setContentView(R.layout.activity_login);
 
         // 初始化UI组件
@@ -101,17 +118,74 @@ public class LoginActivity extends AppCompatActivity {
         // 进入时立即隐藏所有控件，避免用户看到控件显示过程
         hideAllLoginControls();
 
+        // 从本地加载用户信息
+        loadUserInfoFromLocal();
+
         // 检查是否为第二次登录
         checkLoginStatus();
 
-        // 初始化Taku广告管理类
-        TakuAdManager.getInstance().init(this);
+        if (isFirstLogin) {
+            // 初始化Taku广告管理类
+            TakuAdManager.getInstance().init(this);
+        } else {
+            // 非第一次登录，重置广告状态
+            TakuAdManager.getInstance().resetAllAdLoadingState();
+            TakuAdManager.getInstance().forceResetAdInstances();
+        }
 
         // 初始化广告预加载Handler
         adPreloadHandler = new Handler();
 
         // 延迟预加载广告
         startAdPreload();
+    }
+
+    /**
+     * 从本地SharedPreferences加载用户信息
+     */
+    private void loadUserInfoFromLocal() {
+        try {
+            // 检查用户是否已登录
+            boolean isLoggedIn = SharedPreferenceUtil.getBoolean(this, "is_login", false);
+            if (!isLoggedIn) {
+                Log.d(TAG, "用户未登录，userInfo保持为null");
+                return;
+            }
+
+            // 从SharedPreferences获取用户信息
+            String userId = SharedPreferenceUtil.getString(this, "user_id", "");
+            String username = SharedPreferenceUtil.getString(this, "username", "");
+            String nickname = SharedPreferenceUtil.getString(this, "nickname", "");
+            String avatarUrl = SharedPreferenceUtil.getString(this, "avatar_url", "");
+            String mobile = SharedPreferenceUtil.getString(this, "mobile", "");
+            String token = SharedPreferenceUtil.getString(this, "user_token", "");
+            int score = SharedPreferenceUtil.getInt(this, "user_score", 0);
+            int level = SharedPreferenceUtil.getInt(this, "user_level", 0);
+
+            if (!userId.isEmpty()) {
+                // 创建UserInfo对象并设置属性
+                userInfo = new UserInfo();
+                userInfo.setId(Integer.parseInt(userId));
+                userInfo.setUsername(username);
+                userInfo.setNickname(nickname);
+                userInfo.setAvatarUrl(avatarUrl);
+                userInfo.setMobile(mobile);
+                userInfo.setToken(token);
+                userInfo.setScore(score);
+                userInfo.setLevel(level);
+
+                // 注意：用户状态（status）无法从本地获取，需要从服务器获取
+                // 这里暂时设置为null，后续需要从服务器获取最新状态
+                userInfo.setStatus(null);
+
+                Log.d(TAG, "从本地加载用户信息成功，用户ID: " + userId + ", 昵称: " + nickname);
+            } else {
+                Log.d(TAG, "用户ID为空，userInfo保持为null");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "从本地加载用户信息失败: " + e.getMessage());
+            userInfo = null;
+        }
     }
 
     /**
@@ -123,22 +197,30 @@ public class LoginActivity extends AppCompatActivity {
         // 检查QuizActivity的15秒加载是否已完成
         boolean hasQuizLoaded = SharedPreferenceUtil.getBoolean(this, "has_quiz_loaded", false);
 
+        Log.d(TAG, "登录状态检查: hasFirstLogin=" + hasFirstLogin + ", hasQuizLoaded=" + hasQuizLoaded);
+
         if (hasFirstLogin && hasQuizLoaded) {
             // 第二次登录，显示所有控件
+            Log.d(TAG, "检测到第二次登录，显示完整登录界面");
             isFirstLogin = false;
             isSecondLogin = true;
             deviceCodeLogin(false);
             showAllLoginControls();
         } else if (hasFirstLogin && !hasQuizLoaded) {
             // 第一次登录已完成，但QuizActivity的15秒加载未完成，重新跳转到QuizActivity继续加载
-            Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
-            intent.putExtra("show_loading", true); // 传递参数表示需要显示加载
-            intent.putExtra("loading_duration", 15000); // 15秒加载时间
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            startActivity(intent);
-            finish();
+            Log.d(TAG, "第一次登录已完成但加载未完成，跳转到QuizActivity继续加载");
+            if (userInfo != null) {
+                // 第一次登录，显示开屏广告
+                Log.d(TAG, "用户已登录，显示开屏广告");
+                showSplashAdAndProceed();
+            } else {
+                // 未登录，继续显示登录界面
+                Log.d(TAG, "用户未登录，继续显示登录界面");
+                requestNecessaryPermissions();
+            }
         } else {
             // 第一次登录，直接进行设备登录（控件已在onCreate中隐藏）
+            Log.d(TAG, "第一次登录，进行设备登录");
             isFirstLogin = true;
             isSecondLogin = false;
             // 请求权限后开始第一次登录
@@ -291,21 +373,62 @@ public class LoginActivity extends AppCompatActivity {
      * 加载图形验证码
      */
     private void loadCaptcha() {
-
         // 调用API获取图形验证码
         ApiManager.getInstance().getCaptcha(new ApiCallback<String>() {
             @Override
             public void onSuccess(String base64Image) {
                 Log.d(TAG, "获取图形验证码成功");
-                // 直接使用Base64字符串加载验证码图片
+                // 安全加载验证码图片，避免内存溢出
                 try {
                     // 解码Base64图片数据
                     byte[] decodedString = Base64.decode(base64Image, Base64.DEFAULT);
-                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedString, 0,
-                            decodedString.length);
 
-                    // 设置验证码图片
-                    mCaptchaImageView.setImageBitmap(bitmap);
+                    // 1. 先获取图片尺寸，避免加载过大图片
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inJustDecodeBounds = true;
+                    BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length, options);
+
+                    // 2. 计算合适的缩放比例
+                    int reqWidth = 200; // 验证码图片最大宽度
+                    int reqHeight = 80; // 验证码图片最大高度
+                    int inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+
+                    // 3. 使用缩放比例加载图片
+                    options.inJustDecodeBounds = false;
+                    options.inSampleSize = inSampleSize;
+                    options.inPreferredConfig = Bitmap.Config.RGB_565; // 使用更节省内存的配置
+
+                    android.graphics.Bitmap bitmap = BitmapFactory.decodeByteArray(decodedString, 0,
+                            decodedString.length, options);
+
+                    if (bitmap != null) {
+                        // 4. 回收之前的Bitmap（如果有）
+                        Bitmap oldBitmap = null;
+                        if (mCaptchaImageView.getDrawable() instanceof BitmapDrawable) {
+                            BitmapDrawable bitmapDrawable = (BitmapDrawable) mCaptchaImageView.getDrawable();
+                            oldBitmap = bitmapDrawable.getBitmap();
+                        }
+
+                        // 设置新的验证码图片
+                        mCaptchaImageView.setImageBitmap(bitmap);
+
+                        // 5. 回收旧的Bitmap
+                        if (oldBitmap != null && !oldBitmap.isRecycled()) {
+                            oldBitmap.recycle();
+                            Log.d(TAG, "回收旧的验证码Bitmap");
+                        }
+
+                        Log.d(TAG, "验证码图片加载成功，尺寸: " + bitmap.getWidth() + "x" + bitmap.getHeight() +
+                                ", 缩放比例: " + inSampleSize);
+                    } else {
+                        Log.e(TAG, "Bitmap解码失败");
+                        Toast.makeText(LoginActivity.this, "验证码图片加载失败", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (OutOfMemoryError e) {
+                    Log.e(TAG, "内存溢出错误: " + e.getMessage());
+                    // 尝试强制垃圾回收
+                    System.gc();
+                    Toast.makeText(LoginActivity.this, "内存不足，请稍后重试", Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     Log.e(TAG, "加载验证码图片失败: " + e.getMessage());
                     Toast.makeText(LoginActivity.this, "加载验证码图片失败", Toast.LENGTH_SHORT).show();
@@ -318,6 +441,29 @@ public class LoginActivity extends AppCompatActivity {
                 Toast.makeText(LoginActivity.this, "获取验证码失败: " + errorMessage, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /**
+     * 计算图片缩放比例
+     */
+    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // 原始图片的宽高
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // 计算最大的缩放比例，保证缩放后的图片尺寸不小于目标尺寸
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
     }
 
     /**
@@ -675,18 +821,30 @@ public class LoginActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(String errorMessage) {
-                        Log.e(TAG, "设备登录失败: " + errorMessage);
+                        Log.e(TAG, errorMessage);
                         Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
 
-                        // 当验证码错误或过期时，自动重新加载验证码
-                        if (errorMessage != null && (errorMessage.contains("验证码错误") ||
-                                errorMessage.contains("验证码过期") ||
-                                errorMessage.contains("captcha") ||
-                                errorMessage.contains("CAPTCHA"))) {
-                            // 清空验证码输入框
-                            mCaptchaEditText.setText("");
-                            // 重新加载验证码
-                            loadCaptcha();
+                        // 检查是否为设备异常相关的错误信息
+                        if (errorMessage != null && (errorMessage.contains("当前设备异常，暂不支持登录") ||
+                                errorMessage.contains("当前设备存在安全风险，暂不支持登录") ||
+                                errorMessage.contains("系统检测到该设备完成任务次数过多，已触发限制，请3天后再进行操作") ||
+                                errorMessage.contains("该设备无法登录，请取消报名或更换设备重新登陆"))) {
+                            // 设备异常错误，不显示登录控件，只显示错误提示
+                            Log.w(TAG, "设备异常错误，不显示登录控件");
+                            // 隐藏所有登录控件和加载控件
+                            hideAllLoginControls();
+                            hideSplashAdLoading();
+                        } else {
+                            // 当验证码错误或过期时，自动重新加载验证码
+                            if (errorMessage != null && (errorMessage.contains("验证码错误") ||
+                                    errorMessage.contains("验证码过期") ||
+                                    errorMessage.contains("captcha") ||
+                                    errorMessage.contains("CAPTCHA"))) {
+                                // 清空验证码输入框
+                                mCaptchaEditText.setText("");
+                                // 重新加载验证码
+                                loadCaptcha();
+                            }
                         }
                     }
                 });
@@ -797,10 +955,6 @@ public class LoginActivity extends AppCompatActivity {
                         if (isSecondLogin) {
                             // 第二次登录，直接跳转到答题页面（不显示开屏广告）
                             Log.d(TAG, "第二次调试登录成功，直接跳转到答题页面");
-
-                            // 在第二次登录跳转前重新初始化Taku广告管理类，确保广告状态正确重置
-                            TakuAdManager.getInstance().forceResetAdInstances();
-                            TakuAdManager.getInstance().resetAllAdLoadingState();
 
                             Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
                             intent.putExtra("show_loading", false); // 第二次登录不显示15秒加载
@@ -913,11 +1067,21 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(String errorMessage) {
-                Log.e(TAG, "设备码登录失败: " + errorMessage);
+                Log.e(TAG, errorMessage);
                 Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
 
-                // 如果设备码登录失败，显示登录控件让用户手动登录
-                showAllLoginControls();
+                // 检查是否为设备异常相关的错误信息
+                if (errorMessage != null && (errorMessage.contains("当前设备异常，暂不支持登录") ||
+                        errorMessage.contains("当前设备存在安全风险，暂不支持登录") ||
+                        errorMessage.contains("系统检测到该设备完成任务次数过多，已触发限制，请3天后再进行操作") ||
+                        errorMessage.contains("该设备无法登录，请取消报名或更换设备重新登陆"))) {
+                    hideSplashAdLoading();
+                    // 设备异常错误，不显示登录控件，只显示错误提示
+                    Log.w(TAG, "设备异常错误，不显示登录控件");
+                } else {
+                    // 其他错误，显示登录控件让用户手动登录
+                    showAllLoginControls();
+                }
             }
         });
     }
@@ -1280,43 +1444,153 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    // 开屏广告重试相关变量
+    private Handler splashAdRetryHandler;
+    private Runnable splashAdRetryRunnable;
+    private int splashAdRetryCount = 0;
+    private static final int MAX_SPLASH_AD_RETRY_COUNT = 5; // 最大重试次数
+    private static final long SPLASH_AD_RETRY_DELAY_MS = 2000; // 重试延迟时间（毫秒）
+
     /**
      * 显示开屏广告并在广告关闭后跳转到答题页面
+     * 如果开屏广告加载失败，会自动重试直到成功或达到最大重试次数
      */
     private void showSplashAdAndProceed() {
         Log.d(TAG, "开始显示开屏广告");
+
+        // 重置重试计数器
+        splashAdRetryCount = 0;
+
+        // 初始化重试Handler
+        if (splashAdRetryHandler == null) {
+            splashAdRetryHandler = new Handler();
+        }
+
         // 显示开屏广告加载提示
         showSplashAdLoading();
 
-        // 使用TakuAdManager显示开屏广告
-        TakuAdManager.getInstance().showSplashAd(LoginActivity.this, new Runnable() {
+        // 开始开屏广告加载流程
+        startSplashAdLoading();
+    }
+
+    /**
+     * 开始开屏广告加载流程
+     */
+    private void startSplashAdLoading() {
+        Log.d(TAG, "开始加载开屏广告，当前重试次数: " + splashAdRetryCount);
+
+        // 设置ECPM回调
+        TakuAdManager.getInstance().setEcpmCallback(new TakuAdManager.EcpmCallback() {
             @Override
-            public void run() {
-                Log.d(TAG, "开屏广告关闭，跳转到答题页面进行15秒加载");
-
-                // 隐藏开屏广告加载提示
-                hideSplashAdLoading();
-
-                // 标记第一次登录已完成
-                SharedPreferenceUtil.putBoolean(LoginActivity.this, "has_first_login", true);
-
-                // 广告关闭后跳转到答题页面进行15秒加载
-                Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
-                intent.putExtra("show_loading", true); // 传递参数表示需要显示加载
-                intent.putExtra("loading_duration", 15000); // 15秒加载时间
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
-                // 延迟销毁当前Activity，确保QuizActivity完全启动
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (!isFinishing() && !isDestroyed()) {
-                            finish();
-                        }
-                    }
-                }, 500);
+            public void onEcpmReceived(String adType, String placementId, double ecpmValue) {
+                if ("splash".equals(adType)) {
+                    Log.d(TAG, "接收到开屏广告ECPM值: " + ecpmValue);
+                    setSplashAdEcpm(ecpmValue);
+                }
             }
         });
+
+        // 使用TakuAdManager显示开屏广告（带失败回调）
+        TakuAdManager.getInstance().showSplashAd(LoginActivity.this, new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(TAG, "开屏广告关闭，跳转到答题页面进行15秒加载");
+
+                        // 清理重试逻辑
+                        cleanupSplashAdRetry();
+
+                        // 隐藏开屏广告加载提示
+                        hideSplashAdLoading();
+
+                        // 标记第一次登录已完成
+                        SharedPreferenceUtil.putBoolean(LoginActivity.this, "has_first_login", true);
+
+                        // 获取开屏广告的ECPM值
+                        double splashAdEcpm = getSplashAdEcpmValue();
+                        Log.d(TAG, "开屏广告ECPM值: " + splashAdEcpm);
+
+                        // 广告关闭后跳转到答题页面进行15秒加载
+                        Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
+                        intent.putExtra("show_loading", true); // 传递参数表示需要显示加载
+                        intent.putExtra("loading_duration", 15000); // 15秒加载时间
+                        intent.putExtra("splash_ad_ecpm", splashAdEcpm); // 传递开屏广告ECPM值
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                        finish();
+                    }
+                }, new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "开屏广告加载失败，触发重试逻辑");
+                // 只在真正的加载失败时触发重试逻辑
+                // 加载超时不会触发此回调，等待真正的加载失败
+                handleSplashAdLoadFailure();
+            }
+        });
+    }
+
+    /**
+     * 处理开屏广告加载失败的重试逻辑
+     */
+    private void handleSplashAdLoadFailure() {
+        splashAdRetryCount++;
+
+        if (splashAdRetryCount >= MAX_SPLASH_AD_RETRY_COUNT) {
+            Log.e(TAG, "开屏广告加载失败，已达到最大重试次数(" + MAX_SPLASH_AD_RETRY_COUNT + ")，直接跳转");
+
+            // 清理重试逻辑
+            cleanupSplashAdRetry();
+
+            // 隐藏开屏广告加载提示
+            hideSplashAdLoading();
+
+            // 直接跳转到答题页面
+            proceedToQuizActivity();
+            return;
+        }
+
+        Log.w(TAG, "开屏广告加载失败，将在" + SPLASH_AD_RETRY_DELAY_MS + "毫秒后重试，当前重试次数: " + splashAdRetryCount);
+
+        // 创建重试任务
+        splashAdRetryRunnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "开始重试加载开屏广告");
+                startSplashAdLoading();
+            }
+        };
+
+        // 延迟重试
+        splashAdRetryHandler.postDelayed(splashAdRetryRunnable, SPLASH_AD_RETRY_DELAY_MS);
+    }
+
+    /**
+     * 清理开屏广告重试逻辑
+     */
+    private void cleanupSplashAdRetry() {
+        if (splashAdRetryHandler != null && splashAdRetryRunnable != null) {
+            splashAdRetryHandler.removeCallbacks(splashAdRetryRunnable);
+            splashAdRetryRunnable = null;
+        }
+        splashAdRetryCount = 0;
+    }
+
+    /**
+     * 直接跳转到答题页面（开屏广告加载失败时的备用方案）
+     */
+    private void proceedToQuizActivity() {
+        Log.d(TAG, "开屏广告加载失败，直接跳转到答题页面");
+
+        // 标记第一次登录已完成
+        SharedPreferenceUtil.putBoolean(LoginActivity.this, "has_first_login", true);
+
+        // 跳转到答题页面进行15秒加载
+        Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
+        intent.putExtra("show_loading", true); // 传递参数表示需要显示加载
+        intent.putExtra("loading_duration", 15000); // 15秒加载时间
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+        finish();
     }
 
     /**
@@ -1350,6 +1624,21 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     /**
+     * 获取开屏广告的ECPM值
+     */
+    private double getSplashAdEcpmValue() {
+        return splashAdEcpm;
+    }
+
+    /**
+     * 设置开屏广告的ECPM值
+     */
+    public void setSplashAdEcpm(double ecpm) {
+        this.splashAdEcpm = ecpm;
+        Log.d(TAG, "设置开屏广告ECPM值: " + ecpm);
+    }
+
+    /**
      * 在Activity销毁时清理广告预加载资源
      */
     @Override
@@ -1361,6 +1650,9 @@ public class LoginActivity extends AppCompatActivity {
             adPreloadHandler.removeCallbacksAndMessages(null);
             adPreloadHandler = null;
         }
+
+        // 清理开屏广告重试逻辑
+        cleanupSplashAdRetry();
 
         Log.d(TAG, "登录页面销毁，广告预加载资源已清理");
     }

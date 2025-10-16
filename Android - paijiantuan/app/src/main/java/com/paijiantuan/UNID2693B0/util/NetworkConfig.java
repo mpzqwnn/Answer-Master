@@ -233,8 +233,6 @@ public class NetworkConfig {
                         SharedPreferenceUtil.putString(MyApplication.getInstance(), "register_time", "");
                         SharedPreferenceUtil.putBoolean(MyApplication.getInstance(), "is_login", false);
                         
-                        // 显示提示并跳转到登录页面
-                        Toast.makeText(MyApplication.getInstance(), "请登录后", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(MyApplication.getInstance(), com.paijiantuan.UNID2693B0.activity.LoginActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         MyApplication.getInstance().startActivity(intent);

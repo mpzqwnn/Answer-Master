@@ -16,7 +16,6 @@ import com.fortunequizking.api.ApiCallback;
 import com.fortunequizking.model.AnswerStats;
 import com.fortunequizking.util.SharedPreferenceUtil;
 import com.fortunequizking.activity.LoginActivity;
-import com.fortunequizking.R;
 
 public class SettingActivity extends AppCompatActivity {
 

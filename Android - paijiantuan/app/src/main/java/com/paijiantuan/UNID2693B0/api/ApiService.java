@@ -194,4 +194,10 @@ public interface ApiService {
     @FormUrlEncoded
     @POST("ad/uploadError")
     Call<ResponseBody> uploadAdError(@FieldMap Map<String, String> params);
+    
+    /**
+     * 获取应用配置信息
+     */
+    @GET("application/getAppConfig")
+    Call<ApiResponse<Map<String, Object>>> getAppConfig(@Query("app_id") String appId);
 }

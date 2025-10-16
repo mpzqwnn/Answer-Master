@@ -3,15 +3,10 @@ package com.fortunequizking.activity;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.Toast;
 import android.widget.TextView;
+import android.widget.Toast;
 import com.fortunequizking.R;
 
 public class AgreementActivity extends AppCompatActivity {
@@ -19,9 +14,6 @@ public class AgreementActivity extends AppCompatActivity {
     public static final String EXTRA_AGREEMENT_TYPE = "agreement_type";
     public static final String TYPE_USER_AGREEMENT = "user_agreement";
     public static final String TYPE_PRIVACY_AGREEMENT = "privacy_agreement";
-
-    // 隐私政策HTML文件路径
-    private static final String PRIVACY_POLICY_HTML_PATH = "http://dtds.psjjtd.com/PrivacyPolicy.html";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,86 +36,21 @@ public class AgreementActivity extends AppCompatActivity {
 
         // 初始化UI组件
         TextView titleTextView = findViewById(R.id.dialog_title);
+        TextView contentTextView = findViewById(R.id.agreement_content);
         Button closeButton = findViewById(R.id.close_button);
 
-        // 设置标题
+        // 设置标题和内容
         if (TYPE_PRIVACY_AGREEMENT.equals(agreementType)) {
-            titleTextView.setVisibility(View.GONE); // 隐藏标题
-            // 加载隐私政策HTML内容
-            loadPrivacyPolicyFromHtmlFile();
+            titleTextView.setText("隐私政策");
+            contentTextView.setText(getPrivacyAgreementContent());
         } else {
             titleTextView.setText("用户许可协议");
-            TextView contentTextView = findViewById(R.id.agreement_content);
             contentTextView.setText(getUserAgreementContent());
         }
 
         // 设置关闭按钮点击事件
         closeButton.setOnClickListener(v -> finish());
     }
-
-    /**
-     * 从网址加载隐私政策内容
-     */
-    private void loadPrivacyPolicyFromHtmlFile() {
-        try {
-            // 先找到TextView，然后获取其父级ScrollView
-            TextView contentTextView = findViewById(R.id.agreement_content);
-            ScrollView scrollView = (ScrollView) contentTextView.getParent();
-            
-            // 创建WebView
-            WebView webView = new WebView(this);
-            webView.getSettings().setJavaScriptEnabled(true);
-            webView.getSettings().setDefaultTextEncodingName("UTF-8");
-            webView.getSettings().setTextZoom(50); // 将字体大小设置为默认的80%
-            
-            // 设置WebViewClient监控加载状态
-            webView.setWebViewClient(new WebViewClient() {
-                @Override
-                public void onPageFinished(WebView view, String url) {
-                    super.onPageFinished(view, url);
-                    // 页面加载完成后隐藏加载提示
-                    contentTextView.setVisibility(View.GONE);
-                }
-                
-                @Override
-                public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                    super.onReceivedError(view, errorCode, description, failingUrl);
-                    // 加载失败时显示默认内容
-                    contentTextView.setText(getPrivacyAgreementContent());
-                    contentTextView.setVisibility(View.VISIBLE);
-                    if (webView.getParent() != null) {
-                        ((
-                                ViewGroup) webView.getParent()).removeView(webView);
-                    }
-                    Toast.makeText(AgreementActivity.this, "加载隐私政策失败", Toast.LENGTH_SHORT).show();
-                }
-            });
-            
-            // 将WebView添加到ScrollView的父布局中，替换ScrollView
-            ViewGroup parent = (ViewGroup) scrollView.getParent();
-            if (parent != null) {
-                int index = parent.indexOfChild(scrollView);
-                parent.removeView(scrollView);
-                
-                // 使用原来ScrollView的布局参数，保持弹窗尺寸不变
-                ViewGroup.LayoutParams params = scrollView.getLayoutParams();
-                
-                parent.addView(webView, index, params);
-                
-                // 直接加载网址
-                webView.loadUrl(PRIVACY_POLICY_HTML_PATH);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            // 发生异常时显示默认内容
-            TextView contentTextView = findViewById(R.id.agreement_content);
-            contentTextView.setText(getPrivacyAgreementContent());
-            contentTextView.setVisibility(View.VISIBLE);
-            Toast.makeText(this, "加载隐私政策失败", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-
 
     /**
      * 获取用户许可协议内容
@@ -151,7 +78,7 @@ public class AgreementActivity extends AppCompatActivity {
     }
 
     /**
-     * 获取默认隐私政策内容（当HTML文件无法加载时使用）
+     * 获取隐私政策内容
      */
     private String getPrivacyAgreementContent() {
         return "隐私政策\n\n" +

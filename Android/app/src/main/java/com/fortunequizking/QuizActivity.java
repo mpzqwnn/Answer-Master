@@ -30,6 +30,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
+import com.fortunequizking.activity.LoginActivity;
 import com.fortunequizking.api.ApiCallback;
 import com.fortunequizking.api.ApiManager;
 import com.fortunequizking.model.AnswerStats;
@@ -37,6 +38,7 @@ import com.fortunequizking.model.Question;
 import com.fortunequizking.model.QuizHistoryRecord;
 import com.fortunequizking.model.StaminaUpdateResult;
 import com.fortunequizking.model.UserInfo;
+import com.fortunequizking.util.NetworkUtils;
 import com.fortunequizking.util.SharedPreferenceUtil;
 import com.fortunequizking.util.TakuAdManager;
 
@@ -57,7 +59,7 @@ public class QuizActivity extends AppCompatActivity {
     private AlertDialog settingsDialog = null;
     private static final int REWARD_AD_REQUEST_CODE = 1001;
     private static final int SETTINGS_REQUEST_CODE = 1002;
-    private static final int REFRESH_INTERVAL = 10000; // 10秒广告刷新间隔
+    private static final int REFRESH_INTERVAL = 8000;
 
     private ApiManager apiManager;
     private List<Question> questionList;
@@ -85,11 +87,12 @@ public class QuizActivity extends AppCompatActivity {
     private boolean isTimerRunning = false;
     private long questionStartTime;
     // 在类的成员变量区域添加以下变量
-    private static final int AD_COOLDOWN_TIME_NORMAL = 60000; // 正常用户1分钟倒计时
+    private static final int AD_COOLDOWN_TIME_NORMAL = 60000; // 正常用户1分钟倒计时（默认值）
     private static final int AD_COOLDOWN_TIME_RISK = 180000; // 触发风控用户3分钟倒计时
     private static final int AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 = 180000; // 层级处理第一层3分钟倒计时
     private static final int AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_2 = 300000; // 层级处理第二层5分钟倒计时
     private int currentAdCooldownLevel = 0; // 当前广告冷却层级
+    private int staminaCooldownTime = AD_COOLDOWN_TIME_NORMAL; // 从后端获取的体力冷却时间（毫秒）
     private CountDownTimer adCooldownTimer; // 广告冷却计时器
     private boolean isAdCooldownActive = false; // 广告冷却状态
     private long lastAdRewardTime = 0; // 上次获得奖励的时间
@@ -119,18 +122,97 @@ public class QuizActivity extends AppCompatActivity {
     // 插屏广告相关变量
     private boolean isInterstitialAdLoaded = false; // 标记插屏广告是否已加载完成
     private boolean isLoadingInterstitialAd = false; // 标记是否正在加载插屏广告
+    private boolean isInterstitialAdShowing = false; // 标记插屏广告是否正在显示
     private long lastInterstitialAdShownTime = 0; // 上次显示插屏广告的时间戳
     private static final long MIN_INTERSTITIAL_AD_INTERVAL = 10000; // 最小广告显示间隔（毫秒）
     private CountDownTimer loadingTimer; // 加载中计时器，新用户登录后显示15秒
     private boolean isFirstLoading = true; // 标志变量：是否是第一次加载
 
+    // 广告加载状态检查变量
+    private boolean isBannerAdExposed = false; // 标记横幅广告是否已曝光
+    private boolean isNativeAdExposed = false; // 标记原生广告是否已曝光
+    private boolean isInterstitialAdExposed = false; // 标记插屏广告是否已展示过
+    private long adCheckStartTime = 0; // 广告检查开始时间
+    private static final long MAX_AD_CHECK_TIME = 30000; // 最大广告检查时间：30秒
+    private CountDownTimer adCheckTimer; // 广告检查计时器
+
+    // ECPM相关变量
+    private double splashAdEcpm = 0.0; // 开屏广告ECPM值
+    private double bannerAdEcpm = 0.0; // 横幅广告ECPM值
+    private double nativeAdEcpm = 0.0; // 原生广告ECPM值
+    private double interstitialAdEcpm = 0.0; // 插屏广告ECPM值
+    private static final double ECPM_THRESHOLD = 30.0; // ECPM总和阈值：30
+
+    /**
+     * 设置开屏广告ECPM值
+     */
+    public void setSplashAdEcpm(double ecpm) {
+        this.splashAdEcpm = ecpm;
+        Log.d(TAG, "设置开屏广告ECPM值: " + ecpm);
+    }
+
+    /**
+     * 设置横幅广告ECPM值
+     */
+    public void setBannerAdEcpm(double ecpm) {
+        this.bannerAdEcpm = ecpm;
+        Log.d(TAG, "设置横幅广告ECPM值: " + ecpm);
+    }
+
+    /**
+     * 设置原生广告ECPM值
+     */
+    public void setNativeAdEcpm(double ecpm) {
+        this.nativeAdEcpm = ecpm;
+        Log.d(TAG, "设置原生广告ECPM值: " + ecpm);
+    }
+
+    /**
+     * 设置插屏广告ECPM值
+     */
+    public void setInterstitialAdEcpm(double ecpm) {
+        this.interstitialAdEcpm = ecpm;
+        Log.d(TAG, "设置插屏广告ECPM值: " + ecpm);
+    }
+
+    /**
+     * 获取当前广告ECPM总和
+     */
+    public double getTotalEcpm() {
+        return splashAdEcpm + bannerAdEcpm + nativeAdEcpm + interstitialAdEcpm;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 检查网络连接，如果未连接则退出应用
+        if (!NetworkUtils.checkNetworkAndExitIfDisconnected(this)) {
+            return;
+        }
+
         setContentView(R.layout.activity_quiz);
+
+        // 获取Intent参数，判断是否需要显示15秒加载
+        Intent intent = getIntent();
+        boolean showLoading = intent.getBooleanExtra("show_loading", false);
+        int loadingDuration = intent.getIntExtra("loading_duration", 15000);
+        boolean isSecondLogin = intent.getBooleanExtra("is_second_login", false);
+        
+        // 获取开屏广告ECPM值
+        splashAdEcpm = intent.getDoubleExtra("splash_ad_ecpm", 0.0);
+
+        // 根据参数设置是否第一次加载
+        isFirstLoading = showLoading;
+
+        // 记录是否是第二次登录
+        Log.d(TAG, "QuizActivity启动参数 - show_loading: " + showLoading + ", is_second_login: " + isSecondLogin + ", splash_ad_ecpm: " + splashAdEcpm);
 
         // 初始化API管理器
         apiManager = ApiManager.getInstance();
+
+        // 获取应用配置信息（包括体力冷却时间）
+        fetchAppConfig();
 
         // 初始化加载布局
         topUserInfoLayout = findViewById(R.id.top_user_info_layout);
@@ -141,17 +223,25 @@ public class QuizActivity extends AppCompatActivity {
         // 确保主内容布局初始可见（包含广告）
         if (mainContentLayout != null) {
             mainContentLayout.setVisibility(View.VISIBLE);
+        } else {
+            Log.e(TAG, "mainContentLayout为空，无法设置可见性");
         }
         // 题目区域初始隐藏
         if (questionAreaLayout != null) {
             questionAreaLayout.setVisibility(View.GONE);
+        } else {
+            Log.e(TAG, "questionAreaLayout为空，无法设置可见性");
         }
         if (topUserInfoLayout != null) {
             topUserInfoLayout.setVisibility(View.GONE);
+        } else {
+            Log.e(TAG, "topUserInfoLayout为空，无法设置可见性");
         }
         // 加载过程中显示加载布局
         if (loadingLayout != null) {
             loadingLayout.setVisibility(View.VISIBLE);
+        } else {
+            Log.e(TAG, "loadingLayout为空，无法设置可见性");
         }
 
         // 初始化UI组件
@@ -206,14 +296,33 @@ public class QuizActivity extends AppCompatActivity {
             Log.d(TAG, "音乐音符视图初始化完成");
         }
 
-        // 添加音乐按钮点击事件
-        musicButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "音乐按钮被点击");
-                toggleMusic();
-            }
-        });
+        // 添加音乐按钮点击事件（添加空指针检查）
+        if (musicButton != null) {
+            musicButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.d(TAG, "音乐按钮被点击");
+                    toggleMusic();
+                }
+            });
+        } else {
+            Log.e(TAG, "musicButton为空，无法设置点击事件");
+        }
+
+        // 添加头像视图初始化
+        ImageView avatarImage = findViewById(R.id.avatar_image);
+
+        // 添加头像点击事件，显示设置弹窗
+        if (avatarImage != null) {
+            avatarImage.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    showSettingsPopup(v);
+                }
+            });
+        } else {
+            Log.e(TAG, "avatarImage为空，无法设置点击事件");
+        }
 
         // 加载用户信息
         loadUserInfo();
@@ -230,26 +339,105 @@ public class QuizActivity extends AppCompatActivity {
         // 直接设置按钮文本和状态
         if (watchAdButton != null) {
             watchAdButton.setEnabled(false);
+            watchAdButton.setText("获取");
         }
 
         // 从服务器获取用户体力值
         loadUserStamina();
 
-        // 设置选项点击事件
-        option1Button.setOnClickListener(v -> checkAnswer("A"));
-        option2Button.setOnClickListener(v -> checkAnswer("B"));
-        option3Button.setOnClickListener(v -> checkAnswer("C"));
-        option4Button.setOnClickListener(v -> checkAnswer("D"));
+        // 设置选项点击事件（添加空指针检查）
+        if (option1Button != null) {
+            option1Button.setOnClickListener(v -> checkAnswer("A"));
+        } else {
+            Log.e(TAG, "option1Button为空，无法设置点击事件");
+        }
+        if (option2Button != null) {
+            option2Button.setOnClickListener(v -> checkAnswer("B"));
+        } else {
+            Log.e(TAG, "option2Button为空，无法设置点击事件");
+        }
+        if (option3Button != null) {
+            option3Button.setOnClickListener(v -> checkAnswer("C"));
+        } else {
+            Log.e(TAG, "option3Button为空，无法设置点击事件");
+        }
+        if (option4Button != null) {
+            option4Button.setOnClickListener(v -> checkAnswer("D"));
+        } else {
+            Log.e(TAG, "option4Button为空，无法设置点击事件");
+        }
 
-        // 初始化广告相关操作 - 在启动计时器之前就初始化广告
-        initAdListeners();
-        initAdsAfterContentLoaded();
+        // 根据是否是第二次登录来调整广告初始化策略
+        if (isSecondLogin) {
+            Log.d(TAG, "第二次登录检测到，立即初始化广告");
+
+            // 确保主内容布局可见
+            if (mainContentLayout != null) {
+                mainContentLayout.setVisibility(View.VISIBLE);
+                Log.d(TAG, "第二次登录：确保主内容布局可见");
+            }
+
+            // 立即初始化广告管理器
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    initAdManager();
+                }
+            }, 500);
+        } else {
+            Log.d(TAG, "第一次登录，延迟500毫秒后初始化广告");
+            // 第一次登录：延迟500毫秒后初始化广告，确保布局已经完全显示
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+
+                    // 确保主内容布局可见，这是广告显示的关键条件
+                    if (mainContentLayout != null) {
+                        mainContentLayout.setVisibility(View.VISIBLE);
+                        Log.d(TAG, "确保主内容布局可见");
+                    }
+
+                    // 广告状态重置后延迟500毫秒再初始化广告
+                    // 确保广告SDK有足够时间完成重置和重新初始化
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            initAdManager();
+                        }
+                    }, 500);
+                }
+            }, 500); // 缩短初始延迟为500毫秒，加快广告初始化
+        }
+
+        // 额外添加一个保险机制：在3秒后再次检查并尝试加载横幅广告
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "广告加载保险机制：3秒后检查横幅广告状态");
+                ViewGroup bannerContainer = findViewById(R.id.banner_ad_container);
+                if (bannerContainer != null && bannerContainer.getChildCount() == 0) {
+                    Log.d(TAG, "发现横幅广告容器为空，尝试重新加载广告");
+
+                    // 延迟500毫秒后重新加载，确保广告SDK完全重置
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            TakuAdManager.getInstance().showBannerAd(QuizActivity.this, bannerContainer);
+                            Log.d(TAG, "保险机制：横幅广告重新加载完成");
+                        }
+                    }, 500);
+                }
+            }
+        }, 3000);
 
         // 启动15秒加载计时器，新用户登录后加载15秒
         startLoadingTimer();
 
         // 从API获取题目
         loadQuestionsFromApi();
+
+        // 广告关闭后，更新上次广告显示时间，确保不会立即再次显示
+        lastInterstitialAdShownTime = System.currentTimeMillis();
     }
 
     /**
@@ -320,11 +508,18 @@ public class QuizActivity extends AppCompatActivity {
             @Override
             public void onBannerAdExposure() {
                 Log.d(TAG, "Taku横幅广告曝光");
+                // 标记横幅广告已曝光
+                isBannerAdExposed = true;
+                Log.d(TAG, "横幅广告曝光状态已标记，当前状态：横幅=" + isBannerAdExposed + ", 原生=" + isNativeAdExposed);
+
+                // 检查是否满足跳转条件
+                checkAdExposureAndJump();
+
                 // 启动10秒横幅广告刷新计时器
                 startBannerAdRefreshTimer();
 
                 // 调用风控检查接口
-                performRiskCheck("横幅广告", false);
+                // performRiskCheck("横幅广告", false);
             }
 
             @Override
@@ -367,11 +562,18 @@ public class QuizActivity extends AppCompatActivity {
             @Override
             public void onNativeAdExposure() {
                 Log.d(TAG, "Taku原生广告曝光");
+                // 标记原生广告已曝光
+                isNativeAdExposed = true;
+                Log.d(TAG, "原生广告曝光状态已标记，当前状态：横幅=" + isBannerAdExposed + ", 原生=" + isNativeAdExposed);
+
+                // 检查是否满足跳转条件
+                checkAdExposureAndJump();
+
                 // 启动10秒原生广告刷新计时器
                 startNativeAdRefreshTimer();
 
                 // 调用统一的风控检查接口
-                performRiskCheck("原生广告", false);
+                // performRiskCheck("原生广告", false);
             }
 
             @Override
@@ -397,11 +599,19 @@ public class QuizActivity extends AppCompatActivity {
                 Log.d(TAG, "Taku插屏广告加载成功");
                 isInterstitialAdLoaded = true;
                 isLoadingInterstitialAd = false;
+
+                // 广告加载成功后，不立即显示广告，等待计时器触发
+                Log.d(TAG, "广告加载成功，等待计时器触发显示");
             }
 
             @Override
             public void onInterstitialAdFailedToShow(String errorMsg) {
                 Log.e(TAG, "Taku插屏广告显示失败: " + errorMsg);
+                // 检查Activity生命周期状态，避免在不适合的时机重新启动计时器
+                if (isFinishing() || isDestroyed()) {
+                    Log.d(TAG, "Activity已处于结束/销毁状态，不重新启动插屏广告计时器");
+                    return;
+                }
                 // 直接重新启动计时器
                 startInterstitialAdTimer();
             }
@@ -409,8 +619,15 @@ public class QuizActivity extends AppCompatActivity {
             @Override
             public void onInterstitialAdShow() {
                 Log.d(TAG, "Taku插屏广告实际显示");
-                // 暂停所有计时器
-                pauseAllTimers();
+                // 标记插屏广告正在显示
+                isInterstitialAdShowing = true;
+                // 标记插屏广告已展示过
+                isInterstitialAdExposed = true;
+                // 检查Activity生命周期状态，避免在不适合的时机执行后续操作
+                if (isFinishing() || isDestroyed()) {
+                    Log.d(TAG, "Activity已处于结束/销毁状态，不执行插屏广告显示后的操作");
+                    return;
+                }
                 // 广告显示时明确禁用获取体力按钮
                 if (watchAdButton != null) {
                     watchAdButton.setEnabled(false);
@@ -422,9 +639,13 @@ public class QuizActivity extends AppCompatActivity {
             @Override
             public void onInterstitialAdExposure() {
                 Log.d(TAG, "Taku插屏广告曝光");
+                // 标记插屏广告正在显示
+                isInterstitialAdShowing = true;
+                // 更新上次广告显示时间
+                lastInterstitialAdShownTime = System.currentTimeMillis();
 
                 // 调用统一风控检查方法
-                performRiskCheck("插屏广告", false);
+                // performRiskCheck("插屏广告", false);
             }
 
             @Override
@@ -435,21 +656,26 @@ public class QuizActivity extends AppCompatActivity {
             @Override
             public void onInterstitialAdClosed() {
                 Log.d(TAG, "Taku插屏广告关闭");
-                // 恢复所有计时器
-                resumeAllTimers();
+                // 标记插屏广告已关闭
+                isInterstitialAdShowing = false;
+                // 检查Activity生命周期状态，避免在不适合的时机执行后续操作
+                if (isFinishing() || isDestroyed()) {
+                    Log.d(TAG, "Activity已处于结束/销毁状态，不执行插屏广告关闭后的操作");
+                    return;
+                }
+                // 恢复所有计时器（但不包括插屏广告计时器，避免无限循环）
+                resumeAllTimersWithoutInterstitial();
                 // 广告关闭后，更新上次广告显示时间，确保不会立即再次显示
                 lastInterstitialAdShownTime = System.currentTimeMillis();
-                TakuAdManager.getInstance().preloadInterstitialAd(QuizActivity.this);
+                isLoadingInterstitialAd = false;
+                preloadNextInterstitialAd();
 
-                // 重新加载原生广告，解决插屏广告关闭后原生广告消失的问题
-                ViewGroup nativeContainer = findViewById(R.id.native_ad_container);
-                if (nativeContainer != null) {
-                    Log.d(TAG, "插屏广告关闭，重新加载原生广告");
-                    TakuAdManager.getInstance().showNativeAd(QuizActivity.this, nativeContainer);
-                }
-
-                // 启动10秒计时器，10秒后检查是否可以显示下一个广告
-                startInterstitialAdTimer();
+                // 延迟5秒后启动插屏广告计时器，避免立即再次显示广告
+                handler.postDelayed(() -> {
+                    if (!isFinishing() && !isDestroyed()) {
+                        startInterstitialAdTimer();
+                    }
+                }, 1000);
             }
         });
     }
@@ -457,6 +683,7 @@ public class QuizActivity extends AppCompatActivity {
     /**
      * 广告管理器初始化方法，确保TakuAdManager只被初始化一次
      * 集中管理所有广告相关的初始化操作
+     * 修复第二次登录时横幅和插屏广告不显示的问题
      */
     private void initAdManager() {
         Log.d(TAG, "开始初始化广告管理器");
@@ -466,6 +693,32 @@ public class QuizActivity extends AppCompatActivity {
             TakuAdManager.getInstance().init(getApplicationContext());
             Log.d(TAG, "TakuAdManager初始化完成");
 
+            // 设置ECPM回调
+            TakuAdManager.getInstance().setEcpmCallback(new TakuAdManager.EcpmCallback() {
+                @Override
+                public void onEcpmReceived(String adType, String placementId, double ecpmValue) {
+                    Log.d(TAG, "接收到广告ECPM值 - 类型: " + adType + ", 广告位: " + placementId + ", ECPM: " + ecpmValue);
+                    
+                    switch (adType) {
+                        case "banner":
+                            setBannerAdEcpm(ecpmValue);
+                            break;
+                        case "native":
+                            setNativeAdEcpm(ecpmValue);
+                            break;
+                        case "interstitial":
+                            setInterstitialAdEcpm(ecpmValue);
+                            break;
+                        default:
+                            Log.d(TAG, "未知广告类型: " + adType);
+                            break;
+                    }
+                    
+                    // 每次接收到ECPM值后检查是否满足跳转条件
+                    checkAdExposureAndJump();
+                }
+            });
+
             // 初始化广告监听器
             initAdListeners();
             Log.d(TAG, "广告监听器初始化完成");
@@ -474,9 +727,8 @@ public class QuizActivity extends AppCompatActivity {
             Log.d(TAG, "预加载Taku激励视频广告");
             TakuAdManager.getInstance().preloadRewardVideoAd(this);
 
-            // 预加载Taku插屏广告
-            Log.d(TAG, "预加载Taku插屏广告");
-            TakuAdManager.getInstance().preloadInterstitialAd(QuizActivity.this);
+            // 第二次登录后直接加载广告，不进行预加载
+            Log.d(TAG, "第二次登录，直接加载广告");
 
             // 初始化广告，确保在所有组件初始化完成后调用
             initAdsAfterContentLoaded();
@@ -492,6 +744,28 @@ public class QuizActivity extends AppCompatActivity {
     private void pauseAllTimers() {
         Log.d(TAG, "暂停所有计时器");
         isGlobalTimerPaused = true;
+
+        // 真正取消所有计时器，避免后台运行导致崩溃
+        if (interstitialAdTimer != null) {
+            interstitialAdTimer.cancel();
+            interstitialAdTimer = null;
+            Log.d(TAG, "已取消插屏广告计时器");
+        }
+
+        if (adTimer != null) {
+            adTimer.cancel();
+            adTimer = null;
+            Log.d(TAG, "已取消广告计时器");
+        }
+
+        // 特别注意：不要取消加载计时器，避免插屏广告导致加载中状态卡住
+        // 加载计时器应该继续运行，不受插屏广告影响
+        // if (loadingTimer != null) {
+        // loadingTimer.cancel();
+        // loadingTimer = null;
+        // Log.d(TAG, "已取消加载计时器");
+        // }
+
         // 特别处理体力倒计时的暂停，确保它不会丢失剩余时间
         if (isAdCooldownActive) {
             Log.d(TAG, "暂停体力倒计时");
@@ -505,6 +779,40 @@ public class QuizActivity extends AppCompatActivity {
     private void resumeAllTimers() {
         Log.d(TAG, "恢复所有计时器");
         isGlobalTimerPaused = false;
+
+        // 启动10秒横幅广告刷新计时器
+        startBannerAdRefreshTimer();
+        // 启动10秒原生广告刷新计时器
+        startNativeAdRefreshTimer();
+        // 重新启动必要的计时器
+        startInterstitialAdTimer();
+
+        // 特别处理体力倒计时的恢复
+        if (isAdCooldownActive && isTimerPaused) {
+            Log.d(TAG, "恢复体力倒计时，继续之前的计时");
+            // 如果计时器存在，直接恢复计时器状态
+            if (adCooldownTimer != null) {
+                Log.d(TAG, "计时器存在，直接恢复计时状态");
+                isTimerPaused = false;
+                // 重新启动计时器以继续之前的计时
+                startAdCooldownTimer();
+            } else {
+                // 计时器不存在，重新启动计时器
+                Log.d(TAG, "计时器不存在，重新启动计时器");
+                startAdCooldownTimer();
+            }
+        }
+    }
+
+    /**
+     * 恢复所有计时器（不包括插屏广告计时器）
+     */
+    private void resumeAllTimersWithoutInterstitial() {
+        Log.d(TAG, "恢复所有计时器（不包括插屏广告计时器）");
+        isGlobalTimerPaused = false;
+
+        // 不启动插屏广告计时器，避免无限循环
+
         // 特别处理体力倒计时的恢复
         if (isAdCooldownActive && isTimerPaused) {
             Log.d(TAG, "恢复体力倒计时，继续之前的计时");
@@ -526,6 +834,7 @@ public class QuizActivity extends AppCompatActivity {
      * 页面内容完全加载后初始化并显示广告
      * 确保广告容器已经准备就绪再加载广告，避免横屏时广告提前加载的问题
      * 实现原生广告和横幅广告一起并行加载的功能
+     * 修复第二次登录时横幅和插屏广告不显示的问题
      */
     private void initAdsAfterContentLoaded() {
         Log.d(TAG, "页面内容已加载完成，准备初始化广告");
@@ -535,36 +844,101 @@ public class QuizActivity extends AppCompatActivity {
         ViewGroup bannerContainer = findViewById(R.id.banner_ad_container);
         ViewGroup nativeContainer = findViewById(R.id.native_ad_container);
 
-        // 只检查容器是否存在且主内容可见
+        // 修复：确保主内容布局可见，这是广告显示的关键条件
+        if (mainContentLayout != null && mainContentLayout.getVisibility() != View.VISIBLE) {
+            mainContentLayout.setVisibility(View.VISIBLE);
+            Log.d(TAG, "强制设置主内容布局可见");
+        }
+
+        // 增强容器状态检查：检查容器是否已添加到视图树中且可见
+        boolean isBannerContainerReady = isContainerReady(bannerContainer);
+        boolean isNativeContainerReady = isContainerReady(nativeContainer);
         boolean isContentVisible = mainContentLayout != null && mainContentLayout.getVisibility() == View.VISIBLE;
 
-        if (bannerContainer != null && nativeContainer != null && isContentVisible) {
+        Log.d(TAG, "容器状态检查 - 横幅容器: " + isBannerContainerReady + ", 原生容器: " + isNativeContainerReady + ", 内容可见: "
+                + isContentVisible);
+
+        if (isBannerContainerReady && isNativeContainerReady && isContentVisible) {
 
             Log.d(TAG, "广告容器已准备就绪，主内容可见，开始加载广告");
 
-            // 启动15秒定时插屏广告
-            startInterstitialAdTimer();
+            // 清除容器中可能存在的旧广告视图，确保每次都是全新加载
+            bannerContainer.removeAllViews();
+            nativeContainer.removeAllViews();
 
+            // 立即加载所有广告，不延迟，确保第二次登录时广告能正确显示
+            // 横幅广告优先加载，避免时序问题
+            Log.d(TAG, "第二次登录：立即加载横幅广告");
+            TakuAdManager.getInstance().showBannerAd(QuizActivity.this, bannerContainer);
+
+            // 延迟500毫秒后加载原生广告，避免资源竞争
             handler.postDelayed(() -> {
-                // 原生广告和横幅广告一起并行加载
+                Log.d(TAG, "第二次登录：开始加载原生广告");
                 TakuAdManager.getInstance().showNativeAd(QuizActivity.this, nativeContainer);
-                TakuAdManager.getInstance().showBannerAd(QuizActivity.this, bannerContainer);
-            }, 1000);
+            }, 500);
+            handler.postDelayed(() -> {
+                // 更新上次广告显示时间
+                lastInterstitialAdShownTime = System.currentTimeMillis();
+                // 暂停所有计时器
+                pauseAllTimers();
+                // 插屏广告也直接加载显示，不进行预加载
+                TakuAdManager.getInstance().showInterstitialAd(QuizActivity.this);
+            }, 9000);
 
             // 广告初始化完成
             isAdInitialized = true;
         } else {
             Log.d(TAG, "广告容器或内容不可见，延迟重试");
 
-            // 如果条件不满足，延迟一段时间后重试
+            // 如果条件不满足，延迟较短时间后重试（从1000ms减少到300ms）
+            // 提高第二次登录时的响应速度
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    // 再次尝试初始化广告
+                    // 再次尝试初始化广告，保持相同的插屏广告显示设置
                     initAdsAfterContentLoaded();
                 }
-            }, 1000);
+            }, 300);
         }
+    }
+
+    /**
+     * 检查广告容器是否已准备就绪
+     * 修复第二次登录时容器未准备好导致广告不显示的问题
+     * 放宽检查条件：只要容器已添加到视图树且可见，就允许加载广告
+     */
+    private boolean isContainerReady(ViewGroup container) {
+        if (container == null) {
+            Log.w(TAG, "广告容器为空");
+            return false;
+        }
+
+        // 检查容器是否已添加到视图树中
+        if (container.getParent() == null) {
+            Log.w(TAG, "广告容器未添加到视图树中");
+            return false;
+        }
+
+        // 检查容器是否可见
+        if (container.getVisibility() != View.VISIBLE) {
+            Log.w(TAG, "广告容器不可见");
+            return false;
+        }
+
+        // 放宽检查：不再强制要求容器尺寸大于0
+        // 因为第二次登录时容器可能还没有完成测量布局
+        // 广告SDK会在容器完成布局后自动调整尺寸
+        int width = container.getWidth();
+        int height = container.getHeight();
+
+        if (width <= 0 || height <= 0) {
+            Log.w(TAG, "广告容器未测量完成，尺寸: " + width + "x" + height + "，但允许继续加载广告");
+            // 放宽条件：即使尺寸为0也允许加载，广告SDK会处理后续布局
+            return true;
+        }
+
+        Log.d(TAG, "广告容器已准备就绪，尺寸: " + width + "x" + height);
+        return true;
     }
 
     // 创建一个新方法，不加载体力值的版本
@@ -650,10 +1024,6 @@ public class QuizActivity extends AppCompatActivity {
                 if (mainContentLayout != null) {
                     mainContentLayout.setVisibility(View.VISIBLE);
                 }
-                // 不要在这里隐藏加载中布局，让startLoadingTimer处理
-                // 不要在这里显示题目区域，让startLoadingTimer处理
-
-                // 页面内容完全加载后，初始化广告（已经在onCreate中通过startLoadingTimer调用）
                 // initAdsAfterContentLoaded();
             }
 
@@ -666,6 +1036,7 @@ public class QuizActivity extends AppCompatActivity {
                         Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(QuizActivity.this,
                                 com.fortunequizking.activity.LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         startActivity(intent);
                         finish();
                     });
@@ -673,14 +1044,11 @@ public class QuizActivity extends AppCompatActivity {
                     // 其他错误情况下，使用本地题目
                     initLocalQuestions();
                     loadQuestion(currentQuestionIndex);
-                    Toast.makeText(QuizActivity.this, "网络异常，使用本地题目", Toast.LENGTH_SHORT).show();
 
                     // 确保主内容布局可见（包含广告）
                     if (mainContentLayout != null) {
                         mainContentLayout.setVisibility(View.VISIBLE);
                     }
-                    // 不要在这里隐藏加载中布局，让startLoadingTimer处理
-                    // 不要在这里显示题目区域，让startLoadingTimer处理
                 }
             }
         });
@@ -710,43 +1078,60 @@ public class QuizActivity extends AppCompatActivity {
         questionStartTime = System.currentTimeMillis();
 
         // 显示题目
-        questionText.setText(question.getQuestionText());
+        if (questionText != null) {
+            questionText.setText(question.getQuestionText());
+        }
 
         // 处理选项
         if (question.getOptions() != null && !question.getOptions().isEmpty()) {
             // 新版本：使用Map存储的选项
             Map<String, String> options = question.getOptions();
-            option1Button.setText("A: " + (options.containsKey("A") ? options.get("A") : ""));
-            option2Button.setText("B: " + (options.containsKey("B") ? options.get("B") : ""));
-            option3Button.setText("C: " + (options.containsKey("C") ? options.get("C") : ""));
-            option4Button.setText("D: " + (options.containsKey("D") ? options.get("D") : ""));
+            if (option1Button != null)
+                option1Button.setText("A: " + (options.containsKey("A") ? options.get("A") : ""));
+            if (option2Button != null)
+                option2Button.setText("B: " + (options.containsKey("B") ? options.get("B") : ""));
+            if (option3Button != null)
+                option3Button.setText("C: " + (options.containsKey("C") ? options.get("C") : ""));
+            if (option4Button != null)
+                option4Button.setText("D: " + (options.containsKey("D") ? options.get("D") : ""));
 
             // 显示所有选项按钮
-            option1Button.setVisibility(View.VISIBLE);
-            option2Button.setVisibility(View.VISIBLE);
-            option3Button.setVisibility(View.VISIBLE);
-            option4Button.setVisibility(View.VISIBLE);
+            if (option1Button != null)
+                option1Button.setVisibility(View.VISIBLE);
+            if (option2Button != null)
+                option2Button.setVisibility(View.VISIBLE);
+            if (option3Button != null)
+                option3Button.setVisibility(View.VISIBLE);
+            if (option4Button != null)
+                option4Button.setVisibility(View.VISIBLE);
         } else {
             // 旧版本：只有两个选项
-            option1Button.setText("A: " + question.getOption1());
-            option2Button.setText("B: " + question.getOption2());
-            option3Button.setVisibility(View.GONE);
-            option4Button.setVisibility(View.GONE);
+            if (option1Button != null)
+                option1Button.setText("A: " + question.getOption1());
+            if (option2Button != null)
+                option2Button.setText("B: " + question.getOption2());
+            if (option3Button != null)
+                option3Button.setVisibility(View.GONE);
+            if (option4Button != null)
+                option4Button.setVisibility(View.GONE);
         }
 
         // 更新UI
         updateScoreAndLevel();
 
-        // 不要在这里隐藏加载中布局，让startLoadingTimer处理
         // if (loadingLayout != null) {
         // loadingLayout.setVisibility(View.GONE);
         // }
 
         // 启用选项按钮，允许用户答题
-        option1Button.setEnabled(true);
-        option2Button.setEnabled(true);
-        option3Button.setEnabled(true);
-        option4Button.setEnabled(true);
+        if (option1Button != null)
+            option1Button.setEnabled(true);
+        if (option2Button != null)
+            option2Button.setEnabled(true);
+        if (option3Button != null)
+            option3Button.setEnabled(true);
+        if (option4Button != null)
+            option4Button.setEnabled(true);
     }
 
     // 显示设置弹窗
@@ -951,7 +1336,9 @@ public class QuizActivity extends AppCompatActivity {
             e.printStackTrace();
             // 如果弹窗显示失败，回退到原来的方式
             Intent intent = new Intent(QuizActivity.this, SettingActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent);
+            finish();
         }
     }
 
@@ -1327,6 +1714,7 @@ public class QuizActivity extends AppCompatActivity {
                         Toast.makeText(QuizActivity.this, message, Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(QuizActivity.this,
                                 com.fortunequizking.activity.LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         startActivity(intent);
                         finish();
                     });
@@ -1354,6 +1742,7 @@ public class QuizActivity extends AppCompatActivity {
                         Toast.makeText(QuizActivity.this, message, Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(QuizActivity.this,
                                 com.fortunequizking.activity.LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         startActivity(intent);
                         finish();
                     });
@@ -1380,6 +1769,7 @@ public class QuizActivity extends AppCompatActivity {
                                 Toast.makeText(QuizActivity.this, message, Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(QuizActivity.this,
                                         com.fortunequizking.activity.LoginActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                                 startActivity(intent);
                                 finish();
                             });
@@ -1408,6 +1798,7 @@ public class QuizActivity extends AppCompatActivity {
                                         Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
                                         Intent intent = new Intent(QuizActivity.this,
                                                 com.fortunequizking.activity.LoginActivity.class);
+                                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                                         startActivity(intent);
                                         finish();
                                     });
@@ -1440,6 +1831,7 @@ public class QuizActivity extends AppCompatActivity {
                                         Toast.makeText(QuizActivity.this, message, Toast.LENGTH_SHORT).show();
                                         Intent intent = new Intent(QuizActivity.this,
                                                 com.fortunequizking.activity.LoginActivity.class);
+                                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                                         startActivity(intent);
                                         finish();
                                     });
@@ -1471,6 +1863,7 @@ public class QuizActivity extends AppCompatActivity {
                                                                 .show();
                                                         Intent intent = new Intent(QuizActivity.this,
                                                                 com.fortunequizking.activity.LoginActivity.class);
+                                                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                                                         startActivity(intent);
                                                         finish();
                                                     });
@@ -1510,6 +1903,7 @@ public class QuizActivity extends AppCompatActivity {
                                                                 .show();
                                                         Intent intent = new Intent(QuizActivity.this,
                                                                 com.fortunequizking.activity.LoginActivity.class);
+                                                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                                                         startActivity(intent);
                                                         finish();
                                                     });
@@ -1548,6 +1942,7 @@ public class QuizActivity extends AppCompatActivity {
                                 Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(QuizActivity.this,
                                         com.fortunequizking.activity.LoginActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                                 startActivity(intent);
                                 finish();
                             });
@@ -1667,7 +2062,7 @@ public class QuizActivity extends AppCompatActivity {
 
         // 重置计时器状态
         cooldownTimerRemaining = 0;
-        cooldownTimeElapsed = 0;
+        // cooldownTimeElapsed = 0; // 这行代码错误，变量还未声明
         isTimerPaused = false;
 
         // 重置层级状态
@@ -1707,7 +2102,9 @@ public class QuizActivity extends AppCompatActivity {
 
         isAdCooldownActive = true;
         isTimerPaused = false;
-        watchAdButton.setEnabled(false);
+        if (watchAdButton != null) {
+            watchAdButton.setEnabled(false);
+        }
 
         // 计算冷却时间：根据层级处理逻辑
         long cooldownTime;
@@ -1733,7 +2130,7 @@ public class QuizActivity extends AppCompatActivity {
                 cooldownTime = 90 * 1000; // 1.5分钟
                 Log.d(TAG, "激励广告数量已达到" + rewardAdCount + "条，将冷却时间调整为1.5分钟");
             } else {
-                cooldownTime = AD_COOLDOWN_TIME_NORMAL; // 默认1分钟
+                cooldownTime = staminaCooldownTime; // 使用从后端获取的体力冷却时间
             }
             // 如果有剩余时间，使用剩余时间继续计时
             if (cooldownTimerRemaining > 0) {
@@ -1757,7 +2154,7 @@ public class QuizActivity extends AppCompatActivity {
                             cooldownTimeElapsed = AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 - millisUntilFinished;
                         }
                     } else {
-                        cooldownTimeElapsed = AD_COOLDOWN_TIME_NORMAL - millisUntilFinished;
+                        cooldownTimeElapsed = staminaCooldownTime - millisUntilFinished;
                     }
                     cancel();
                     return;
@@ -1780,7 +2177,7 @@ public class QuizActivity extends AppCompatActivity {
                         cooldownTimeElapsed = AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_1 - millisUntilFinished;
                     }
                 } else {
-                    cooldownTimeElapsed = AD_COOLDOWN_TIME_NORMAL - millisUntilFinished;
+                    cooldownTimeElapsed = staminaCooldownTime - millisUntilFinished;
                 }
             }
 
@@ -1861,6 +2258,7 @@ public class QuizActivity extends AppCompatActivity {
                 // 检查题目是否已加载
                 if (questions != null && !questions.isEmpty()) {
                     // 题目已加载，直接初始化广告
+                    // 屏幕方向变化时显示插屏广告
                     initAdsAfterContentLoaded();
                 } else {
                     // 题目尚未加载，再延迟一段时间后重试
@@ -1868,6 +2266,7 @@ public class QuizActivity extends AppCompatActivity {
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
+                            // 屏幕方向变化时显示插屏广告
                             initAdsAfterContentLoaded();
                         }
                     }, 800);
@@ -1876,13 +2275,73 @@ public class QuizActivity extends AppCompatActivity {
         }, 1000);
     }
 
+    /**
+     * 获取应用配置信息
+     */
+    private void fetchAppConfig() {
+        apiManager.getAppConfig(new ApiCallback<Map<String, Object>>() {
+            @Override
+            public void onSuccess(Map<String, Object> config) {
+                Log.d(TAG, "成功获取应用配置: " + config.toString());
+
+                // 检查并更新体力冷却时间
+                if (config.containsKey("stamina_cooldown_time")) {
+                    try {
+                        // 先转换为字符串，然后解析为浮点数，再转换为整数
+                        double cooldownSecondsDouble = Double
+                                .parseDouble(String.valueOf(config.get("stamina_cooldown_time")));
+                        int cooldownSeconds = (int) Math.round(cooldownSecondsDouble);
+                        staminaCooldownTime = cooldownSeconds * 1000; // 转换为毫秒
+                        Log.d(TAG, "从后端获取体力冷却时间: " + cooldownSeconds + "秒 (" + staminaCooldownTime + "毫秒)");
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "体力冷却时间格式错误: " + config.get("stamina_cooldown_time"));
+                        staminaCooldownTime = AD_COOLDOWN_TIME_NORMAL; // 使用默认值
+                    }
+                } else {
+                    Log.d(TAG, "应用配置中未找到体力冷却时间，使用默认值: " + AD_COOLDOWN_TIME_NORMAL + "毫秒");
+                    staminaCooldownTime = AD_COOLDOWN_TIME_NORMAL;
+                }
+            }
+
+            @Override
+            public void onFailure(String errorMsg) {
+                Log.e(TAG, "获取应用配置失败: " + errorMsg);
+                // 失败时使用默认值
+                staminaCooldownTime = AD_COOLDOWN_TIME_NORMAL;
+                Log.d(TAG, "使用默认体力冷却时间: " + AD_COOLDOWN_TIME_NORMAL + "毫秒");
+            }
+        });
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "QuizActivity销毁，清理所有计时器和Handler");
+
         // 清理资源
         if (adTimer != null) {
             adTimer.cancel();
             adTimer = null;
+        }
+        // 取消插屏广告计时器
+        if (interstitialAdTimer != null) {
+            interstitialAdTimer.cancel();
+            interstitialAdTimer = null;
+        }
+        // 取消加载计时器
+        if (loadingTimer != null) {
+            loadingTimer.cancel();
+            loadingTimer = null;
+        }
+        // 取消广告检查计时器
+        if (adCheckTimer != null) {
+            adCheckTimer.cancel();
+            adCheckTimer = null;
+        }
+        // 取消广告冷却计时器
+        if (adCooldownTimer != null) {
+            adCooldownTimer.cancel();
+            adCooldownTimer = null;
         }
         // 释放Taku广告资源
         if (TakuAdManager.getInstance() != null) {
@@ -1898,6 +2357,28 @@ public class QuizActivity extends AppCompatActivity {
         // 清理广告刷新计时器
         cancelBannerAdRefreshTimer();
         cancelNativeAdRefreshTimer();
+        // 清理Handler
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        if (bannerAdRefreshHandler != null) {
+            bannerAdRefreshHandler.removeCallbacksAndMessages(null);
+        }
+        if (nativeAdRefreshHandler != null) {
+            nativeAdRefreshHandler.removeCallbacksAndMessages(null);
+        }
+
+        // 添加：完全重置广告管理器状态
+        TakuAdManager.getInstance().resetAllAdLoadingState();
+        TakuAdManager.getInstance().forceResetAdInstances();
+        // 关键修复：重置所有广告相关的状态标志
+        isAdInitialized = false;
+        isInterstitialAdLoaded = false;
+        isLoadingInterstitialAd = false;
+        isAdCooldownActive = false;
+        isRewardAdPlaying = false;
+        isFirstLoading = true; // 确保下次进入时使用首次加载逻辑
+
         // 移除所有引用，帮助垃圾回收
         apiManager = null;
         questionText = null;
@@ -2155,7 +2636,7 @@ public class QuizActivity extends AppCompatActivity {
                 pauseAllTimers();
 
                 // 调用统一风控检查方法
-                performRiskCheck("激励广告", false);
+                // performRiskCheck("激励广告", false);
             }
 
             @Override
@@ -2217,13 +2698,119 @@ public class QuizActivity extends AppCompatActivity {
                 }
                 // 广告关闭后，更新上次广告显示时间，确保不会立即再次显示
                 lastInterstitialAdShownTime = System.currentTimeMillis();
-                TakuAdManager.getInstance().preloadInterstitialAd(QuizActivity.this);
+                isLoadingInterstitialAd = false;
+                preloadNextInterstitialAd();
 
                 // 启动10秒计时器，10秒后检查是否可以显示下一个广告
                 startInterstitialAdTimer();
                 loadUserStamina();
             }
         });
+    }
+
+    /**
+     * 检查广告曝光状态并决定是否跳转
+     * 满足以下任一条件即可跳转：
+     * 1. 横幅广告、原生广告和插屏广告都曝光过至少一次
+     * 2. 当前播放广告ECPM总和大于30（包括LoginActivity中播放的开屏广告）
+     * 注意：只有在第一次登录后的15秒加载流程中才应该跳转回LoginActivity
+     */
+    private void checkAdExposureAndJump() {
+        // 计算当前广告ECPM总和
+        double totalEcpm = splashAdEcpm + bannerAdEcpm + nativeAdEcpm + interstitialAdEcpm;
+        
+        // 检查是否满足跳转条件
+        boolean isAdExposureConditionMet = isBannerAdExposed && isNativeAdExposed && isInterstitialAdExposed;
+        boolean isEcpmConditionMet = totalEcpm > ECPM_THRESHOLD;
+        
+        if (isAdExposureConditionMet || isEcpmConditionMet) {
+            Log.d(TAG, "满足跳转条件：广告曝光状态=" + isAdExposureConditionMet + 
+                    ", ECPM总和=" + totalEcpm + ">" + ECPM_THRESHOLD + "=" + isEcpmConditionMet);
+
+            // 检查是否是第一次登录后的15秒加载流程
+            Intent intent = getIntent();
+            boolean showLoading = intent.getBooleanExtra("show_loading", false);
+
+            if (showLoading) {
+                Log.d(TAG, "第一次登录后的15秒加载流程，准备跳转回登录页面");
+                // 取消广告检查计时器（如果有）
+                if (adCheckTimer != null) {
+                    adCheckTimer.cancel();
+                    adCheckTimer = null;
+                }
+                // 延迟1秒后跳转
+                handler.postDelayed(() -> {
+                    checkInterstitialAdAndJumpToLogin();
+                }, 1000);
+            } else {
+                Log.d(TAG, "第二次登录后的正常使用流程，不跳转回登录页面");
+                // 取消广告检查计时器（如果有）
+                if (adCheckTimer != null) {
+                    adCheckTimer.cancel();
+                    adCheckTimer = null;
+                }
+                // 正常显示题目区域，不跳转
+                if (loadingLayout != null) {
+                    loadingLayout.setVisibility(View.GONE);
+                }
+                if (questionAreaLayout != null) {
+                    questionAreaLayout.setVisibility(View.VISIBLE);
+                }
+                if (topUserInfoLayout != null) {
+                    topUserInfoLayout.setVisibility(View.VISIBLE);
+                }
+                TakuAdManager.getInstance().preloadInterstitialAd(QuizActivity.this);
+                // 只启动插屏广告计时器，不启动体力冷却计时器
+                startInterstitialAdTimer();
+            }
+        } else {
+            Log.d(TAG, "广告曝光状态不满足跳转条件：横幅=" + isBannerAdExposed + ", 原生=" + isNativeAdExposed + ", 插屏="
+                    + isInterstitialAdExposed);
+        }
+    }
+
+    /**
+     * 启动广告检查计时器，用于在15秒加载结束后继续检查广告曝光状态
+     * 无限期检查，直到横幅广告和原生广告都成功加载出来
+     */
+    private void startAdCheckTimer() {
+        if (adCheckTimer != null) {
+            adCheckTimer.cancel();
+            adCheckTimer = null;
+        }
+
+        // 使用无限循环的计时器，每秒检查一次广告状态
+        adCheckTimer = new CountDownTimer(Long.MAX_VALUE, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                // 计算当前广告ECPM总和
+                double totalEcpm = splashAdEcpm + bannerAdEcpm + nativeAdEcpm + interstitialAdEcpm;
+                
+                Log.d(TAG, "广告检查中... 横幅=" + isBannerAdExposed + ", 原生=" + isNativeAdExposed + 
+                        ", ECPM总和=" + totalEcpm);
+
+                // 检查是否满足跳转条件
+                boolean isAdExposureConditionMet = isBannerAdExposed && isNativeAdExposed && isInterstitialAdExposed;
+                boolean isEcpmConditionMet = totalEcpm > ECPM_THRESHOLD;
+                
+                // 如果满足任一条件，立即跳转
+                if (isAdExposureConditionMet || isEcpmConditionMet) {
+                    Log.d(TAG, "满足跳转条件：广告曝光状态=" + isAdExposureConditionMet + 
+                            ", ECPM总和=" + totalEcpm + ">" + ECPM_THRESHOLD + "=" + isEcpmConditionMet);
+                    cancel(); // 停止计时器
+                    handler.postDelayed(() -> {
+                        checkInterstitialAdAndJumpToLogin();
+                    }, 1000);
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                // 这个计时器是无限期的，不会自动结束
+                // 只有当广告都曝光时才会手动取消
+            }
+        };
+        adCheckTimer.start();
     }
 
     /**
@@ -2240,9 +2827,14 @@ public class QuizActivity extends AppCompatActivity {
         // 加载过程中暂停所有计时器
         pauseAllTimers();
 
-        if (isFirstLoading) {
-            // 第一次加载：设置15秒计时器
-            loadingTimer = new CountDownTimer(15000, 1000) {
+        // 获取Intent参数，判断是否需要显示15秒加载
+        Intent intent = getIntent();
+        boolean showLoading = intent.getBooleanExtra("show_loading", false);
+        int loadingDuration = intent.getIntExtra("loading_duration", 15000);
+
+        if (isFirstLoading || showLoading) {
+            // 第一次加载：使用从Intent传递的加载时长参数
+            loadingTimer = new CountDownTimer(loadingDuration, 1000) {
                 @Override
                 public void onTick(long millisUntilFinished) {
                     // 倒计时进行中，不需要特别处理
@@ -2250,33 +2842,98 @@ public class QuizActivity extends AppCompatActivity {
 
                 @Override
                 public void onFinish() {
-                    // 隐藏加载布局
-                    if (loadingLayout != null) {
-                        loadingLayout.setVisibility(View.GONE);
+                    // 获取Intent参数，判断是否需要跳转回登录页面
+                    Intent intent = getIntent();
+                    boolean showLoading = intent.getBooleanExtra("show_loading", false);
+
+                    if (showLoading) {
+                        // 第一次登录后的15秒加载完成，自动跳转回登录页面进行第二次登录
+                        Log.d(TAG, "15秒加载完成，自动跳转回登录页面进行第二次登录");
+
+                        // // 隐藏加载布局
+                        // if (loadingLayout != null) {
+                        // loadingLayout.setVisibility(View.GONE);
+                        // } else {
+                        // Log.e(TAG, "loadingLayout为空，无法设置可见性");
+                        // }
+
+                        // // 显示题目区域（临时显示，即将跳转）
+                        // if (questionAreaLayout != null) {
+                        // questionAreaLayout.setVisibility(View.VISIBLE);
+                        // } else {
+                        // Log.e(TAG, "questionAreaLayout为空，无法设置可见性");
+                        // }
+                        // // 显示顶部用户信息布局（临时显示，即将跳转）
+                        // if (topUserInfoLayout != null) {
+                        // topUserInfoLayout.setVisibility(View.VISIBLE);
+                        // } else {
+                        // Log.e(TAG, "topUserInfoLayout为空，无法设置可见性");
+                        // }
+
+                        // startAdCooldownTimer();
+                        // 通过接口获取用户风控状态，而不是硬编码设置
+                        performRiskCheck("初始化", true);
+
+                        // 第一次登录不启动插屏广告计时器，避免无限加载问题
+                        Log.d(TAG, "第一次登录，跳过插屏广告计时器启动");
+
+                        // 标记为非首次加载
+                        isFirstLoading = false;
+
+                        // 加载完成后恢复全局计时器（但不包括插屏广告计时器）
+                        // resumeAllTimersWithoutInterstitial();
+
+                        // 重置广告曝光状态
+                        isBannerAdExposed = false;
+                        isNativeAdExposed = false;
+                        adCheckStartTime = System.currentTimeMillis();
+
+                        // 检查当前广告曝光状态
+                        if (isBannerAdExposed && isNativeAdExposed) {
+                            Log.d(TAG, "15秒加载完成时广告已全部曝光，直接跳转");
+                            // 延迟1秒后检查插屏广告状态并跳转回登录页面
+                            handler.postDelayed(() -> {
+                                checkInterstitialAdAndJumpToLogin();
+                            }, 1000);
+                        } else {
+                            Log.d(TAG, "15秒加载完成但广告未全部曝光，继续检查广告状态");
+                            // 启动广告检查计时器，继续检查广告曝光状态
+                            startAdCheckTimer();
+                        }
+                    } else {
+                        // 第二次登录流程：显示题目区域并启动插屏广告
+                        Log.d(TAG, "第二次登录，启动插屏广告计时器");
+
+                        // 隐藏加载布局
+                        if (loadingLayout != null) {
+                            loadingLayout.setVisibility(View.GONE);
+                        } else {
+                            Log.e(TAG, "loadingLayout为空，无法设置可见性");
+                        }
+
+                        // 显示题目区域
+                        if (questionAreaLayout != null) {
+                            questionAreaLayout.setVisibility(View.VISIBLE);
+                        } else {
+                            Log.e(TAG, "questionAreaLayout为空，无法设置可见性");
+                        }
+                        // 显示顶部用户信息布局
+                        if (topUserInfoLayout != null) {
+                            topUserInfoLayout.setVisibility(View.VISIBLE);
+                        } else {
+                            Log.e(TAG, "topUserInfoLayout为空，无法设置可见性");
+                        }
+
+                        startAdCooldownTimer();
+                        // 通过接口获取用户风控状态，而不是硬编码设置
+                        performRiskCheck("初始化", true);
+
+                        // 标记为非首次加载
+                        isFirstLoading = false;
+
+                        // 加载完成后恢复全局计时器
+                        resumeAllTimers();
                     }
-
-                    // 显示题目区域
-                    if (questionAreaLayout != null) {
-                        questionAreaLayout.setVisibility(View.VISIBLE);
-                    }
-                    // 显示顶部用户信息布局
-                    if (topUserInfoLayout != null) {
-                        topUserInfoLayout.setVisibility(View.VISIBLE);
-                    }
-
-                    // startAdCooldownTimer();
-                    // 通过接口获取用户风控状态，而不是硬编码设置
-                    performRiskCheck("初始化", true);
-
-                    // 启动插屏广告计时器（在体力冷却之后，避免被暂停）
-                    startInterstitialAdTimer();
-
-                    // 标记为非首次加载
-                    isFirstLoading = false;
-
-                    // 加载完成后恢复全局计时器
-                    isGlobalTimerPaused = false;
-                    isTimerPaused = false;
                 }
             };
             loadingTimer.start();
@@ -2293,19 +2950,27 @@ public class QuizActivity extends AppCompatActivity {
                     // 隐藏加载布局
                     if (loadingLayout != null) {
                         loadingLayout.setVisibility(View.GONE);
+                    } else {
+                        Log.e(TAG, "loadingLayout为空，无法设置可见性");
                     }
                     // 显示题目区域
                     if (questionAreaLayout != null) {
                         questionAreaLayout.setVisibility(View.VISIBLE);
+                    } else {
+                        Log.e(TAG, "questionAreaLayout为空，无法设置可见性");
                     }
                     // 显示顶部用户信息布局
                     if (topUserInfoLayout != null) {
                         topUserInfoLayout.setVisibility(View.VISIBLE);
+                    } else {
+                        Log.e(TAG, "topUserInfoLayout为空，无法设置可见性");
                     }
 
+                    // 启动广告冷却计时器
+                    startAdCooldownTimer();
+
                     // 加载完成后恢复全局计时器
-                    isGlobalTimerPaused = false;
-                    isTimerPaused = false;
+                    resumeAllTimers();
                 }
             };
             loadingTimer.start();
@@ -2316,6 +2981,8 @@ public class QuizActivity extends AppCompatActivity {
      * 启动插屏广告计时器 - 10秒检查一次广告是否可以显示
      */
     private void startInterstitialAdTimer() {
+        Log.d(TAG, "启动插屏广告计时器，检查广告是否可以显示");
+
         // 取消已有的计时器（如果存在）
         if (interstitialAdTimer != null) {
             interstitialAdTimer.cancel();
@@ -2328,14 +2995,9 @@ public class QuizActivity extends AppCompatActivity {
         }
 
         // 如果广告未加载，先启动加载
-        if (!isLoadingInterstitialAd && !isInterstitialAdLoaded && !isFinishing() && !isDestroyed()) {
-            preloadNextInterstitialAd();
-        }
+        preloadNextInterstitialAd();
 
-        // 创建计时器，10秒后直接显示广告（如果已加载）
-        long timerInterval = REFRESH_INTERVAL;
-        Log.d(TAG, "启动插屏广告计时器，" + (timerInterval / 1000) + "秒后直接显示广告（如果已加载）");
-        interstitialAdTimer = new CountDownTimer(timerInterval, 1000) {
+        interstitialAdTimer = new CountDownTimer(1000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 // 插屏广告计时器不受全局暂停影响，继续计时
@@ -2347,16 +3009,32 @@ public class QuizActivity extends AppCompatActivity {
                 // 插屏广告计时器不受全局暂停影响，继续处理
                 // 不检查isGlobalTimerPaused，确保广告能正常显示
 
-                // 10秒计时结束，直接显示广告（如果已加载）
-                if (isInterstitialAdLoaded) {
-                    Log.d(TAG, "10秒计时结束，广告已加载，直接显示广告");
+                // 检查Activity生命周期状态，避免在不适合的时机显示广告
+                if (isFinishing() || isDestroyed()) {
+                    Log.d(TAG, "Activity已处于结束/销毁状态，不显示插屏广告");
+                    return;
+                }
+
+                // 检查并显示广告（如果已加载且满足显示条件）
+                if (isInterstitialAdLoaded && shouldShowInterstitialAd()) {
+                    Log.d(TAG, "广告已加载且满足显示条件，直接显示广告");
                     // 更新上次广告显示时间
                     lastInterstitialAdShownTime = System.currentTimeMillis();
+                    // 暂停所有计时器
+                    pauseAllTimers();
                     TakuAdManager.getInstance().showInterstitialAd(QuizActivity.this);
+                } else if (isInterstitialAdLoaded) {
+                    Log.d(TAG, "广告已加载但不满足显示条件，重新启动计时器");
+                    // 广告已加载但不满足显示条件，重新启动计时器
+                    startInterstitialAdTimer();
                 } else {
-                    // 广告未加载完成，继续检查（每1秒检查一次）
-                    Log.d(TAG, "10秒计时结束，广告未加载完成，继续检查");
-                    startInterstitialAdCheckTimer();
+                    // 广告未加载完成，重新启动加载过程并设置新的计时器
+                    Log.d(TAG, "广告未加载完成，重新启动加载过程");
+                    interstitialAdTimer.cancel();
+                    // 重新预加载插屏广告
+                    preloadNextInterstitialAd();
+                    // 重新启动10秒计时器
+                    startInterstitialAdTimer();
                 }
             }
         };
@@ -2389,19 +3067,30 @@ public class QuizActivity extends AppCompatActivity {
                 // 插屏广告检查计时器不受全局暂停影响，继续处理
                 // 不检查isGlobalTimerPaused，确保广告能正常显示
 
+                // 检查Activity生命周期状态，避免在不适合的时机显示广告
+                if (isFinishing() || isDestroyed()) {
+                    Log.d(TAG, "Activity已处于结束/销毁状态，不显示插屏广告");
+                    return;
+                }
+
                 // 检查广告是否已加载完成
                 if (isInterstitialAdLoaded) {
-                    // 广告已加载，立即显示
-                    Log.d(TAG, "广告加载完成，立即显示广告");
+                    // 广告已加载，检查是否可以显示
                     if (shouldShowInterstitialAd()) {
+                        Log.d(TAG, "广告加载完成，立即显示广告");
                         // 更新上次广告显示时间
                         lastInterstitialAdShownTime = System.currentTimeMillis();
+                        // 暂停所有计时器
+                        pauseAllTimers();
                         TakuAdManager.getInstance().showInterstitialAd(QuizActivity.this);
+                    } else {
+                        Log.d(TAG, "广告已加载但不满足显示条件，继续检查");
+                        // 继续检查，1秒后再次触发
+                        startInterstitialAdCheckTimer();
                     }
                 } else {
-                    // 广告未加载完成，继续检查
-                    Log.d(TAG, "广告未加载完成，继续检查");
-                    startInterstitialAdCheckTimer();
+                    // 广告未加载完成，停止检查，等待下次计时器触发
+                    Log.d(TAG, "广告未加载完成，停止检查，等待下次计时器触发");
                 }
             }
         };
@@ -2415,6 +3104,7 @@ public class QuizActivity extends AppCompatActivity {
     private void preloadNextInterstitialAd() {
         // 如果广告未在加载且未加载完成，则开始预加载
         if (!isLoadingInterstitialAd && !isInterstitialAdLoaded) {
+            // 重置广告加载状态
             isLoadingInterstitialAd = true;
             Log.d(TAG, "开始预加载下一个插屏广告");
             // 使用正确的预加载方法，而不是立即显示广告
@@ -2427,6 +3117,79 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     /**
+     * 检查插屏广告状态并跳转到登录页面
+     * 如果插屏广告正在显示，则等待广告关闭后再跳转
+     */
+    private void checkInterstitialAdAndJumpToLogin() {
+        Log.d(TAG, "检查插屏广告状态并准备跳转到登录页面");
+
+        // 检查插屏广告是否正在显示
+        if (isInterstitialAdShowing) {
+            Log.d(TAG, "插屏广告正在显示，等待广告关闭后再跳转");
+
+            // 设置一个最大等待时间（例如30秒），避免无限等待
+            final long maxWaitTime = 30000; // 30秒
+            final long startTime = System.currentTimeMillis();
+
+            // 创建一个Runnable来检查广告状态
+            final Runnable checkAdStatusRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    long currentTime = System.currentTimeMillis();
+                    long elapsedTime = currentTime - startTime;
+
+                    // 检查是否超时
+                    if (elapsedTime >= maxWaitTime) {
+                        Log.w(TAG, "等待插屏广告关闭超时，强制跳转到登录页面");
+                        jumpToLoginActivity();
+                        return;
+                    }
+
+                    // 检查插屏广告是否已关闭
+                    if (!isInterstitialAdShowing) {
+                        Log.d(TAG, "插屏广告已关闭，开始跳转到登录页面");
+                        jumpToLoginActivity();
+                    } else {
+                        Log.d(TAG, "插屏广告仍在显示，继续等待...");
+                        // 继续等待，1秒后再次检查
+                        handler.postDelayed(this, 1000);
+                    }
+                }
+            };
+
+            // 开始检查广告状态
+            handler.postDelayed(checkAdStatusRunnable, 1000);
+        } else {
+            Log.d(TAG, "插屏广告未显示，直接跳转到登录页面");
+            jumpToLoginActivity();
+        }
+    }
+
+    /**
+     * 跳转到登录页面的具体实现
+     */
+    private void jumpToLoginActivity() {
+        Log.d(TAG, "开始跳转回登录页面");
+
+        // 检查是否是第一次登录后的15秒加载流程
+        Intent intent = getIntent();
+        boolean showLoading = intent.getBooleanExtra("show_loading", false);
+
+        if (showLoading) {
+            // 只有在第一次登录后的15秒加载流程中才设置has_quiz_loaded标志
+            Log.d(TAG, "第一次登录后的15秒加载流程完成，设置has_quiz_loaded标志");
+            SharedPreferenceUtil.putBoolean(QuizActivity.this, "has_quiz_loaded", true);
+        } else {
+            Log.d(TAG, "第二次登录后的正常使用流程，不设置has_quiz_loaded标志");
+        }
+
+        Intent loginIntent = new Intent(QuizActivity.this, LoginActivity.class);
+        loginIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(loginIntent);
+        finish();
+    }
+
+    /**
      * 检查是否应该显示插屏广告
      *
      * @return 是否应该显示广告
@@ -2435,6 +3198,12 @@ public class QuizActivity extends AppCompatActivity {
         // 如果激励广告正在播放，则不显示插屏广告
         if (isRewardAdPlaying) {
             Log.d(TAG, "激励广告正在播放，不显示插屏广告");
+            return false;
+        }
+
+        // 如果插屏广告正在显示，则不重复显示
+        if (isInterstitialAdShowing) {
+            Log.d(TAG, "插屏广告正在显示中，不重复显示");
             return false;
         }
 
@@ -2470,6 +3239,7 @@ public class QuizActivity extends AppCompatActivity {
                         Toast.makeText(QuizActivity.this, error, Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(QuizActivity.this,
                                 com.fortunequizking.activity.LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         startActivity(intent);
                         finish();
                     });

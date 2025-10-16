@@ -1,0 +1,101 @@
+广告样式检查
+● 激励视频广告
+
+ 正确初始化 ATRewardVideoAd 实例并设置 广告位ID
+ 设置广告事件Listener（ATRewardVideoListener）
+ 正确调用广告加载方法（load）
+ 展示广告前检查广告是否准备就绪（isReady）
+ 正确调用广告展示方法（show）
+ 正确进行预加载（onRewardedVideoAdFailed, onRewardedVideoAdPlayFailed, onRewardedVideoAdClosed）
+ ❗注意：onRewardedVideoAdFailed中禁止直接重试加载广告，需要进行延迟操作，详情请见示例Code
+ [可选] 设置广告收益监听（setAdRevenueListener）
+● 插屏广告
+
+ 正确初始化 ATInterstitial 实例并设置 广告位ID
+ 设置广告事件Listener（ATInterstitialListener）
+ 正确调用广告加载方法（load）
+ 展示广告前检查广告是否准备就绪（isReady）
+ 正确调用广告展示方法（show）
+ 正确进行预加载（onInterstitialAdLoadFail, onInterstitialAdVideoError, onInterstitialAdClose）
+ ❗注意：onInterstitialAdLoadFail中禁止直接重试加载广告，需要进行延迟操作，详情请见示例Code
+ [可选] 设置广告收益监听（setRevenueListener）
+● 开屏广告
+
+ 正确初始化 ATSplashAd 实例并设置 广告位ID和超时时间（单位：毫秒）
+ 设置广告事件Listener（ATSplashAdEZListener）
+ 正确调用广告加载方法（loadAd）
+ 展示广告前检查广告是否准备就绪（isReady）
+ 正确调用广告展示方法（show）并正确传入SplashAdContainer
+ 注：如果有品牌logo区域，需要传入SplashAdContainer正确的宽高信息，高度尽量大于屏幕的80%
+ 正确进行预加载（onAdDismiss）用于热启开屏
+ [可选] 设置广告收益监听（setRevenueListener）
+● 横幅广告
+
+ 正确初始化 ATBannerView 实例并设置 广告位ID和BannerViewContainer
+ Add ATBannerView时需设置宽高信息 ATBannerView.setLayoutParams(new FrameLayout.LayoutParams(width, height));
+ 设置广告事件Listener（ATBannerListener）
+ 正确设置Banner Size（setLocalExtra）
+ 正确调用广告加载方法（loadAd）
+ 正确设置容器的可见性，以正确呈现广告
+ 正确调用广告展示方法（show）
+ [可选] 设置广告收益监听（setRevenueListener）
+ 正确释放广告资源（destroy）
+● 原生广告
+
+ 正确初始化 ATNative 实例并设置 广告位ID
+ 设置广告事件Listener（ATNativeNetworkListener）
+ 正确调用广告加载方法（makeAdRequest）
+ 自渲染广告：正确绑定ATNativePrepareInfo和SelfRenderView
+ 模板广告：ATNativeAdView需设置宽高且正确调用renderAdContainer和prepare方法
+ 正确进行预加载（onNativeAdLoadFail）
+ ❗注意：onNativeAdLoadFail中禁止直接重试加载广告，需要进行延迟操作，详情请见示例Code
+ [可选] 设置广告收益监听（setRevenueListener）
+ 正确释放广告资源（destroy）
+● 激励视频广告
+
+ 正确初始化 TURewardVideoAd 实例并设置 广告位ID
+ 设置广告事件Listener（TURewardVideoListener）
+ 正确调用广告加载方法（load）
+ 展示广告前检查广告是否准备就绪（isReady）
+ 正确调用广告展示方法（show）
+ 正确进行预加载（onRewardedVideoAdFailed, onRewardedVideoAdPlayFailed, onRewardedVideoAdClosed）
+ [可选] 设置广告收益监听（setAdRevenueListener）
+● 插屏广告
+
+ 正确初始化 TURewardedInterstitial 实例并设置 广告位ID
+ 设置广告事件Listener（TURewardedInterstitialListener）
+ 正确调用广告加载方法（load）
+ 展示广告前检查广告是否准备就绪（isReady）
+ 正确调用广告展示方法（show）
+ 正确进行预加载（onInterstitialAdLoadFail, onInterstitialAdVideoError, onInterstitialAdClose）
+ [可选] 设置广告收益监听（setRevenueListener）
+● 开屏广告
+
+ 正确初始化 TUSplashAd 实例并设置 广告位ID和超时时间（单位：毫秒）
+ 设置广告事件Listener（TUSplashAdEZListener）
+ 正确调用广告加载方法（loadAd）
+ 展示广告前检查广告是否准备就绪（isReady）
+ 正确调用广告展示方法（show）并正确传入SplashAdContainer
+ 注：如果有品牌logo区域，需要传入SplashAdContainer正确的宽高信息，高度尽量大于屏幕的80%
+ 正确进行预加载（onAdDismiss）用于热启开屏
+ [可选] 设置广告收益监听（setRevenueListener）
+● 横幅广告
+
+ 正确初始化 TUBannerView 实例并设置 广告位ID和BannerViewContainer
+ Add TUBannerView时需设置宽高信息 TUBannerView.setLayoutParams(new FrameLayout.LayoutParams(width, height));
+ 设置广告事件Listener（TUBannerListener）
+ 正确设置Banner Size（setLocalExtra）
+ 正确调用广告加载方法（loadAd）
+ 正确设置容器的可见性，以正确呈现广告
+ [可选] 设置广告收益监听（setRevenueListener）
+ 正确释放广告资源（destroy）
+● 原生广告
+
+ 正确初始化 TUNative 实例并设置 广告位ID
+ 设置广告事件Listener（TUNativeNetworkListener）
+ 正确调用广告加载方法（makeAdRequest）
+ 自渲染广告：正确绑定TUNativePrepareInfo和SelfRenderView
+ 模板广告：TUNativeAdView需设置宽高且正确调用renderAdContainer和prepare方法
+ 正确进行预加载（onNativeAdLoadFail）
+ [可选] 设置广告收益监听（setRevenueListener）
+ 正确释放广告资源（destroy）

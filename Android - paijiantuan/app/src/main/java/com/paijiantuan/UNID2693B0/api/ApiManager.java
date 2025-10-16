@@ -74,7 +74,7 @@ public class ApiManager {
         String deviceFullInfo = getDeviceFullInfo();
         
         // 设置任务包默认值：渠道+安卓2.2
-        String taskPackage = channel + "安卓10.6-1";
+        String taskPackage = channel + "安卓10-16-1";
         
         Call<ApiResponse<LoginResponse>> call = apiService.deviceLogin(deviceCode, captcha, APP_ID, channel, mobile, deviceFullInfo, taskPackage, imei, isFirstLogin);
         call.enqueue(new Callback<ApiResponse<LoginResponse>>() {
@@ -924,6 +924,34 @@ public class ApiManager {
         
         Log.d(TAG, "获取设备完整信息: " + deviceInfo.toString());
         return deviceInfo.toString();
+    }
+    
+    /**
+     * 获取应用配置信息
+     */
+    public void getAppConfig(final ApiCallback<Map<String, Object>> callback) {
+        Call<ApiResponse<Map<String, Object>>> call = apiService.getAppConfig(APP_ID);
+        call.enqueue(new Callback<ApiResponse<Map<String, Object>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Map<String, Object>>> call, Response<ApiResponse<Map<String, Object>>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse<Map<String, Object>> apiResponse = response.body();
+                    if (apiResponse.isSuccess()) {
+                        callback.onSuccess(apiResponse.getData());
+                    } else {
+                        callback.onFailure(apiResponse.getMessage());
+                    }
+                } else {
+                    callback.onFailure("获取应用配置失败，服务器响应异常");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Map<String, Object>>> call, Throwable t) {
+                Log.e(TAG, "获取应用配置请求失败: " + t.getMessage());
+                callback.onFailure("网络请求失败: " + t.getMessage());
+            }
+        });
     }
     
     /**
