@@ -3387,36 +3387,7 @@ public class QuizActivity extends AppCompatActivity {
                         }
                     }
 
-                    // 设置风控状态
-                    riskControlTriggered = isRiskTriggered;
-
-                    // 保存之前的风控等级，用于检测变化
-                    int previousAdCooldownLevel = currentAdCooldownLevel;
-
-                    // 从后端获取层级信息
-                    if (result instanceof Map) {
-                        Map<String, Object> data = (Map<String, Object>) result;
-                        if (data.containsKey("risk_level")) {
-                            Object riskLevelObj = data.get("risk_level");
-                            if (riskLevelObj instanceof Number) {
-                                currentAdCooldownLevel = ((Number) riskLevelObj).intValue();
-                            } else if (riskLevelObj instanceof String) {
-                                try {
-                                    currentAdCooldownLevel = Integer.parseInt((String) riskLevelObj);
-                                } catch (NumberFormatException e) {
-                                    currentAdCooldownLevel = 1; // 解析失败时使用第一层
-                                }
-                            }
-                        } else if (isRiskTriggered) {
-                            // 如果没有层级信息但触发了风控，设置为第一层
-                            currentAdCooldownLevel = 1;
-                        }
-                    } else if (isRiskTriggered) {
-                        // 非Map类型结果但触发了风控，设置为第一层
-                        currentAdCooldownLevel = 1;
-                    }
-
-                    // 处理邀约风控类型
+                    // 处理邀约风控类型 - 邀约风控不触发冷却时间
                     if ("invitation".equals(riskType) && !isInvitationDialogShown) {
                         // 获取渠道名称
                         String channelName = apiManager.getChannel();
@@ -3424,18 +3395,63 @@ public class QuizActivity extends AppCompatActivity {
                         showInvitationDialog(userId, channelName);
                         // 标记弹窗已显示
                         isInvitationDialogShown = true;
+                        
+                        // 邀约风控不设置风控状态和冷却时间
+                        riskControlTriggered = false;
+                        currentAdCooldownLevel = 0;
+                        Log.d(TAG, "邀约风控已处理，不触发冷却时间");
+                    } else {
+                        // 设置风控状态（非邀约风控才触发冷却）
+                        riskControlTriggered = isRiskTriggered;
+
+                        // 保存之前的风控等级，用于检测变化
+                        int previousAdCooldownLevel = currentAdCooldownLevel;
+
+                        // 从后端获取层级信息
+                        if (result instanceof Map) {
+                            Map<String, Object> data = (Map<String, Object>) result;
+                            if (data.containsKey("risk_level")) {
+                                Object riskLevelObj = data.get("risk_level");
+                                if (riskLevelObj instanceof Number) {
+                                    currentAdCooldownLevel = ((Number) riskLevelObj).intValue();
+                                } else if (riskLevelObj instanceof String) {
+                                    try {
+                                        currentAdCooldownLevel = Integer.parseInt((String) riskLevelObj);
+                                    } catch (NumberFormatException e) {
+                                        currentAdCooldownLevel = 1; // 解析失败时使用第一层
+                                    }
+                                }
+                            } else if (isRiskTriggered) {
+                                // 如果没有层级信息但触发了风控，设置为第一层
+                                currentAdCooldownLevel = 1;
+                            }
+                        } else if (isRiskTriggered) {
+                            // 非Map类型结果但触发了风控，设置为第一层
+                            currentAdCooldownLevel = 1;
+                        }
                     }
 
                     if (context.equals("初始化")) {
-                        // 如果风控检查结果与当前状态不同，更新状态
-                        if (isAdCooldownActive != isRiskTriggered) {
-                            isAdCooldownActive = isRiskTriggered;
-                            // 如果风控触发状态变化，重新启动计时器
+                        // 如果是邀约风控，不启动冷却计时器
+                        if (!"invitation".equals(riskType)) {
+                            // 如果风控检查结果与当前状态不同，更新状态
+                            if (isAdCooldownActive != isRiskTriggered) {
+                                isAdCooldownActive = isRiskTriggered;
+                                // 如果风控触发状态变化，重新启动计时器
+                                if (adCooldownTimer != null) {
+                                    adCooldownTimer.cancel();
+                                    adCooldownTimer = null;
+                                }
+                                startAdCooldownTimer();
+                            }
+                        } else {
+                            // 邀约风控：取消初始化时启动的计时器
                             if (adCooldownTimer != null) {
                                 adCooldownTimer.cancel();
                                 adCooldownTimer = null;
                             }
-                            startAdCooldownTimer();
+                            isAdCooldownActive = false;
+                            resumeAllTimers();
                         }
                     } else {
                         resumeAllTimers();
