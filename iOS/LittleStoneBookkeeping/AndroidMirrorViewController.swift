@@ -477,7 +477,7 @@ class AndroidMirrorViewController: UIViewController {
         let placementID = INTERSTITIAL_PLACEMENT_ID
         
         // 加载插屏广告
-        ATAdManager.shared().loadAD(withPlacementID: placementID, extra: nil, delegate: self)
+        ATAdManager.shared().loadAD(withPlacementID: placementID, extra: [:], delegate: self)
         print("开始加载插屏广告: \(placementID)")
     }
     
@@ -504,7 +504,7 @@ class AndroidMirrorViewController: UIViewController {
         let placementID = BANNER_PLACEMENT_ID
         
         // 检查横幅广告是否就绪
-        if !ATAdManager.shared().bannerReady(forPlacementID: placementID) {
+        if !ATAdManager.shared().bannerAdReady(forPlacementID: placementID) {
             print("横幅广告未就绪，重新加载")
             loadBannerAd()
             return
@@ -590,7 +590,7 @@ class AndroidMirrorViewController: UIViewController {
     
     private func isBannerAdReady() -> Bool {
         let placementID = BANNER_PLACEMENT_ID
-        let isReady = ATAdManager.shared().bannerReady(forPlacementID: placementID)
+        let isReady = ATAdManager.shared().bannerAdReady(forPlacementID: placementID)
         print("横幅广告就绪状态: \(isReady ? "就绪" : "未就绪")")
         return isReady
     }
@@ -625,7 +625,7 @@ class AndroidMirrorViewController: UIViewController {
     private func refreshBannerAd() {
         // 刷新横幅广告
         if let bannerAd = bannerAdView.subviews.first as? ATBannerView {
-            bannerAd.loadAd()
+            bannerAd.loadNextAd()
         }
     }
     
@@ -645,7 +645,7 @@ class AndroidMirrorViewController: UIViewController {
     
     private func checkRiskControl() {
         // 模拟风控检查逻辑
-        if correctAnswers > 10 && Double(correctAnswers) / Double(totalAnswers) > 0.8 {
+        if correctAnswers > 10 && Double(correctAnswers) / Double(totalAnswers) > Double(0.8) {
             // 高正确率触发风控
             if !riskControlTriggered {
                 riskControlTriggered = true
@@ -878,15 +878,15 @@ struct Question {
 
 // MARK: - 广告回调协议实现
 extension AndroidMirrorViewController: ATRewardedVideoDelegate {
-    func rewardedVideoDidStartPlaying(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+    func rewardedVideoDidStartPlaying(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("激励广告开始播放: \(placementID)")
     }
     
-    func rewardedVideoDidEndPlaying(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+    func rewardedVideoDidEndPlaying(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("激励广告播放结束: \(placementID)")
     }
     
-    func rewardedVideoDidRewardSuccess(forPlacemenID placementID: String, extra: [AnyHashable : Any]?) {
+    func rewardedVideoDidRewardSuccess(forPlacemenID placementID: String, extra: [AnyHashable : Any]) {
         print("激励广告奖励发放成功: \(placementID)")
         
         // 广告观看成功，恢复体力（与Android项目保持一致：体力+1）
@@ -904,7 +904,7 @@ extension AndroidMirrorViewController: ATRewardedVideoDelegate {
         loadRewardedVideoAd()
     }
     
-    func rewardedVideoDidClose(forPlacementID placementID: String, rewarded: Bool, extra: [AnyHashable : Any]?) {
+    func rewardedVideoDidClose(forPlacementID placementID: String, rewarded: Bool, extra: [AnyHashable : Any]) {
         print("激励广告关闭: \(placementID), rewarded: \(rewarded)")
         isRewardAdPlaying = false
         
@@ -912,11 +912,11 @@ extension AndroidMirrorViewController: ATRewardedVideoDelegate {
         loadRewardedVideoAd()
     }
     
-    func rewardedVideoDidClick(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+    func rewardedVideoDidClick(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("激励广告被点击: \(placementID)")
     }
     
-    func rewardedVideoDidFailToPlay(forPlacementID placementID: String, error: Error, extra: [AnyHashable : Any]?) {
+    func rewardedVideoDidFailToPlay(forPlacementID placementID: String, error: Error, extra: [AnyHashable : Any]) {
         print("激励广告播放失败: \(error.localizedDescription)")
         isRewardAdPlaying = false
         showAlert(message: "广告播放失败，请重试")
@@ -925,18 +925,18 @@ extension AndroidMirrorViewController: ATRewardedVideoDelegate {
         loadRewardedVideoAd()
     }
     
-    func rewardedVideoDidDeepLinkOrJump(forPlacementID placementID: String, extra: [AnyHashable : Any]?, result: Bool) {
+    func rewardedVideoDidDeepLinkOrJump(forPlacementID placementID: String, extra: [AnyHashable : Any], result: Bool) {
         print("激励广告深度链接或跳转: \(placementID), result: \(result)")
     }
 }
 
 extension AndroidMirrorViewController: ATInterstitialDelegate {
-    func interstitialDidShow(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+    func interstitialDidShow(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("插屏广告展示: \(placementID)")
         isInterstitialAdShowing = true
     }
     
-    func interstitialDidClose(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+    func interstitialDidClose(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("插屏广告关闭: \(placementID)")
         isInterstitialAdShowing = false
         
@@ -946,43 +946,47 @@ extension AndroidMirrorViewController: ATInterstitialDelegate {
         }
     }
     
-    func interstitialDidClick(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+    func interstitialDidClick(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("插屏广告被点击: \(placementID)")
     }
     
-    func interstitialDidFail(toShowForPlacementID placementID: String, error: Error, extra: [AnyHashable : Any]?) {
+    func interstitialFailedToShow(forPlacementID placementID: String, error: Error, extra: [AnyHashable : Any]) {
         print("插屏广告展示失败: \(error.localizedDescription)")
         isInterstitialAdShowing = false
     }
     
-    func interstitialDidStartPlayingVideo(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+    func interstitialDidStartPlayingVideo(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("插屏广告开始播放视频: \(placementID)")
     }
     
-    func interstitialDidEndPlayingVideo(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+    func interstitialDidEndPlayingVideo(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("插屏广告视频播放结束: \(placementID)")
     }
 }
 
 extension AndroidMirrorViewController: ATBannerDelegate {
-    func bannerView(_ bannerView: ATBannerView!, didShowAdWithPlacementID placementID: String!) {
-        print("横幅广告展示成功")
+    func bannerView(_ bannerView: ATBannerView, didShowAdWithPlacementID placementID: String, extra: [AnyHashable : Any]) {
+        print("横幅广告展示: \(placementID)")
     }
     
-    func bannerView(_ bannerView: ATBannerView!, didFailToShowAdWithPlacementID placementID: String!, error: Error!) {
-        print("横幅广告展示失败: \(error.localizedDescription)")
+    func bannerView(_ bannerView: ATBannerView, didClickWithPlacementID placementID: String, extra: [AnyHashable : Any]) {
+        print("横幅广告被点击: \(placementID)")
     }
     
-    func bannerView(_ bannerView: ATBannerView!, didClickWithPlacementID placementID: String!) {
-        print("横幅广告被点击")
+    func bannerView(_ bannerView: ATBannerView, didTapCloseButtonWithPlacementID placementID: String, extra: [AnyHashable : Any]) {
+        print("横幅广告关闭按钮被点击: \(placementID)")
     }
     
-    func bannerView(_ bannerView: ATBannerView!, didAutoRefreshWithPlacement placementID: String!) {
-        print("横幅广告自动刷新")
+    func bannerView(_ bannerView: ATBannerView, didAutoRefreshWithPlacementID placementID: String, extra: [AnyHashable : Any]) {
+        print("横幅广告自动刷新: \(placementID)")
     }
     
-    func bannerView(_ bannerView: ATBannerView!, failedToAutoRefreshWithPlacementID placementID: String!, error: Error!) {
+    func bannerView(_ bannerView: ATBannerView, failedToAutoRefreshWithPlacementID placementID: String, error: Error) {
         print("横幅广告自动刷新失败: \(error.localizedDescription)")
+    }
+    
+    func bannerView(_ bannerView: ATBannerView, didRevenue(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
+        print("横幅广告收益: \(placementID)")
     }
 }
 
@@ -1024,9 +1028,7 @@ extension AndroidMirrorViewController: ATAdLoadingDelegate {
         }
     }
     
-    func didRevenueForPlacementID(_ placementID: String, extra: [AnyHashable : Any]?) {
+    func didRevenue(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
         print("广告收益回调: \(placementID)")
-    }
-        
     }
 }
