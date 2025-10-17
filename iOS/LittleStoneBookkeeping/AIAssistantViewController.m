@@ -1,4 +1,6 @@
 #import "AIAssistantViewController.h"
+#import <AVFoundation/AVFoundation.h>
+#import <Photos/Photos.h>
 
 @interface AIAssistantViewController () <UIImagePickerControllerDelegate, UINavigationControllerDelegate>
 

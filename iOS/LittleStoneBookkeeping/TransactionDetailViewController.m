@@ -1,4 +1,5 @@
 #import "TransactionDetailViewController.h"
+#import <UIKit/UIKit.h>
 
 @interface TransactionDetailViewController ()
 
