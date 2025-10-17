@@ -10,7 +10,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // 初始化AnyThink SDK
-        ATAPI.sharedInstance()?.start(withAppID: "a67f4ab312d2be", appKey: "7eae0567827cfe2b22874061763f30c9")
+        ATAPI.start(withAppID: "a67f4ab312d2be", appKey: "7eae0567827cfe2b22874061763f30c9")
         
         // 设置日志级别
         ATAPI.setLogEnabled(true)
@@ -19,7 +19,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         setupInterfaceSwitchNotification()
         
         // 加载开屏广告
-        loadSplashAd()
+        let loadConfigDict = NSMutableDictionary()
+        // 开屏超时时间设置为5秒
+        loadConfigDict.setValue(5, forKey: kATSplashExtraTolerateTimeoutKey)
+        // 自定义load参数
+        loadConfigDict.setValue("media_val_Splash", forKey: kATAdLoadingExtraMediaExtraKey)
+        
+        ATAdManager.shared().loadAD(
+            withPlacementID: SPLASH_PLACEMENT_ID,
+            extra: loadConfigDict,
+            delegate: self
+        )
         
         return true
     }
@@ -58,11 +68,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // 自定义load参数
         loadConfigDict.setValue("media_val_Splash", forKey: kATAdLoadingExtraMediaExtraKey)
         
-        ATAdManager.sharedManager().loadAD(
+        ATAdManager.shared().loadAD(
             withPlacementID: SPLASH_PLACEMENT_ID,
             extra: loadConfigDict,
-            delegate: self,
-            containerView: createFootLogoView()
+            delegate: self
         )
     }
     
@@ -89,19 +98,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     private func showSplashAd() {
         // 检查开屏广告是否就绪
-        if ATAdManager.sharedManager().splashReady(forPlacementID: SPLASH_PLACEMENT_ID) {
+        if ATAdManager.shared().splashReady(forPlacementID: SPLASH_PLACEMENT_ID) {
             // 场景统计功能
-            ATAdManager.sharedManager().entrySplashScenario(withPlacementID: SPLASH_PLACEMENT_ID, scene: "")
+            ATAdManager.shared().entrySplashScenario(withPlacementID: SPLASH_PLACEMENT_ID, scene: "")
             
             // 展示配置
             let config = ATShowConfig(scene: "", showCustomExt: "testShowCustomExt")
             
             // 展示开屏广告
-            ATAdManager.sharedManager().showSplash(
+            ATAdManager.shared().showSplash(
                 withPlacementID: SPLASH_PLACEMENT_ID,
                 config: config,
                 window: UIApplication.shared.windows.first,
-                inViewController: UIApplication.shared.windows.first?.rootViewController,
                 extra: nil,
                 delegate: self
             )
@@ -126,24 +134,47 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 }
 
+// MARK: - ATAdLoadingDelegate
+
+extension AppDelegate: ATAdLoadingDelegate {
+    
+    func didFinishLoadingAD(withPlacementID placementID: String) {
+        print("广告加载成功: \(placementID)")
+        
+        if placementID == SPLASH_PLACEMENT_ID {
+            // 开屏广告加载成功，展示广告
+            showSplashAd()
+        }
+    }
+    
+    func didFailToLoadAD(withPlacementID placementID: String, error: Error) {
+        print("广告加载失败: \(placementID), 错误: \(error.localizedDescription)")
+        
+        if placementID == SPLASH_PLACEMENT_ID {
+            // 开屏广告加载失败，直接进入应用
+            print("开屏广告加载失败，直接进入应用")
+        }
+    }
+}
+
 // MARK: - ATSplashDelegate
 
 extension AppDelegate: ATSplashDelegate {
     
-    func splashDidShow(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
-        print("开屏广告展示成功: \(placementID)")
+    func splashDidShow(forPlacementID placementID: String?, extra: [AnyHashable : Any]?) {
+        print("开屏广告展示成功: \(placementID ?? "未知")")
     }
     
-    func splashDidClick(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
-        print("开屏广告被点击: \(placementID)")
+    func splashDidClick(forPlacementID placementID: String?, extra: [AnyHashable : Any]?) {
+        print("开屏广告被点击: \(placementID ?? "未知")")
     }
     
-    func splashDidClose(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
-        print("开屏广告关闭: \(placementID)")
+    func splashDidClose(forPlacementID placementID: String?, extra: [AnyHashable : Any]?) {
+        print("开屏广告关闭: \(placementID ?? "未知")")
     }
     
-    func splashDidShowFailed(forPlacementID placementID: String, error: Error, extra: [AnyHashable : Any]?) {
-        print("开屏广告展示失败: \(error.localizedDescription)")
+    func splashDidShowFailed(forPlacementID placementID: String?, error: Error?, extra: [AnyHashable : Any]?) {
+        print("开屏广告展示失败: \(error?.localizedDescription ?? "未知错误")")
     }
     
     func didFinishLoadingSplashAD(withPlacementID placementID: String, isTimeout: Bool) {

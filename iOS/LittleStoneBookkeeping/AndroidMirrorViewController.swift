@@ -853,8 +853,8 @@ extension AndroidMirrorViewController: ATRewardedVideoDelegate {
         print("激励广告被点击")
     }
     
-    func rewardedVideoDidFail(toPlayForPlacementID placementID: String?, error: Error) {
-        print("激励广告播放失败: \(error.localizedDescription)")
+    func rewardedVideoDidFail(toPlayForPlacementID placementID: String?, error: Error?) {
+        print("激励广告播放失败: \(error?.localizedDescription ?? "未知错误")")
         isRewardAdPlaying = false
         showAlert(message: "广告播放失败，请重试")
     }
@@ -880,8 +880,8 @@ extension AndroidMirrorViewController: ATInterstitialDelegate {
         print("插屏广告被点击")
     }
     
-    func interstitialDidFail(toShowForPlacementID placementID: String?, error: Error) {
-        print("插屏广告展示失败: \(error.localizedDescription)")
+    func interstitialDidFail(toShowForPlacementID placementID: String?, error: Error?) {
+        print("插屏广告展示失败: \(error?.localizedDescription ?? "未知错误")")
         isInterstitialAdShowing = false
     }
     
@@ -899,8 +899,8 @@ extension AndroidMirrorViewController: ATBannerDelegate {
         print("横幅广告展示成功")
     }
     
-    func bannerView(_ bannerView: ATBannerView!, didFailToShowAdWithPlacementID placementID: String!, error: Error!) {
-        print("横幅广告展示失败: \(error?.localizedDescription ?? "未知错误")")
+    func bannerView(_ bannerView: ATBannerView!, didFailToShowAdWithPlacementID placementID: String!, error: Error?) {
+        print("横幅广告展示失败: \(error?.localizedDescription ?? \"未知错误\")")
     }
     
     func bannerView(_ bannerView: ATBannerView!, didClickWithPlacementID placementID: String!) {
@@ -911,8 +911,44 @@ extension AndroidMirrorViewController: ATBannerDelegate {
         print("横幅广告自动刷新")
     }
     
-    func bannerView(_ bannerView: ATBannerView!, failedToAutoRefreshWithPlacementID placementID: String!, error: Error!) {
-        print("横幅广告自动刷新失败: \(error?.localizedDescription ?? "未知错误")")
+    func bannerView(_ bannerView: ATBannerView!, failedToAutoRefreshWithPlacementID placementID: String!, error: Error?) {
+        print("横幅广告自动刷新失败: \(error?.localizedDescription ?? \"未知错误\")")
+    }
+}
+
+// MARK: - ATAdLoadingDelegate
+extension AndroidMirrorViewController: ATAdLoadingDelegate {
+    
+    func didFinishLoadingAD(withPlacementID placementID: String) {
+        print("广告加载成功: \(placementID)")
+        
+        if placementID == REWARDED_VIDEO_PLACEMENT_ID {
+            // 更新UI状态
+            DispatchQueue.main.async {
+                self.watchAdButton.isEnabled = true
+                self.watchAdButton.setTitle("看广告恢复体力", for: .normal)
+            }
+        } else if placementID == BANNER_PLACEMENT_ID {
+            // 显示横幅广告
+            DispatchQueue.main.async {
+                self.showBannerAd()
+            }
+        }
+    }
+    
+    func didFailToLoadAD(withPlacementID placementID: String, error: Error) {
+        print("广告加载失败: \(placementID), 错误: \(error.localizedDescription)")
+        
+        // 5秒后重试加载
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            if placementID == REWARDED_VIDEO_PLACEMENT_ID {
+                self.loadRewardedVideoAd()
+            } else if placementID == INTERSTITIAL_PLACEMENT_ID {
+                self.loadInterstitialAd()
+            } else if placementID == BANNER_PLACEMENT_ID {
+                self.loadBannerAd()
+            }
+        }
     }
 }
 
@@ -930,7 +966,7 @@ extension AndroidMirrorViewController {
         }
     }
     
-    func rewardedVideoAutoAdLoadFailed(_ placementID: String!, error: Error!) {
+    func rewardedVideoAutoAdLoadFailed(_ placementID: String!, error: Error?) {
         print("激励视频广告加载失败: \(error?.localizedDescription ?? "未知错误")")
         
         // 5秒后重试加载
@@ -944,7 +980,7 @@ extension AndroidMirrorViewController {
         print("插屏广告加载成功: \(placementID ?? "未知")")
     }
     
-    func interstitialAutoAdLoadFailed(_ placementID: String!, error: Error!) {
+    func interstitialAutoAdLoadFailed(_ placementID: String!, error: Error?) {
         print("插屏广告加载失败: \(error?.localizedDescription ?? "未知错误")")
         
         // 5秒后重试加载
@@ -963,7 +999,7 @@ extension AndroidMirrorViewController {
         }
     }
     
-    func bannerAutoAdLoadFailed(_ placementID: String!, error: Error!) {
+    func bannerAutoAdLoadFailed(_ placementID: String!, error: Error?) {
         print("横幅广告加载失败: \(error?.localizedDescription ?? "未知错误")")
         
         // 5秒后重试加载
