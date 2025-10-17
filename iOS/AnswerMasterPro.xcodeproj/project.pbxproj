@@ -10,7 +10,7 @@
 		AddTransactionViewController_swift_build /* AddTransactionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AddTransactionViewController_swift /* AddTransactionViewController.swift */; };
 		AndroidMirrorViewController_swift_build /* AndroidMirrorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AndroidMirrorViewController_swift /* AndroidMirrorViewController.swift */; };
 		AppDelegate_swift_build /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AppDelegate_swift /* AppDelegate.swift */; };
-		B366961B7FF96A94481A2007 /* Pods_LittleStoneBookkeeping.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E3D894D1611CBCD1E0591888 /* Pods_LittleStoneBookkeeping.framework */; };
+
 		DataManager_swift_build /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DataManager_swift /* DataManager.swift */; };
 		FeedbackViewController_swift_build /* FeedbackViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FeedbackViewController_swift /* FeedbackViewController.swift */; };
 		LaunchScreen_storyboard_build /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = LaunchScreen_storyboard /* LaunchScreen.storyboard */; };
@@ -21,13 +21,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		00CC2BEAC8CEA28E228F9667 /* Pods-LittleStoneBookkeeping.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LittleStoneBookkeeping.release.xcconfig"; path = "../../Pods/Target Support Files/Pods-LittleStoneBookkeeping/Pods-LittleStoneBookkeeping.release.xcconfig"; sourceTree = "<group>"; };
 		AddTransactionViewController_swift /* AddTransactionViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddTransactionViewController.swift; sourceTree = "<group>"; };
 		AndroidMirrorViewController_swift /* AndroidMirrorViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AndroidMirrorViewController.swift; sourceTree = "<group>"; };
 		AppDelegate_swift /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		BA0C5C8E2C462A26753BF00E /* Pods-LittleStoneBookkeeping.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LittleStoneBookkeeping.debug.xcconfig"; path = "../../Pods/Target Support Files/Pods-LittleStoneBookkeeping/Pods-LittleStoneBookkeeping.debug.xcconfig"; sourceTree = "<group>"; };
 		DataManager_swift /* DataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataManager.swift; sourceTree = "<group>"; };
-		E3D894D1611CBCD1E0591888 /* Pods_LittleStoneBookkeeping.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LittleStoneBookkeeping.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FeedbackViewController_swift /* FeedbackViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedbackViewController.swift; sourceTree = "<group>"; };
 		LaunchScreen_storyboard /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		LittleStoneBookkeeping_app /* LittleStoneBookkeeping.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LittleStoneBookkeeping.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -42,7 +39,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B366961B7FF96A94481A2007 /* Pods_LittleStoneBookkeeping.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -52,19 +48,8 @@
 		35B0127A3A3309C54A433793 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				E3D894D1611CBCD1E0591888 /* Pods_LittleStoneBookkeeping.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		E3500ADB2764F21B4A347BB6 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				BA0C5C8E2C462A26753BF00E /* Pods-LittleStoneBookkeeping.debug.xcconfig */,
-				00CC2BEAC8CEA28E228F9667 /* Pods-LittleStoneBookkeeping.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		Group = {
@@ -80,7 +65,6 @@
 				AndroidMirrorViewController_swift /* AndroidMirrorViewController.swift */,
 				ProfileViewController_swift /* ProfileViewController.swift */,
 				LaunchScreen_storyboard /* LaunchScreen.storyboard */,
-				E3500ADB2764F21B4A347BB6 /* Pods */,
 				35B0127A3A3309C54A433793 /* Frameworks */,
 			);
 			path = LittleStoneBookkeeping;
