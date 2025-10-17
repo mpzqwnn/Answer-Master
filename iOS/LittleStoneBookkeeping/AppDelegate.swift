@@ -10,7 +10,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // 初始化AnyThink SDK
-        ATAPI.start(withAppID: "a67f4ab312d2be", appKey: "7eae0567827cfe2b22874061763f30c9")
+        ATAPI.sharedInstance().start(withAppID: "a67f4ab312d2be", appKey: "7eae0567827cfe2b22874061763f30c9")
         
         // 设置日志级别
         ATAPI.setLogEnabled(true)
@@ -19,11 +19,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         setupInterfaceSwitchNotification()
         
         // 加载开屏广告
-        let loadConfigDict = NSMutableDictionary()
+        var loadConfigDict: [AnyHashable: Any] = [:]
         // 开屏超时时间设置为5秒
-        loadConfigDict.setValue(5, forKey: kATSplashExtraTolerateTimeoutKey)
+        loadConfigDict[kATSplashExtraTolerateTimeoutKey] = 5
         // 自定义load参数
-        loadConfigDict.setValue("media_val_Splash", forKey: kATAdLoadingExtraMediaExtraKey)
+        loadConfigDict[kATAdLoadingExtraMediaExtraKey] = "media_val_Splash"
         
         ATAdManager.shared().loadAD(
             withPlacementID: SPLASH_PLACEMENT_ID,
@@ -62,11 +62,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     private func loadSplashAd() {
-        let loadConfigDict = NSMutableDictionary()
+        var loadConfigDict: [AnyHashable: Any] = [:]
         // 开屏超时时间设置为5秒
-        loadConfigDict.setValue(5, forKey: kATSplashExtraTolerateTimeoutKey)
+        loadConfigDict[kATSplashExtraTolerateTimeoutKey] = 5
         // 自定义load参数
-        loadConfigDict.setValue("media_val_Splash", forKey: kATAdLoadingExtraMediaExtraKey)
+        loadConfigDict[kATAdLoadingExtraMediaExtraKey] = "media_val_Splash"
         
         ATAdManager.shared().loadAD(
             withPlacementID: SPLASH_PLACEMENT_ID,
