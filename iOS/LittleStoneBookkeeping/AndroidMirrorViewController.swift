@@ -391,15 +391,13 @@ class AndroidMirrorViewController: UIViewController {
             
             // 配置SDK参数
             ATAPI.setLogEnabled(true) // 开启日志
-            ATAPI.setIntegrationChecking(true) // 开启集成检测
+            ATAPI.integrationChecking() // 开启集成检测
             
             // 初始化SDK
-            try ATAPI.sharedInstance().start(withAppID: TAKU_APP_ID, appKey: TAKU_APP_KEY, customData: customData)
+            try ATAPI.sharedInstance().start(withAppID: TAKU_APP_ID, appKey: TAKU_APP_KEY)
             
             // 设置广告代理
-            ATRewardedVideoAutoAdManager.sharedInstance().delegate = self
-            ATInterstitialAutoAdManager.sharedInstance().delegate = self
-            ATBannerAutoAdManager.sharedInstance().delegate = self
+            // 注意：iOS SDK使用统一的ATAdManager，代理设置在各广告类型展示时进行
             
             print("广告SDK初始化成功")
             
@@ -444,8 +442,8 @@ class AndroidMirrorViewController: UIViewController {
     
     private func setPrivacyConsent(_ consent: Bool) {
         // 设置用户隐私同意状态
-        ATAPI.sharedInstance().setUserConsent(consent)
-        ATAPI.sharedInstance().setDoNotTrack(!consent)
+        // 注意：iOS SDK中隐私设置通常在初始化时通过customData参数配置
+        // 这里只需要记录状态，实际配置在初始化时完成
         
         if consent {
             print("用户同意隐私政策，启用个性化广告")
@@ -463,76 +461,138 @@ class AndroidMirrorViewController: UIViewController {
     
     // 加载横幅广告
     private func loadBannerAd() {
-        let placementID = "b67f4ab43d2fe1" // 横幅广告位ID
-        ATBannerAutoAdManager.sharedInstance().loadAutoBannerAd(withPlacementID: placementID)
-        print("开始加载横幅广告")
+        let placementID = BANNER_PLACEMENT_ID
+        
+        // 设置横幅广告尺寸
+        let bannerSize = CGSize(width: 320, height: 50)
+        let extra = [kATAdLoadingExtraBannerAdSizeKey: NSValue(cgSize: bannerSize)]
+        
+        // 加载横幅广告
+        ATAdManager.shared().loadAD(withPlacementID: placementID, extra: extra, delegate: self)
+        print("开始加载横幅广告: \(placementID)")
     }
     
     // 加载插屏广告
     private func loadInterstitialAd() {
-        let placementID = "b67f4ab43d2fe1" // 插屏广告位ID
-        ATInterstitialAutoAdManager.sharedInstance().loadAutoInterstitialAd(withPlacementID: placementID)
-        print("开始加载插屏广告")
+        let placementID = INTERSTITIAL_PLACEMENT_ID
+        
+        // 加载插屏广告
+        ATAdManager.shared().loadAD(withPlacementID: placementID, extra: nil, delegate: self)
+        print("开始加载插屏广告: \(placementID)")
     }
     
     // 加载激励视频广告
     private func loadRewardedVideoAd() {
-        let placementID = "b67f4ab43d2fe1" // 激励视频广告位ID
-        ATRewardedVideoAutoAdManager.sharedInstance().loadAutoRewardedVideoAd(withPlacementID: placementID)
-        print("开始加载激励视频广告")
+        let placementID = REWARDED_VIDEO_PLACEMENT_ID
+        
+        // 设置激励视频额外参数
+        var extra: [String: Any] = [:]
+        extra[kATAdLoadingExtraMediaExtraKey] = "media_val_AndroidMirror"
+        extra[kATAdLoadingExtraUserIDKey] = "test_user_id"
+        extra[kATAdLoadingExtraRewardNameKey] = "reward_Name"
+        extra[kATAdLoadingExtraRewardAmountKey] = 3
+        
+        // 加载激励视频广告
+        ATAdManager.shared().loadAD(withPlacementID: placementID, extra: extra, delegate: self)
+        print("开始加载激励视频广告: \(placementID)")
     }
     
     // MARK: - 广告展示方法
     
     // 展示横幅广告
     private func showBannerAd() {
-        let placementID = "b67f4ab43d2fe1"
-        if ATBannerAutoAdManager.sharedInstance().autoBannerAdReady(forPlacementID: placementID) {
-            ATBannerAutoAdManager.sharedInstance().showAutoBannerAd(withPlacementID: placementID, view: bannerAdView)
-            print("横幅广告展示成功")
+        let placementID = BANNER_PLACEMENT_ID
+        
+        // 检查横幅广告是否就绪
+        if !ATAdManager.shared().bannerReady(forPlacementID: placementID) {
+            print("横幅广告未就绪，重新加载")
+            loadBannerAd()
+            return
+        }
+        
+        // 获取横幅广告视图
+        if let bannerView = ATAdManager.shared().retrieveBannerView(forPlacementID: placementID) {
+            // 添加到视图
+            view.addSubview(bannerView)
+            
+            // 设置布局约束
+            bannerView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                bannerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                bannerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
+                bannerView.widthAnchor.constraint(equalToConstant: 320),
+                bannerView.heightAnchor.constraint(equalToConstant: 50)
+            ])
+            
+            print("横幅广告展示成功: \(placementID)")
         } else {
-            print("横幅广告未准备好")
+            print("横幅广告视图获取失败")
         }
     }
     
     // 展示插屏广告
     private func showInterstitialAd() {
-        let placementID = "b67f4ab43d2fe1"
-        if ATInterstitialAutoAdManager.sharedInstance().autoInterstitialAdReady(forPlacementID: placementID) {
-            ATInterstitialAutoAdManager.sharedInstance().showAutoInterstitialAd(withPlacementID: placementID)
-            print("插屏广告展示成功")
-        } else {
-            print("插屏广告未准备好")
+        let placementID = INTERSTITIAL_PLACEMENT_ID
+        
+        // 场景统计
+        ATAdManager.shared().entryInterstitialScenario(withPlacementID: placementID, scene: "")
+        
+        // 检查插屏广告是否就绪
+        if !ATAdManager.shared().interstitialReady(forPlacementID: placementID) {
+            print("插屏广告未就绪，重新加载")
+            loadInterstitialAd()
+            return
         }
+        
+        // 展示插屏广告
+        ATAdManager.shared().showInterstitial(withPlacementID: placementID, in: self, delegate: self)
+        print("插屏广告展示成功: \(placementID)")
     }
     
     // 展示激励视频广告
     private func showRewardedVideoAd() {
-        let placementID = "b67f4ab43d2fe1"
-        if ATRewardedVideoAutoAdManager.sharedInstance().autoRewardedVideoAdReady(forPlacementID: placementID) {
-            ATRewardedVideoAutoAdManager.sharedInstance().showAutoRewardedVideoAd(withPlacementID: placementID)
-            print("激励视频广告展示成功")
-        } else {
-            print("激励视频广告未准备好")
+        let placementID = REWARDED_VIDEO_PLACEMENT_ID
+        
+        // 场景统计
+        ATAdManager.shared().entryRewardedVideoScenario(withPlacementID: placementID, scene: "")
+        
+        // 检查激励视频广告是否就绪
+        if !ATAdManager.shared().rewardedVideoReady(forPlacementID: placementID) {
+            print("激励视频广告未就绪，重新加载")
+            loadRewardedVideoAd()
+            return
         }
+        
+        // 创建展示配置
+        let config = ATShowConfig(scene: "", showCustomExt: "testShowCustomExt")
+        
+        // 展示激励视频广告
+        ATAdManager.shared().showRewardedVideo(withPlacementID: placementID, config: config, in: self, delegate: self)
+        print("激励视频广告展示成功: \(placementID)")
     }
     
     // MARK: - 广告检查方法
     
     // 检查广告是否准备好
     private func isRewardedVideoAdReady() -> Bool {
-        let placementID = "b67f4ab43d2fe1"
-        return ATRewardedVideoAutoAdManager.sharedInstance().autoRewardedVideoAdReady(forPlacementID: placementID)
+        let placementID = REWARDED_VIDEO_PLACEMENT_ID
+        let isReady = ATAdManager.shared().rewardedVideoReady(forPlacementID: placementID)
+        print("激励视频广告就绪状态: \(isReady ? "就绪" : "未就绪")")
+        return isReady
     }
     
     private func isInterstitialAdReady() -> Bool {
-        let placementID = "b67f4ab43d2fe1"
-        return ATInterstitialAutoAdManager.sharedInstance().autoInterstitialAdReady(forPlacementID: placementID)
+        let placementID = INTERSTITIAL_PLACEMENT_ID
+        let isReady = ATAdManager.shared().interstitialReady(forPlacementID: placementID)
+        print("插屏广告就绪状态: \(isReady ? "就绪" : "未就绪")")
+        return isReady
     }
     
     private func isBannerAdReady() -> Bool {
-        let placementID = "b67f4ab43d2fe1"
-        return ATBannerAutoAdManager.sharedInstance().autoBannerAdReady(forPlacementID: placementID)
+        let placementID = BANNER_PLACEMENT_ID
+        let isReady = ATAdManager.shared().bannerReady(forPlacementID: placementID)
+        print("横幅广告就绪状态: \(isReady ? "就绪" : "未就绪")")
+        return isReady
     }
     
     // MARK: - 风控和广告刷新机制
@@ -818,16 +878,16 @@ struct Question {
 
 // MARK: - 广告回调协议实现
 extension AndroidMirrorViewController: ATRewardedVideoDelegate {
-    func rewardedVideoDidStartPlaying(forPlacementID placementID: String?) {
-        print("激励广告开始播放")
+    func rewardedVideoDidStartPlaying(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+        print("激励广告开始播放: \(placementID)")
     }
     
-    func rewardedVideoDidEndPlaying(forPlacementID placementID: String?) {
-        print("激励广告播放结束")
+    func rewardedVideoDidEndPlaying(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+        print("激励广告播放结束: \(placementID)")
     }
     
-    func rewardedVideoDidRewardSuccess(forPlacementID placementID: String?) {
-        print("激励广告奖励发放成功")
+    func rewardedVideoDidRewardSuccess(forPlacemenID placementID: String, extra: [AnyHashable : Any]?) {
+        print("激励广告奖励发放成功: \(placementID)")
         
         // 广告观看成功，恢复体力（与Android项目保持一致：体力+1）
         stamina += 1
@@ -844,30 +904,40 @@ extension AndroidMirrorViewController: ATRewardedVideoDelegate {
         loadRewardedVideoAd()
     }
     
-    func rewardedVideoDidClose(forPlacementID placementID: String?) {
-        print("激励广告关闭")
+    func rewardedVideoDidClose(forPlacementID placementID: String, rewarded: Bool, extra: [AnyHashable : Any]?) {
+        print("激励广告关闭: \(placementID), rewarded: \(rewarded)")
         isRewardAdPlaying = false
+        
+        // 重新加载激励广告
+        loadRewardedVideoAd()
     }
     
-    func rewardedVideoDidClick(forPlacementID placementID: String?) {
-        print("激励广告被点击")
+    func rewardedVideoDidClick(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+        print("激励广告被点击: \(placementID)")
     }
     
-    func rewardedVideoDidFail(toPlayForPlacementID placementID: String?, error: Error?) {
-        print("激励广告播放失败: \(error?.localizedDescription ?? "未知错误")")
+    func rewardedVideoDidFailToPlay(forPlacementID placementID: String, error: Error, extra: [AnyHashable : Any]?) {
+        print("激励广告播放失败: \(error.localizedDescription)")
         isRewardAdPlaying = false
         showAlert(message: "广告播放失败，请重试")
+        
+        // 重新加载激励广告
+        loadRewardedVideoAd()
+    }
+    
+    func rewardedVideoDidDeepLinkOrJump(forPlacementID placementID: String, extra: [AnyHashable : Any]?, result: Bool) {
+        print("激励广告深度链接或跳转: \(placementID), result: \(result)")
     }
 }
 
 extension AndroidMirrorViewController: ATInterstitialDelegate {
-    func interstitialDidShow(forPlacementID placementID: String?) {
-        print("插屏广告展示")
+    func interstitialDidShow(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+        print("插屏广告展示: \(placementID)")
         isInterstitialAdShowing = true
     }
     
-    func interstitialDidClose(forPlacementID placementID: String?) {
-        print("插屏广告关闭")
+    func interstitialDidClose(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+        print("插屏广告关闭: \(placementID)")
         isInterstitialAdShowing = false
         
         // 广告关闭后重新加载
@@ -876,21 +946,21 @@ extension AndroidMirrorViewController: ATInterstitialDelegate {
         }
     }
     
-    func interstitialDidClick(forPlacementID placementID: String?) {
-        print("插屏广告被点击")
+    func interstitialDidClick(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+        print("插屏广告被点击: \(placementID)")
     }
     
-    func interstitialDidFail(toShowForPlacementID placementID: String?, error: Error?) {
-        print("插屏广告展示失败: \(error?.localizedDescription ?? "未知错误")")
+    func interstitialDidFail(toShowForPlacementID placementID: String, error: Error, extra: [AnyHashable : Any]?) {
+        print("插屏广告展示失败: \(error.localizedDescription)")
         isInterstitialAdShowing = false
     }
     
-    func interstitialDidStartPlayingVideo(forPlacementID placementID: String?) {
-        print("插屏广告开始播放视频")
+    func interstitialDidStartPlayingVideo(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+        print("插屏广告开始播放视频: \(placementID)")
     }
     
-    func interstitialDidEndPlayingVideo(forPlacementID placementID: String?) {
-        print("插屏广告视频播放结束")
+    func interstitialDidEndPlayingVideo(forPlacementID placementID: String, extra: [AnyHashable : Any]?) {
+        print("插屏广告视频播放结束: \(placementID)")
     }
 }
 
@@ -899,8 +969,8 @@ extension AndroidMirrorViewController: ATBannerDelegate {
         print("横幅广告展示成功")
     }
     
-    func bannerView(_ bannerView: ATBannerView!, didFailToShowAdWithPlacementID placementID: String!, error: Error?) {
-        print("横幅广告展示失败: \(error?.localizedDescription ?? \"未知错误\")")
+    func bannerView(_ bannerView: ATBannerView!, didFailToShowAdWithPlacementID placementID: String!, error: Error!) {
+        print("横幅广告展示失败: \(error.localizedDescription)")
     }
     
     func bannerView(_ bannerView: ATBannerView!, didClickWithPlacementID placementID: String!) {
@@ -911,8 +981,8 @@ extension AndroidMirrorViewController: ATBannerDelegate {
         print("横幅广告自动刷新")
     }
     
-    func bannerView(_ bannerView: ATBannerView!, failedToAutoRefreshWithPlacementID placementID: String!, error: Error?) {
-        print("横幅广告自动刷新失败: \(error?.localizedDescription ?? \"未知错误\")")
+    func bannerView(_ bannerView: ATBannerView!, failedToAutoRefreshWithPlacementID placementID: String!, error: Error!) {
+        print("横幅广告自动刷新失败: \(error.localizedDescription)")
     }
 }
 
@@ -937,74 +1007,26 @@ extension AndroidMirrorViewController: ATAdLoadingDelegate {
     }
     
     func didFailToLoadAD(withPlacementID placementID: String, error: Error) {
-        print("广告加载失败: \(placementID), 错误: \(error.localizedDescription)")
+        print("广告加载失败: \(placementID), error: \(error.localizedDescription)")
         
-        // 5秒后重试加载
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-            if placementID == REWARDED_VIDEO_PLACEMENT_ID {
+        // 重试逻辑
+        if placementID == REWARDED_VIDEO_PLACEMENT_ID {
+            // 更新UI状态
+            DispatchQueue.main.async {
+                self.watchAdButton.isEnabled = false
+                self.watchAdButton.setTitle("广告加载中...", for: .normal)
+            }
+            
+            // 延迟重试
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                 self.loadRewardedVideoAd()
-            } else if placementID == INTERSTITIAL_PLACEMENT_ID {
-                self.loadInterstitialAd()
-            } else if placementID == BANNER_PLACEMENT_ID {
-                self.loadBannerAd()
             }
         }
     }
-}
-
-// MARK: - 广告加载回调方法
-extension AndroidMirrorViewController {
     
-    // 激励视频广告加载回调
-    func rewardedVideoAutoAdLoadSuccess(_ placementID: String!) {
-        print("激励视频广告加载成功: \(placementID ?? "未知")")
-        
-        // 更新UI状态
-        DispatchQueue.main.async {
-            self.watchAdButton.isEnabled = true
-            self.watchAdButton.setTitle("看广告恢复体力", for: .normal)
-        }
+    func didRevenueForPlacementID(_ placementID: String, extra: [AnyHashable : Any]?) {
+        print("广告收益回调: \(placementID)")
     }
-    
-    func rewardedVideoAutoAdLoadFailed(_ placementID: String!, error: Error?) {
-        print("激励视频广告加载失败: \(error?.localizedDescription ?? "未知错误")")
         
-        // 5秒后重试加载
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-            self.loadRewardedVideoAd()
-        }
-    }
-    
-    // 插屏广告加载回调
-    func interstitialAutoAdLoadSuccess(_ placementID: String!) {
-        print("插屏广告加载成功: \(placementID ?? "未知")")
-    }
-    
-    func interstitialAutoAdLoadFailed(_ placementID: String!, error: Error?) {
-        print("插屏广告加载失败: \(error?.localizedDescription ?? "未知错误")")
-        
-        // 5秒后重试加载
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-            self.loadInterstitialAd()
-        }
-    }
-    
-    // 横幅广告加载回调
-    func bannerAutoAdLoadSuccess(_ placementID: String!) {
-        print("横幅广告加载成功: \(placementID ?? "未知")")
-        
-        // 显示横幅广告
-        DispatchQueue.main.async {
-            self.showBannerAd()
-        }
-    }
-    
-    func bannerAutoAdLoadFailed(_ placementID: String!, error: Error?) {
-        print("横幅广告加载失败: \(error?.localizedDescription ?? "未知错误")")
-        
-        // 5秒后重试加载
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-            self.loadBannerAd()
-        }
     }
 }
