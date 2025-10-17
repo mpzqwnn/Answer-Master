@@ -1,5 +1,6 @@
 import UIKit
 import StoreKit
+import AnyThinkSDK
 
 class ProfileViewController: UIViewController {
     
@@ -236,7 +237,8 @@ class ProfileViewController: UIViewController {
     @objc private func showFeedback() {
         let feedbackVC = FeedbackViewController()
         feedbackVC.interfaceSwitchHandler = { [weak self] in
-            self?.switchInterface()
+            // 当从反馈页面返回时，不需要执行界面切换
+            // 只需确保页面正常关闭即可
         }
         let navController = UINavigationController(rootViewController: feedbackVC)
         present(navController, animated: true)
