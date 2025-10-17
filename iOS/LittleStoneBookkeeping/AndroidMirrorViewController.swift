@@ -623,10 +623,8 @@ class AndroidMirrorViewController: UIViewController {
     }
     
     private func refreshBannerAd() {
-        // 刷新横幅广告
-        if let bannerAd = bannerAdView.subviews.first as? ATBannerView {
-            bannerAd.loadAd()
-        }
+        // 刷新横幅广告 - 通过ATAdManager重新加载
+        loadBannerAd()
     }
     
     private func checkAdStatus() {
@@ -645,7 +643,7 @@ class AndroidMirrorViewController: UIViewController {
     
     private func checkRiskControl() {
         // 模拟风控检查逻辑
-        if correctAnswers > 10 && Double(correctAnswers) / Double(totalAnswers) > Double(0.8) {
+        if correctAnswers > 10 && totalAnswers > 0 && Double(correctAnswers) / Double(totalAnswers) > 0.8 {
             // 高正确率触发风控
             if !riskControlTriggered {
                 riskControlTriggered = true
