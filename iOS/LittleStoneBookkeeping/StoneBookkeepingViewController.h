@@ -2,7 +2,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface StoneBookkeepingViewController : UIViewController
+@interface StoneBookkeepingViewController : UIViewController <UITableViewDataSource, UITableViewDelegate>
 
 @end
 

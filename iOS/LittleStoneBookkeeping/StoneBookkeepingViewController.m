@@ -2,6 +2,8 @@
 #import "DataManager.h"
 #import "AddTransactionViewController.h"
 #import "ProfileViewController.h"
+#import "AIAssistantViewController.h"
+#import "TransactionDetailViewController.h"
 #import "Transaction.h"
 #import "Category.h"
 
@@ -395,7 +397,7 @@
     
     // 调整表格视图的底部约束，避免被导航栏遮挡
     [NSLayoutConstraint deactivateConstraints:[self.tableView.constraints filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSLayoutConstraint *constraint, NSDictionary *bindings) {
-        return [constraint.firstAttribute isEqualToString:NSLayoutAttributeBottom] && [constraint.firstItem isEqual:self.tableView];
+        return constraint.firstAttribute == NSLayoutAttributeBottom && [constraint.firstItem isEqual:self.tableView];
     }]]];
     
     [NSLayoutConstraint activateConstraints:@[
@@ -528,7 +530,6 @@
 
 - (void)showAIAssistant {
     // 跳转到AI助手页面
-    #import "AIAssistantViewController.h"
     AIAssistantViewController *aiAssistantVC = [[AIAssistantViewController alloc] init];
     [self.navigationController pushViewController:aiAssistantVC animated:YES];
 }
@@ -581,7 +582,6 @@
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     
     // 跳转到交易详情页
-    #import "TransactionDetailViewController.h"
     TransactionDetailViewController *detailVC = [[TransactionDetailViewController alloc] init];
     detailVC.transaction = self.transactions[indexPath.row];
     [self.navigationController pushViewController:detailVC animated:YES];
