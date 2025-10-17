@@ -73,6 +73,11 @@ typedef NS_ENUM(NSInteger, InterfaceType) {
         [stackView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         [stackView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-20]
     ]];
+    
+    // 为容器视图添加高度约束，确保它有足够的空间显示内容
+    [NSLayoutConstraint activateConstraints:@[
+        [self.containerView.heightAnchor constraintGreaterThanOrEqualToConstant:400]
+    ]];
 }
 
 - (void)switchInterface {

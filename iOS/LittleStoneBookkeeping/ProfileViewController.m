@@ -1,23 +1,13 @@
 #import "ProfileViewController.h"
-#import "FeedbackViewController.h"
 
 @interface ProfileViewController ()
 
-// 用户信息
-@property (nonatomic, strong) UIImageView *userAvatarImageView;
+@property (nonatomic, strong) UIView *headerView;
+@property (nonatomic, strong) UIImageView *avatarImageView;
 @property (nonatomic, strong) UILabel *userNameLabel;
-@property (nonatomic, strong) UILabel *phoneLabel;
 @property (nonatomic, strong) UILabel *userIdLabel;
-
-// 原生广告占位
-@property (nonatomic, strong) UIView *nativeAdView;
-
-// 功能按钮
-@property (nonatomic, strong) UIButton *feedbackButton;
-@property (nonatomic, strong) UIButton *rateButton;
-@property (nonatomic, strong) UIButton *aboutButton;
-@property (nonatomic, strong) UIButton *privacyButton;
-@property (nonatomic, strong) UIButton *termsButton;
+@property (nonatomic, strong) UITableView *settingsTableView;
+@property (nonatomic, strong) NSArray *settingsSections;
 
 @end
 
@@ -25,312 +15,242 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    self.title = @"我的";
+    self.view.backgroundColor = [UIColor systemBackgroundColor];
+    
+    [self setupData];
     [self setupUI];
-    [self loadUserInfo];
+}
+
+- (void)setupData {
+    // 设置菜单项
+    self.settingsSections = @[
+        @{
+            @"title": @"我的数据",
+            @"items": @[
+                @{@"title": @"账单详情", @"icon": @"chart.bar", @"showArrow": @(YES)},
+                @{@"title": @"数据统计", @"icon": @"chart.pie", @"showArrow": @(YES)}
+            ]
+        },
+        @{
+            @"title": @"设置",
+            @"items": @[
+                @{@"title": @"关于我们", @"icon": @"info.circle", @"showArrow": @(YES)},
+                @{@"title": @"隐私协议", @"icon": @"shield", @"showArrow": @(YES)},
+                @{@"title": @"用户协议", @"icon": @"doc.text", @"showArrow": @(YES)}
+            ]
+        }
+    ];
 }
 
 - (void)setupUI {
-    self.view.backgroundColor = [UIColor systemBackgroundColor];
-    self.title = @"我的";
-    
-    // 初始化UI组件
-    [self setupUserInfoSection];
-    [self setupFunctionButtons];
-    [self setupNativeAdSection];
-    
-    // 布局
+    [self setupHeaderView];
+    [self setupTableView];
     [self setupLayout];
 }
 
-- (void)setupUserInfoSection {
-    self.userAvatarImageView = [[UIImageView alloc] init];
-    self.userNameLabel = [[UILabel alloc] init];
-    self.phoneLabel = [[UILabel alloc] init];
-    self.userIdLabel = [[UILabel alloc] init];
+- (void)setupHeaderView {
+    self.headerView = [[UIView alloc] init];
+    self.headerView.backgroundColor = [UIColor systemBlueColor];
+    self.headerView.translatesAutoresizingMaskIntoConstraints = NO;
     
-    // 用户头像
-    self.userAvatarImageView.image = [UIImage systemImageNamed:@"person.circle.fill"];
-    self.userAvatarImageView.tintColor = [UIColor systemBlueColor];
-    self.userAvatarImageView.contentMode = UIViewContentModeScaleAspectFill;
-    self.userAvatarImageView.layer.cornerRadius = 30;
-    self.userAvatarImageView.clipsToBounds = YES;
+    // 头像
+    self.avatarImageView = [[UIImageView alloc] init];
+    self.avatarImageView.image = [UIImage systemImageNamed:@"person.circle"];
+    self.avatarImageView.contentMode = UIViewContentModeScaleAspectFit;
+    self.avatarImageView.tintColor = [UIColor whiteColor];
+    self.avatarImageView.translatesAutoresizingMaskIntoConstraints = NO;
     
     // 用户名
-    self.userNameLabel.font = [UIFont boldSystemFontOfSize:18];
-    self.userNameLabel.text = @"用户昵称";
-    
-    // 手机号
-    self.phoneLabel.font = [UIFont systemFontOfSize:14];
-    self.phoneLabel.textColor = [UIColor systemGrayColor];
+    self.userNameLabel = [[UILabel alloc] init];
+    self.userNameLabel.text = @"150****0212";
+    self.userNameLabel.textColor = [UIColor whiteColor];
+    self.userNameLabel.font = [UIFont systemFontOfSize:20 weight:UIFontWeightMedium];
+    self.userNameLabel.translatesAutoresizingMaskIntoConstraints = NO;
     
     // 用户ID
-    self.userIdLabel.font = [UIFont systemFontOfSize:12];
-    self.userIdLabel.textColor = [UIColor systemGray2Color];
-}
-
-- (void)setupFunctionButtons {
-    self.feedbackButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    self.rateButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    self.aboutButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    self.privacyButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    self.termsButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    self.userIdLabel = [[UILabel alloc] init];
+    self.userIdLabel.text = @"ID: 0233";
+    self.userIdLabel.textColor = [UIColor colorWithRed:0.9 green:0.9 blue:1.0 alpha:1.0];
+    self.userIdLabel.font = [UIFont systemFontOfSize:14];
+    self.userIdLabel.translatesAutoresizingMaskIntoConstraints = NO;
     
-    // 意见反馈
-    [self.feedbackButton setTitle:@"意见反馈" forState:UIControlStateNormal];
-    [self.feedbackButton setImage:[UIImage systemImageNamed:@"text.bubble"] forState:UIControlStateNormal];
-    [self.feedbackButton addTarget:self action:@selector(showFeedback) forControlEvents:UIControlEventTouchUpInside];
+    // 添加子视图
+    [self.headerView addSubview:self.avatarImageView];
+    [self.headerView addSubview:self.userNameLabel];
+    [self.headerView addSubview:self.userIdLabel];
     
-    // 给个好评
-    [self.rateButton setTitle:@"给个好评" forState:UIControlStateNormal];
-    [self.rateButton setImage:[UIImage systemImageNamed:@"star.fill"] forState:UIControlStateNormal];
-    [self.rateButton addTarget:self action:@selector(rateApp) forControlEvents:UIControlEventTouchUpInside];
-    
-    // 关于我们
-    [self.aboutButton setTitle:@"关于我们" forState:UIControlStateNormal];
-    [self.aboutButton setImage:[UIImage systemImageNamed:@"info.circle"] forState:UIControlStateNormal];
-    [self.aboutButton addTarget:self action:@selector(showAbout) forControlEvents:UIControlEventTouchUpInside];
-    
-    // 隐私协议
-    [self.privacyButton setTitle:@"隐私协议" forState:UIControlStateNormal];
-    [self.privacyButton setImage:[UIImage systemImageNamed:@"lock.shield"] forState:UIControlStateNormal];
-    [self.privacyButton addTarget:self action:@selector(showPrivacy) forControlEvents:UIControlEventTouchUpInside];
-    
-    // 用户协议
-    [self.termsButton setTitle:@"用户协议" forState:UIControlStateNormal];
-    [self.termsButton setImage:[UIImage systemImageNamed:@"doc.text"] forState:UIControlStateNormal];
-    [self.termsButton addTarget:self action:@selector(showTerms) forControlEvents:UIControlEventTouchUpInside];
-}
-
-- (void)setupNativeAdSection {
-    self.nativeAdView = [[UIView alloc] init];
-    self.nativeAdView.backgroundColor = [UIColor systemGray5Color];
-    self.nativeAdView.layer.cornerRadius = 8;
-    
-    UILabel *adLabel = [[UILabel alloc] init];
-    adLabel.text = @"广告";
-    adLabel.textAlignment = NSTextAlignmentCenter;
-    adLabel.textColor = [UIColor systemGrayColor];
-    adLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    
-    [self.nativeAdView addSubview:adLabel];
-    
+    // 布局
     [NSLayoutConstraint activateConstraints:@[
-        [adLabel.centerXAnchor constraintEqualToAnchor:self.nativeAdView.centerXAnchor],
-        [adLabel.centerYAnchor constraintEqualToAnchor:self.nativeAdView.centerYAnchor]
+        [self.avatarImageView.topAnchor constraintEqualToAnchor:self.headerView.topAnchor constant:32],
+        [self.avatarImageView.centerXAnchor constraintEqualToAnchor:self.headerView.centerXAnchor],
+        [self.avatarImageView.widthAnchor constraintEqualToConstant:80],
+        [self.avatarImageView.heightAnchor constraintEqualToConstant:80],
+        
+        [self.userNameLabel.topAnchor constraintEqualToAnchor:self.avatarImageView.bottomAnchor constant:16],
+        [self.userNameLabel.centerXAnchor constraintEqualToAnchor:self.headerView.centerXAnchor],
+        
+        [self.userIdLabel.topAnchor constraintEqualToAnchor:self.userNameLabel.bottomAnchor constant:8],
+        [self.userIdLabel.centerXAnchor constraintEqualToAnchor:self.headerView.centerXAnchor],
+        [self.userIdLabel.bottomAnchor constraintEqualToAnchor:self.headerView.bottomAnchor constant:-32]
     ]];
+}
+
+- (void)setupTableView {
+    self.settingsTableView = [[UITableView alloc] init];
+    self.settingsTableView.delegate = self;
+    self.settingsTableView.dataSource = self;
+    self.settingsTableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    self.settingsTableView.showsVerticalScrollIndicator = NO;
+    self.settingsTableView.translatesAutoresizingMaskIntoConstraints = NO;
     
-    // 设置高度约束
-    NSLayoutConstraint *heightConstraint = [self.nativeAdView.heightAnchor constraintEqualToConstant:100];
-    heightConstraint.active = YES;
+    // 注册单元格
+    [self.settingsTableView registerClass:[UITableViewCell class] forCellReuseIdentifier:@"SettingCell"];
+    
+    [self.view addSubview:self.settingsTableView];
 }
 
 - (void)setupLayout {
-    UIView *userInfoCard = [self createUserInfoCard];
-    UIView *functionButtonsCard = [self createFunctionButtonsCard];
-    
-    UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
-        userInfoCard,
-        functionButtonsCard,
-        self.nativeAdView
-    ]];
-    stackView.axis = UILayoutConstraintAxisVertical;
-    stackView.spacing = 16;
-    stackView.translatesAutoresizingMaskIntoConstraints = NO;
-    
-    [self.view addSubview:stackView];
+    [self.view addSubview:self.headerView];
     
     [NSLayoutConstraint activateConstraints:@[
-        [stackView.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:16],
-        [stackView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
-        [stackView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
-        [stackView.bottomAnchor constraintLessThanOrEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-16]
-    ]];
-}
-
-- (UIView *)createUserInfoCard {
-    UIView *cardView = [[UIView alloc] init];
-    cardView.backgroundColor = [UIColor systemGray6Color];
-    cardView.layer.cornerRadius = 12;
-    
-    UIStackView *infoStack = [[UIStackView alloc] initWithArrangedSubviews:@[
-        self.userAvatarImageView,
-        [self createUserInfoStack]
-    ]];
-    infoStack.axis = UILayoutConstraintAxisHorizontal;
-    infoStack.spacing = 12;
-    infoStack.alignment = UIStackViewAlignmentCenter;
-    infoStack.translatesAutoresizingMaskIntoConstraints = NO;
-    
-    [cardView addSubview:infoStack];
-    
-    [NSLayoutConstraint activateConstraints:@[
-        [self.userAvatarImageView.widthAnchor constraintEqualToConstant:60],
-        [self.userAvatarImageView.heightAnchor constraintEqualToConstant:60],
+        [self.headerView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.headerView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.headerView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.headerView.heightAnchor constraintEqualToConstant:250],
         
-        [infoStack.topAnchor constraintEqualToAnchor:cardView.topAnchor constant:16],
-        [infoStack.leadingAnchor constraintEqualToAnchor:cardView.leadingAnchor constant:16],
-        [infoStack.trailingAnchor constraintEqualToAnchor:cardView.trailingAnchor constant:-16],
-        [infoStack.bottomAnchor constraintEqualToAnchor:cardView.bottomAnchor constant:-16]
+        [self.settingsTableView.topAnchor constraintEqualToAnchor:self.headerView.bottomAnchor constant:-20],
+        [self.settingsTableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16],
+        [self.settingsTableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16],
+        [self.settingsTableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
     ]];
-    
-    return cardView;
 }
 
-- (UIStackView *)createUserInfoStack {
-    UIStackView *infoStack = [[UIStackView alloc] initWithArrangedSubviews:@[
-        self.userNameLabel,
-        self.phoneLabel,
-        self.userIdLabel
-    ]];
-    infoStack.axis = UILayoutConstraintAxisVertical;
-    infoStack.spacing = 4;
-    return infoStack;
+#pragma mark - UITableViewDataSource
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return self.settingsSections.count;
 }
 
-- (UIView *)createFunctionButtonsCard {
-    UIView *cardView = [[UIView alloc] init];
-    cardView.backgroundColor = [UIColor systemGray6Color];
-    cardView.layer.cornerRadius = 12;
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    NSDictionary *sectionDict = self.settingsSections[section];
+    return [sectionDict[@"items"] count];
+}
+
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    NSDictionary *sectionDict = self.settingsSections[section];
+    return sectionDict[@"title"];
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"SettingCell" forIndexPath:indexPath];
     
-    NSArray *buttons = @[
-        self.feedbackButton,
-        self.rateButton,
-        self.aboutButton,
-        self.privacyButton,
-        self.termsButton
-    ];
+    // 清除单元格默认内容
+    cell.textLabel.text = nil;
+    cell.imageView.image = nil;
+    cell.accessoryType = UITableViewCellAccessoryNone;
     
-    UIStackView *buttonStack = [[UIStackView alloc] initWithArrangedSubviews:buttons];
-    buttonStack.axis = UILayoutConstraintAxisVertical;
-    buttonStack.spacing = 0;
-    buttonStack.translatesAutoresizingMaskIntoConstraints = NO;
+    // 配置单元格
+    NSDictionary *sectionDict = self.settingsSections[indexPath.section];
+    NSArray *items = sectionDict[@"items"];
+    NSDictionary *item = items[indexPath.row];
     
-    [cardView addSubview:buttonStack];
+    // 图标
+    NSString *iconName = item[@"icon"];
+    cell.imageView.image = [UIImage systemImageNamed:iconName];
+    cell.imageView.tintColor = [UIColor systemBlueColor];
     
-    // 配置按钮样式
-    for (UIButton *button in buttons) {
-        button.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
-        button.titleEdgeInsets = UIEdgeInsetsMake(0, 12, 0, 0);
-        button.imageEdgeInsets = UIEdgeInsetsMake(0, 0, 0, 0);
-        NSLayoutConstraint *heightConstraint = [button.heightAnchor constraintEqualToConstant:50];
-        heightConstraint.active = YES;
+    // 标题
+    cell.textLabel.text = item[@"title"];
+    cell.textLabel.font = [UIFont systemFontOfSize:16];
+    
+    // 箭头
+    if ([item[@"showArrow"] boolValue]) {
+        cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     }
+    
+    // 分割线
+    cell.separatorInset = UIEdgeInsetsMake(0, 56, 0, 0);
+    
+    return cell;
+}
+
+#pragma mark - UITableViewDelegate
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 50;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 32;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    
+    // 处理菜单项点击
+    NSDictionary *sectionDict = self.settingsSections[indexPath.section];
+    NSArray *items = sectionDict[@"items"];
+    NSDictionary *item = items[indexPath.row];
+    
+    NSString *title = item[@"title"];
+    [self handleSettingItemTap:title];
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    UIView *headerView = [[UIView alloc] init];
+    headerView.backgroundColor = [UIColor clearColor];
+    
+    UILabel *titleLabel = [[UILabel alloc] init];
+    titleLabel.text = [self tableView:tableView titleForHeaderInSection:section];
+    titleLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
+    titleLabel.textColor = [UIColor systemGrayColor];
+    titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    [headerView addSubview:titleLabel];
     
     [NSLayoutConstraint activateConstraints:@[
-        [buttonStack.topAnchor constraintEqualToAnchor:cardView.topAnchor],
-        [buttonStack.leadingAnchor constraintEqualToAnchor:cardView.leadingAnchor],
-        [buttonStack.trailingAnchor constraintEqualToAnchor:cardView.trailingAnchor],
-        [buttonStack.bottomAnchor constraintEqualToAnchor:cardView.bottomAnchor]
+        [titleLabel.leadingAnchor constraintEqualToAnchor:headerView.leadingAnchor constant:12],
+        [titleLabel.centerYAnchor constraintEqualToAnchor:headerView.centerYAnchor]
     ]];
     
-    return cardView;
+    return headerView;
 }
 
-- (void)loadUserInfo {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSString *phone = [defaults stringForKey:@"user_phone"] ?: @"未登录";
-    BOOL isLoggedIn = [defaults boolForKey:@"is_logged_in"];
-    
-    if (isLoggedIn) {
-        self.userNameLabel.text = [@"用户_" stringByAppendingString:[phone substringFromIndex:MAX(0, (int)phone.length - 4)]];
-        self.phoneLabel.text = phone;
-        self.userIdLabel.text = [@"ID: " stringByAppendingString:[NSString stringWithFormat:@"%lu", labs(phone.hash)]];
-    } else {
-        self.userNameLabel.text = @"游客用户";
-        self.phoneLabel.text = @"未登录";
-        self.userIdLabel.text = @"ID: 000000";
+- (void)handleSettingItemTap:(NSString *)title {
+    // 根据不同的菜单项标题执行不同的操作
+    if ([title isEqualToString:@"账单详情"] || [title isEqualToString:@"数据统计"]) {
+        // 跳转到相应页面或显示提示
+        [self showAlertWithTitle:title message:@"功能开发中"];
+    } else if ([title isEqualToString:@"关于我们"]) {
+        [self showAboutUsAlert];
+    } else if ([title isEqualToString:@"隐私协议"] || [title isEqualToString:@"用户协议"]) {
+        // 跳转到协议页面或显示提示
+        [self showAlertWithTitle:title message:[NSString stringWithFormat:@"%@内容展示", title]];
     }
 }
 
-- (void)loadNativeAd {
-    // 原生广告占位视图
-    UILabel *adLabel = [[UILabel alloc] init];
-    adLabel.text = @"广告区域";
-    adLabel.textAlignment = NSTextAlignmentCenter;
-    adLabel.textColor = [UIColor systemGrayColor];
-    adLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    
-    // 移除所有子视图
-    for (UIView *subview in self.nativeAdView.subviews) {
-        [subview removeFromSuperview];
-    }
-    
-    [self.nativeAdView addSubview:adLabel];
-    
-    [NSLayoutConstraint activateConstraints:@[
-        [adLabel.centerXAnchor constraintEqualToAnchor:self.nativeAdView.centerXAnchor],
-        [adLabel.centerYAnchor constraintEqualToAnchor:self.nativeAdView.centerYAnchor]
-    ]];
-}
-
-#pragma mark - 按钮事件
-
-- (void)showFeedback {
-    FeedbackViewController *feedbackVC = [[FeedbackViewController alloc] init];
-    __weak typeof(self) weakSelf = self;
-    feedbackVC.interfaceSwitchHandler = ^{
-        // 当从反馈页面返回时，不需要执行界面切换
-        // 只需确保页面正常关闭即可
-    };
-    UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:feedbackVC];
-    [self presentViewController:navController animated:YES completion:nil];
-}
-
-- (void)rateApp {
-    // 请求App Store评分
-    if (@available(iOS 14.0, *)) {
-        UIWindowScene *scene = (UIWindowScene *)[[UIApplication sharedApplication].connectedScenes anyObject];
-        if (scene) {
-            [SKStoreReviewController requestReviewInScene:scene];
-        }
-    } else {
-        [SKStoreReviewController requestReview];
-    }
-    
-    [self showAlert:@"感谢您的评价！"];
-}
-
-- (void)showAbout {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"关于我们"
-                                                                   message:@"小石头记账 - 简单易用的个人财务管理工具\n版本 1.0.0"
+- (void)showAboutUsAlert {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"关于我们" 
+                                                                   message:@"小石记账 v1.0.0\n简单、便捷的记账工具\n让您轻松管理个人财务" 
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
+    
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil];
+    [alert addAction:okAction];
+    
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (void)showPrivacy {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"隐私协议"
-                                                                   message:@"我们非常重视您的隐私安全，详细协议请查看应用内完整版本。"
+- (void)showAlertWithTitle:(NSString *)title message:(NSString *)message {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:title 
+                                                                   message:message 
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
+    
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil];
+    [alert addAction:okAction];
+    
     [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)showTerms {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"用户协议"
-                                                                   message:@"请仔细阅读用户协议，使用本应用即表示您同意相关条款。"
-                                                            preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-    [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)showAlert:(NSString *)message {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:nil
-                                                                   message:message
-                                                            preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-    [self presentViewController:alert animated:YES completion:nil];
-}
-
-#pragma mark - ATNativeAdDelegate
-
-- (void)didFinishLoadingNativeADWithPlacementID:(NSString *)placementID {
-    NSLog(@"原生广告加载成功: %@", placementID);
-    [self loadNativeAd];
-}
-
-- (void)didFailToLoadNativeADWithPlacementID:(NSString *)placementID error:(NSError *)error {
-    NSLog(@"原生广告加载失败: %@", error.localizedDescription);
 }
 
 @end

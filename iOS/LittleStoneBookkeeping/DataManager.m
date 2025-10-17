@@ -58,6 +58,18 @@
     
     if (error) {
         NSLog(@"Failed to decode transactions: %@", error);
+        // 如果解码失败，尝试使用兼容的旧方法
+        @try {
+            transactionsArray = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+        } @catch (NSException *exception) {
+            NSLog(@"Failed to decode transactions with legacy method: %@", exception);
+            self.cachedTransactions = @[];
+            return @[];
+        }
+    }
+    
+    // 确保返回的是数组
+    if (![transactionsArray isKindOfClass:[NSArray class]]) {
         self.cachedTransactions = @[];
         return @[];
     }
@@ -268,19 +280,23 @@
 #pragma mark - Private Methods
 
 - (void)saveTransactions:(NSArray<Transaction *> *)transactions {
-    NSError *error;
-    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:transactions requiringSecureCoding:YES error:&error];
+    // 使用兼容的归档方法
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:transactions requiringSecureCoding:NO error:nil];
     
-    if (error) {
-        NSLog(@"Failed to encode transactions: %@", error);
-        return;
+    if (!data) {
+        // 如果新方法失败，使用旧方法
+        data = [NSKeyedArchiver archivedDataWithRootObject:transactions];
     }
     
-    [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"transactions"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
-    
-    // 清除缓存
-    self.cachedTransactions = nil;
+    if (data) {
+        [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"transactions"];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+        
+        // 清除缓存
+        self.cachedTransactions = nil;
+    } else {
+        NSLog(@"Failed to encode transactions");
+    }
 }
 
 - (NSArray<NSString *> *)parseCSVLine:(NSString *)line {
