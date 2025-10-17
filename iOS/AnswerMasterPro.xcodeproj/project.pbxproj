@@ -42,6 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B366961B7FF96A94481A2007 /* Pods_LittleStoneBookkeeping.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -181,7 +182,6 @@
 /* Begin XCBuildConfiguration section */
 		Debug /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BA0C5C8E2C462A26753BF00E /* Pods-LittleStoneBookkeeping.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -245,7 +245,6 @@
 		};
 		Release /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 00CC2BEAC8CEA28E228F9667 /* Pods-LittleStoneBookkeeping.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
