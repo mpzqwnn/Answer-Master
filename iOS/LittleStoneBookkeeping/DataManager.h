@@ -13,6 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)saveTransaction:(Transaction *)transaction;
 - (void)deleteTransaction:(Transaction *)transaction;
+- (NSArray<Transaction *> *)getAllTransactions;
 - (NSArray<Transaction *> *)getTransactionsForMonth:(NSDate *)date;
 - (double)getTotalIncomeForMonth:(NSDate *)date;
 - (double)getTotalExpenseForMonth:(NSDate *)date;
