@@ -1,10 +1,10 @@
 #import <UIKit/UIKit.h>
-#import "AnyThinkSDK.h"
-#import "AnyThinkRewardedVideo.h"
-#import "AnyThinkInterstitial.h"
-#import "AnyThinkBanner.h"
-#import "AnyThinkNative.h"
-#import "AnyThinkSplash.h"
+#import <AnyThinkSDK/AnyThinkSDK.h>
+#import <AnyThinkRewardedVideo/AnyThinkRewardedVideo.h>
+#import <AnyThinkInterstitial/AnyThinkInterstitial.h>
+#import <AnyThinkBanner/AnyThinkBanner.h>
+#import <AnyThinkNative/AnyThinkNative.h>
+#import <AnyThinkSplash/AnyThinkSplash.h>
 #import <AppTrackingTransparency/AppTrackingTransparency.h>
 
 NS_ASSUME_NONNULL_BEGIN
