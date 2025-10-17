@@ -10,7 +10,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // 初始化AnyThink SDK
-        ATAPI.sharedInstance().start(withAppID: "a67f4ab312d2be", appKey: "7eae0567827cfe2b22874061763f30c9")
+        do {
+            try ATAPI.sharedInstance().start(withAppID: "a67f4ab312d2be", appKey: "7eae0567827cfe2b22874061763f30c9")
+        } catch {
+            print("AnyThink SDK初始化失败: \(error.localizedDescription)")
+        }
         
         // 设置日志级别
         ATAPI.setLogEnabled(true)
@@ -110,6 +114,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 withPlacementID: SPLASH_PLACEMENT_ID,
                 config: config,
                 window: UIApplication.shared.windows.first,
+                inViewController: UIApplication.shared.windows.first?.rootViewController,
                 extra: nil,
                 delegate: self
             )
