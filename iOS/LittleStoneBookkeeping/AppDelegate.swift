@@ -114,7 +114,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 withPlacementID: SPLASH_PLACEMENT_ID,
                 config: config,
                 window: UIApplication.shared.windows.first,
-                inViewController: UIApplication.shared.windows.first?.rootViewController,
                 extra: nil,
                 delegate: self
             )
