@@ -1,15 +1,10 @@
 #import <UIKit/UIKit.h>
+#import "Transaction.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @class DataManager;
 @class Category;
-@class Transaction;
-
-typedef NS_ENUM(NSInteger, TransactionType) {
-    TransactionTypeExpense,
-    TransactionTypeIncome
-};
 
 @interface AddTransactionViewController : UIViewController <UIPickerViewDelegate, UIPickerViewDataSource>
 
