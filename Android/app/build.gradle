@@ -18,8 +18,8 @@ android {
         applicationId "com.fortunequizking"
         minSdk 24  // 修改为24以支持更多设备
         targetSdk 34
-        versionCode 318
-        versionName "3.18"
+        versionCode 319
+        versionName "3.19"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         

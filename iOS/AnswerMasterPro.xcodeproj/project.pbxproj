@@ -31,6 +31,7 @@
 		Transaction_h_build /* Transaction.h in Sources */ = {isa = PBXBuildFile; fileRef = Transaction_h /* Transaction.h */; };
 		Transaction_m_build /* Transaction.m in Sources */ = {isa = PBXBuildFile; fileRef = Transaction_m /* Transaction.m */; };
 		main_m_build /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = main_m /* main.m */; };
+		AnyThinkSDK_framework_build /* AnyThinkSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AnyThinkSDK_framework /* AnyThinkSDK.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,9 @@
 		StoneBookkeepingViewController_m /* StoneBookkeepingViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StoneBookkeepingViewController.m; sourceTree = "<group>"; };
 		Transaction_h /* Transaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Transaction.h; sourceTree = "<group>"; };
 		Transaction_m /* Transaction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Transaction.m; sourceTree = "<group>"; };
+		Pods_LittleStoneBookkeeping_debug_xcconfig /* Pods-LittleStoneBookkeeping.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LittleStoneBookkeeping.debug.xcconfig"; path = "Pods/Target Support Files/Pods-LittleStoneBookkeeping/Pods-LittleStoneBookkeeping.debug.xcconfig"; sourceTree = "<group>"; };
+		Pods_LittleStoneBookkeeping_release_xcconfig /* Pods-LittleStoneBookkeeping.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LittleStoneBookkeeping.release.xcconfig"; path = "Pods/Target Support Files/Pods-LittleStoneBookkeeping/Pods-LittleStoneBookkeeping.release.xcconfig"; sourceTree = "<group>"; };
+		AnyThinkSDK_framework /* AnyThinkSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AnyThinkSDK.framework; path = "Pods/AnyThinkiOS/core/AnyThinkSDK.xcframework/ios-arm64/AnyThinkSDK.framework"; sourceTree = "<group>"; };
 		main_m /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -66,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AnyThinkSDK_framework_build /* AnyThinkSDK.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,6 +80,7 @@
 		35B0127A3A3309C54A433793 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				AnyThinkSDK_framework /* AnyThinkSDK.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -210,6 +216,7 @@
 /* Begin XCBuildConfiguration section */
 		Debug /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = Pods_LittleStoneBookkeeping_debug_xcconfig /* Pods-LittleStoneBookkeeping.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -271,6 +278,7 @@
 		};
 		Release /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = Pods_LittleStoneBookkeeping_release_xcconfig /* Pods-LittleStoneBookkeeping.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
