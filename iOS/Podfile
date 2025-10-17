@@ -1,10 +1,12 @@
-# 使用国内镜像源，解决网络连接问题
+# 使用CDN作为主要源，解决警告问题
+source 'https://cdn.cocoapods.org/'
+# 国内备用源
 source 'https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git'
-# 备用源
-# source 'https://gitee.com/mirrors/CocoaPods-Specs.git'
-# source 'https://cdn.cocoapods.org/'
 
 platform :ios, '13.0'
+
+# 禁用未使用的主specs repo警告
+install! 'cocoapods', :warn_for_unused_master_specs_repo => false
 
 post_install do |installer|
   installer.generated_projects.each do |project|
@@ -23,7 +25,8 @@ target 'LittleStoneBookkeeping' do
   pod 'AnyThinkiOS','6.4.92'
 
   # DebugUI,调试时建议接入,上线后去掉
-  pod 'AnyThinkDebugUISDK','1.0.6'
+  # 暂时移除AnyThinkDebugUISDK以解决HTTP协议警告
+  # pod 'AnyThinkDebugUISDK','1.0.6'
   
   # 常用广告平台适配器
   pod 'AnyThinkBaiduSDKAdapter','6.4.92.1'
