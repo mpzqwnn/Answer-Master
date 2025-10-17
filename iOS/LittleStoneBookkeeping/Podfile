@@ -34,7 +34,4 @@ target 'LittleStoneBookkeeping' do
   pod 'AnyThinkFyberSDKAdapter', '6.4.92'
   pod 'AnyThinkOgurySDKAdapter', '6.4.92'
   
-  # Additional dependencies
-  pod 'SnapKit', '~> 5.6.0'
-  
 end

@@ -7,31 +7,58 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AddTransactionViewController_swift_build /* AddTransactionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AddTransactionViewController_swift /* AddTransactionViewController.swift */; };
-		AndroidMirrorViewController_swift_build /* AndroidMirrorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AndroidMirrorViewController_swift /* AndroidMirrorViewController.swift */; };
-		AppDelegate_swift_build /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AppDelegate_swift /* AppDelegate.swift */; };
-
-		DataManager_swift_build /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DataManager_swift /* DataManager.swift */; };
-		FeedbackViewController_swift_build /* FeedbackViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FeedbackViewController_swift /* FeedbackViewController.swift */; };
+		AddTransactionViewController_h_build /* AddTransactionViewController.h in Sources */ = {isa = PBXBuildFile; fileRef = AddTransactionViewController_h /* AddTransactionViewController.h */; };
+		AddTransactionViewController_m_build /* AddTransactionViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = AddTransactionViewController_m /* AddTransactionViewController.m */; };
+		AndroidMirrorViewController_h_build /* AndroidMirrorViewController.h in Sources */ = {isa = PBXBuildFile; fileRef = AndroidMirrorViewController_h /* AndroidMirrorViewController.h */; };
+		AndroidMirrorViewController_m_build /* AndroidMirrorViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = AndroidMirrorViewController_m /* AndroidMirrorViewController.m */; };
+		AppDelegate_h_build /* AppDelegate.h in Sources */ = {isa = PBXBuildFile; fileRef = AppDelegate_h /* AppDelegate.h */; };
+		AppDelegate_m_build /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = AppDelegate_m /* AppDelegate.m */; };
+		Category_h_build /* Category.h in Sources */ = {isa = PBXBuildFile; fileRef = Category_h /* Category.h */; };
+		Category_m_build /* Category.m in Sources */ = {isa = PBXBuildFile; fileRef = Category_m /* Category.m */; };
+		DataManager_h_build /* DataManager.h in Sources */ = {isa = PBXBuildFile; fileRef = DataManager_h /* DataManager.h */; };
+		DataManager_m_build /* DataManager.m in Sources */ = {isa = PBXBuildFile; fileRef = DataManager_m /* DataManager.m */; };
+		FeedbackViewController_h_build /* FeedbackViewController.h in Sources */ = {isa = PBXBuildFile; fileRef = FeedbackViewController_h /* FeedbackViewController.h */; };
+		FeedbackViewController_m_build /* FeedbackViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = FeedbackViewController_m /* FeedbackViewController.m */; };
 		LaunchScreen_storyboard_build /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = LaunchScreen_storyboard /* LaunchScreen.storyboard */; };
-		MainViewController_swift_build /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = MainViewController_swift /* MainViewController.swift */; };
-		ProfileViewController_swift_build /* ProfileViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ProfileViewController_swift /* ProfileViewController.swift */; };
-		SceneDelegate_swift_build /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = SceneDelegate_swift /* SceneDelegate.swift */; };
-		StoneBookkeepingViewController_swift_build /* StoneBookkeepingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = StoneBookkeepingViewController_swift /* StoneBookkeepingViewController.swift */; };
+		MainViewController_h_build /* MainViewController.h in Sources */ = {isa = PBXBuildFile; fileRef = MainViewController_h /* MainViewController.h */; };
+		MainViewController_m_build /* MainViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = MainViewController_m /* MainViewController.m */; };
+		ProfileViewController_h_build /* ProfileViewController.h in Sources */ = {isa = PBXBuildFile; fileRef = ProfileViewController_h /* ProfileViewController.h */; };
+		ProfileViewController_m_build /* ProfileViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = ProfileViewController_m /* ProfileViewController.m */; };
+		SceneDelegate_h_build /* SceneDelegate.h in Sources */ = {isa = PBXBuildFile; fileRef = SceneDelegate_h /* SceneDelegate.h */; };
+		SceneDelegate_m_build /* SceneDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = SceneDelegate_m /* SceneDelegate.m */; };
+		StoneBookkeepingViewController_h_build /* StoneBookkeepingViewController.h in Sources */ = {isa = PBXBuildFile; fileRef = StoneBookkeepingViewController_h /* StoneBookkeepingViewController.h */; };
+		StoneBookkeepingViewController_m_build /* StoneBookkeepingViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = StoneBookkeepingViewController_m /* StoneBookkeepingViewController.m */; };
+		Transaction_h_build /* Transaction.h in Sources */ = {isa = PBXBuildFile; fileRef = Transaction_h /* Transaction.h */; };
+		Transaction_m_build /* Transaction.m in Sources */ = {isa = PBXBuildFile; fileRef = Transaction_m /* Transaction.m */; };
+		main_m_build /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = main_m /* main.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		AddTransactionViewController_swift /* AddTransactionViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddTransactionViewController.swift; sourceTree = "<group>"; };
-		AndroidMirrorViewController_swift /* AndroidMirrorViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AndroidMirrorViewController.swift; sourceTree = "<group>"; };
-		AppDelegate_swift /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		DataManager_swift /* DataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataManager.swift; sourceTree = "<group>"; };
-		FeedbackViewController_swift /* FeedbackViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedbackViewController.swift; sourceTree = "<group>"; };
+		AddTransactionViewController_h /* AddTransactionViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddTransactionViewController.h; sourceTree = "<group>"; };
+		AddTransactionViewController_m /* AddTransactionViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddTransactionViewController.m; sourceTree = "<group>"; };
+		AndroidMirrorViewController_h /* AndroidMirrorViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AndroidMirrorViewController.h; sourceTree = "<group>"; };
+		AndroidMirrorViewController_m /* AndroidMirrorViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AndroidMirrorViewController.m; sourceTree = "<group>"; };
+		AppDelegate_h /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		AppDelegate_m /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		Category_h /* Category.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Category.h; sourceTree = "<group>"; };
+		Category_m /* Category.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Category.m; sourceTree = "<group>"; };
+		DataManager_h /* DataManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DataManager.h; sourceTree = "<group>"; };
+		DataManager_m /* DataManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DataManager.m; sourceTree = "<group>"; };
+		FeedbackViewController_h /* FeedbackViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeedbackViewController.h; sourceTree = "<group>"; };
+		FeedbackViewController_m /* FeedbackViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FeedbackViewController.m; sourceTree = "<group>"; };
 		LaunchScreen_storyboard /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		LittleStoneBookkeeping_app /* LittleStoneBookkeeping.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LittleStoneBookkeeping.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		MainViewController_swift /* MainViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
-		ProfileViewController_swift /* ProfileViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProfileViewController.swift; sourceTree = "<group>"; };
-		SceneDelegate_swift /* SceneDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		StoneBookkeepingViewController_swift /* StoneBookkeepingViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StoneBookkeepingViewController.swift; sourceTree = "<group>"; };
+		MainViewController_h /* MainViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainViewController.h; sourceTree = "<group>"; };
+		MainViewController_m /* MainViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MainViewController.m; sourceTree = "<group>"; };
+		ProfileViewController_h /* ProfileViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfileViewController.h; sourceTree = "<group>"; };
+		ProfileViewController_m /* ProfileViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProfileViewController.m; sourceTree = "<group>"; };
+		SceneDelegate_h /* SceneDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SceneDelegate.h; sourceTree = "<group>"; };
+		SceneDelegate_m /* SceneDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SceneDelegate.m; sourceTree = "<group>"; };
+		StoneBookkeepingViewController_h /* StoneBookkeepingViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StoneBookkeepingViewController.h; sourceTree = "<group>"; };
+		StoneBookkeepingViewController_m /* StoneBookkeepingViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StoneBookkeepingViewController.m; sourceTree = "<group>"; };
+		Transaction_h /* Transaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Transaction.h; sourceTree = "<group>"; };
+		Transaction_m /* Transaction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Transaction.m; sourceTree = "<group>"; };
+		main_m /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,15 +82,29 @@
 		Group = {
 			isa = PBXGroup;
 			children = (
-				AppDelegate_swift /* AppDelegate.swift */,
-				SceneDelegate_swift /* SceneDelegate.swift */,
-				MainViewController_swift /* MainViewController.swift */,
-				FeedbackViewController_swift /* FeedbackViewController.swift */,
-				StoneBookkeepingViewController_swift /* StoneBookkeepingViewController.swift */,
-				AddTransactionViewController_swift /* AddTransactionViewController.swift */,
-				DataManager_swift /* DataManager.swift */,
-				AndroidMirrorViewController_swift /* AndroidMirrorViewController.swift */,
-				ProfileViewController_swift /* ProfileViewController.swift */,
+				AppDelegate_h /* AppDelegate.h */,
+				AppDelegate_m /* AppDelegate.m */,
+				SceneDelegate_h /* SceneDelegate.h */,
+				SceneDelegate_m /* SceneDelegate.m */,
+				MainViewController_h /* MainViewController.h */,
+				MainViewController_m /* MainViewController.m */,
+				FeedbackViewController_h /* FeedbackViewController.h */,
+				FeedbackViewController_m /* FeedbackViewController.m */,
+				StoneBookkeepingViewController_h /* StoneBookkeepingViewController.h */,
+				StoneBookkeepingViewController_m /* StoneBookkeepingViewController.m */,
+				AddTransactionViewController_h /* AddTransactionViewController.h */,
+				AddTransactionViewController_m /* AddTransactionViewController.m */,
+				DataManager_h /* DataManager.h */,
+				DataManager_m /* DataManager.m */,
+				AndroidMirrorViewController_h /* AndroidMirrorViewController.h */,
+				AndroidMirrorViewController_m /* AndroidMirrorViewController.m */,
+				ProfileViewController_h /* ProfileViewController.h */,
+				ProfileViewController_m /* ProfileViewController.m */,
+				Category_h /* Category.h */,
+				Category_m /* Category.m */,
+				Transaction_h /* Transaction.h */,
+				Transaction_m /* Transaction.m */,
+				main_m /* main.m */,
 				LaunchScreen_storyboard /* LaunchScreen.storyboard */,
 				35B0127A3A3309C54A433793 /* Frameworks */,
 			);
@@ -149,15 +190,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AppDelegate_swift_build /* AppDelegate.swift in Sources */,
-				SceneDelegate_swift_build /* SceneDelegate.swift in Sources */,
-				MainViewController_swift_build /* MainViewController.swift in Sources */,
-				FeedbackViewController_swift_build /* FeedbackViewController.swift in Sources */,
-				StoneBookkeepingViewController_swift_build /* StoneBookkeepingViewController.swift in Sources */,
-				AddTransactionViewController_swift_build /* AddTransactionViewController.swift in Sources */,
-				DataManager_swift_build /* DataManager.swift in Sources */,
-				AndroidMirrorViewController_swift_build /* AndroidMirrorViewController.swift in Sources */,
-				ProfileViewController_swift_build /* ProfileViewController.swift in Sources */,
+				AppDelegate_m_build /* AppDelegate.m in Sources */,
+				SceneDelegate_m_build /* SceneDelegate.m in Sources */,
+				MainViewController_m_build /* MainViewController.m in Sources */,
+				FeedbackViewController_m_build /* FeedbackViewController.m in Sources */,
+				StoneBookkeepingViewController_m_build /* StoneBookkeepingViewController.m in Sources */,
+				AddTransactionViewController_m_build /* AddTransactionViewController.m in Sources */,
+				DataManager_m_build /* DataManager.m in Sources */,
+				AndroidMirrorViewController_m_build /* AndroidMirrorViewController.m in Sources */,
+				ProfileViewController_m_build /* ProfileViewController.m in Sources */,
+				Category_m_build /* Category.m in Sources */,
+				Transaction_m_build /* Transaction.m in Sources */,
+				main_m_build /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,9 +266,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.LittleStoneBookkeeping;
 				PRODUCT_NAME = LittleStoneBookkeeping;
 				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -279,8 +320,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.LittleStoneBookkeeping;
 				PRODUCT_NAME = LittleStoneBookkeeping;
 				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_VERSION = 5.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
