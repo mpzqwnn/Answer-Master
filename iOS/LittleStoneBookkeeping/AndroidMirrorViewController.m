@@ -1,7 +1,5 @@
 #import "AndroidMirrorViewController.h"
 
-@interface AndroidMirrorViewController ()
-
 // 广告相关常量 - 与Android项目保持一致
 static const NSInteger AD_COOLDOWN_TIME_NORMAL = 60000; // 正常用户1分钟倒计时
 static const NSInteger AD_COOLDOWN_TIME_RISK = 180000; // 触发风控用户3分钟倒计时
@@ -10,6 +8,8 @@ static const NSInteger AD_COOLDOWN_TIME_HIERARCHICAL_LEVEL_2 = 300000; // 层级
 static const NSInteger REFRESH_INTERVAL = 8000; // 广告刷新间隔8秒
 static const NSInteger MIN_INTERSTITIAL_AD_INTERVAL = 10000; // 最小插屏广告间隔10秒
 static const NSInteger MAX_AD_CHECK_TIME = 30000; // 最大广告检查时间30秒
+
+@interface AndroidMirrorViewController ()
 
 // 应用ID和AppKey（根据Taku iOS Demo配置）
 @property (nonatomic, strong) NSString *TAKU_APP_ID;
