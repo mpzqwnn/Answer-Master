@@ -1,7 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <StoreKit/StoreKit.h>
-#import <AnyThinkiOS/AnyThinkSDK.h>
-#import <AnyThinkiOS/AnyThinkNative.h>
+#import <AnyThinkSDK/AnyThinkSDK.h>
+#import <AnyThinkNative/AnyThinkNative.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

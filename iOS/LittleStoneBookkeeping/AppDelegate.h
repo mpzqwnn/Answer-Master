@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
-#import <AnyThinkiOS/AnyThinkSDK.h>
-#import <AnyThinkiOS/AnyThinkSplash.h>
+#import <AnyThinkSDK/AnyThinkSDK.h>
+#import <AnyThinkSplash/AnyThinkSplash.h>
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate, ATAdLoadingDelegate, ATSplashDelegate>
 
