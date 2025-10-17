@@ -1,7 +1,6 @@
 import UIKit
 import StoreKit
-import AnyThinkSDK
-import AnyThinkNative
+import AnyThinkiOS
 
 class ProfileViewController: UIViewController {
     
