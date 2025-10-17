@@ -5,7 +5,7 @@ plugins {
 android {
     signingConfigs {
         debug {
-            storeFile file('D:\\chenyu\\Answer-Master\\1779ff516091d66e36b18307a4fad98c.keystore')
+            storeFile file('D:\\chenyu\\1779ff516091d66e36b18307a4fad98c.keystore')
             storePassword 'yvFKfBdF'
             keyPassword 'yvFKfBdF'
             keyAlias '__uni__d2693b0'

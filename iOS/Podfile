@@ -2,6 +2,7 @@
 source 'https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git'
 # 备用源
 # source 'https://gitee.com/mirrors/CocoaPods-Specs.git'
+# source 'https://cdn.cocoapods.org/'
 
 platform :ios, '13.0'
 
@@ -32,23 +33,23 @@ target 'LittleStoneBookkeeping' do
   pod 'AnyThinkAdmobSDKAdapter','6.4.92'
  
   # 其他广告平台适配器
-  pod 'AnyThinkMaioSDKAdapter','6.4.92'
+  # pod 'AnyThinkMaioSDKAdapter','6.4.92'
   pod 'AnyThinkStartAppSDKAdapter','6.4.92'
   pod 'AnyThinkSigmobSDKAdapter','6.4.92'
   pod 'AnyThinkVungleSDKAdapter','6.4.92'
-  pod 'AnyThinkUnityAdsSDKAdapter','6.4.92'
-  pod 'AnyThinkIronSourceSDKAdapter','6.4.92'
-  pod 'AnyThinkTanxSDKAdapter','6.4.92'
+  # pod 'AnyThinkUnityAdsSDKAdapter','6.4.92'
+  # pod 'AnyThinkIronSourceSDKAdapter','6.4.92'
+  # pod 'AnyThinkTanxSDKAdapter','6.4.92'
   pod 'AnyThinkQMSDKAdapter','6.4.92'
   pod 'AnyThinkJDSDKAdapter','6.4.92'
   pod 'AnyThinkKidozSDKAdapter','6.4.92'
-  pod 'AnyThinkFacebookSDKAdapter','6.4.92'
+  # pod 'AnyThinkFacebookSDKAdapter','6.4.92'
   pod 'AnyThinkInmobiSDKAdapter','6.4.92'
   pod 'AnyThinkApplovinSDKAdapter','6.4.92'
-  pod 'AnyThinkMintegralSDKAdapter','6.4.92'
+  # pod 'AnyThinkMintegralSDKAdapter','6.4.92'
   pod 'AnyThinkChartboostSDKAdapter','6.4.92'
-  pod 'AnyThinkMyTargetSDKAdapter','6.4.92'
-  pod 'AnyThinkFyberSDKAdapter','6.4.92'
+  # pod 'AnyThinkMyTargetSDKAdapter','6.4.92'
+  # pod 'AnyThinkFyberSDKAdapter','6.4.92'
   pod 'AnyThinkOgurySDKAdapter','6.4.92'
  
   # Admob Interactive-media-ads广告类型,iOS13+
@@ -61,7 +62,7 @@ target 'LittleStoneBookkeeping' do
  
   # 常用UI依赖库
   pod 'Masonry'
-  pod 'SDWebImage'
+  # pod 'SDWebImage'
   pod 'MJRefresh'
   pod 'SVProgressHUD'
  
