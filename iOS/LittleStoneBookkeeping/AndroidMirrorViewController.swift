@@ -983,7 +983,7 @@ extension AndroidMirrorViewController: ATBannerDelegate {
         print("横幅广告自动刷新失败: \(error.localizedDescription)")
     }
     
-    func bannerView(_ bannerView: ATBannerView, didRevenue(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
+    func bannerView(_ bannerView: ATBannerView, didRevenueForPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("横幅广告收益: \(placementID)")
     }
 }
