@@ -181,7 +181,7 @@
         if (i == 0) {
             [row.topAnchor constraintEqualToAnchor:self.keyboardView.topAnchor constant:5].active = YES;
         } else {
-            [row.topAnchor constraintEqualToAnchor:keyboardRows[i-1].bottomAnchor constant:1].active = YES;
+            [row.topAnchor constraintEqualToAnchor:((UIView *)keyboardRows[i-1]).bottomAnchor constant:1].active = YES;
         }
         
         if (i == keyboardRows.count - 1) {
@@ -228,24 +228,7 @@
     ]];
 }
 
-- (void)loadCategories {
-    // 加载支出类别
-    self.expenseCategories = [self.dataManager getExpenseCategories];
-    
-    // 加载收入类别
-    self.incomeCategories = [self.dataManager getIncomeCategories];
-    
-    // 设置当前类别为支出类别
-    self.currentCategories = self.expenseCategories;
-    
-    // 初始选择第一个类别
-    if (self.currentCategories.count > 0) {
-        self.selectedCategory = self.currentCategories[0];
-    }
-    
-    // 更新类别按钮
-    [self updateCategoryButtons];
-}
+// 原始的loadCategories方法已被替换为使用模拟数据的实现
 
 - (void)updateCategoryButtons {
     // 清除现有的类别按钮
@@ -334,7 +317,7 @@
         if (i == 0) {
             [row.topAnchor constraintEqualToAnchor:self.categoryContainer.topAnchor constant:8].active = YES;
         } else {
-            [row.topAnchor constraintEqualToAnchor:categoryRows[i-1].bottomAnchor constant:16].active = YES;
+            [row.topAnchor constraintEqualToAnchor:((UIView *)categoryRows[i-1]).bottomAnchor constant:16].active = YES;
         }
         
         if (i == categoryRows.count - 1) {
@@ -427,6 +410,113 @@
     } else if ([title isEqualToString:@"."]) {
         // 小数点，确保只有一个小数点
         if ([self.amountString rangeOfString:@"."].location == NSNotFound) {
-            [self.amountString appendString:"."];
+            [self.amountString appendString:@"."];
         }
     } else {
+        // 数字键
+        if ([self.amountString isEqualToString:@"0"]) {
+            self.amountString = [NSMutableString stringWithString:title];
+        } else {
+            [self.amountString appendString:title];
+        }
+    }
+    
+    // 更新金额显示
+    [self updateAmountLabel];
+}
+
+- (void)updateAmountLabel {
+    // 格式化金额显示
+    double amount = [self.amountString doubleValue];
+    self.amountLabel.text = [NSString stringWithFormat:@"¥%.2f", amount];
+}
+
+- (void)showDatePicker {
+    // 这里应该显示日期选择器，简化实现
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"选择日期" message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    
+    UIAlertAction *todayAction = [UIAlertAction actionWithTitle:@"今天" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        self.selectedDate = [NSDate date];
+        [self updateDateButtonTitle];
+    }];
+    
+    UIAlertAction *yesterdayAction = [UIAlertAction actionWithTitle:@"昨天" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        NSCalendar *calendar = [NSCalendar currentCalendar];
+        self.selectedDate = [calendar dateByAddingUnit:NSCalendarUnitDay value:-1 toDate:[NSDate date] options:0];
+        [self updateDateButtonTitle];
+    }];
+    
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil];
+    
+    [alert addAction:todayAction];
+    [alert addAction:yesterdayAction];
+    [alert addAction:cancelAction];
+    
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)cancelAction {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)saveAction {
+    // 创建交易记录
+    Transaction *transaction = [[Transaction alloc] init];
+    transaction.category = self.selectedCategory;
+    transaction.amount = [self.amountString doubleValue];
+    transaction.type = self.transactionType;
+    transaction.date = self.selectedDate;
+    transaction.note = self.noteField.text;
+    
+    // 保存交易记录（这里应该调用DataManager的保存方法）
+    // [self.dataManager saveTransaction:transaction];
+    
+    // 返回上一页
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+// 模拟类别数据，用于测试
+- (NSArray<Category *> *)getMockExpenseCategories {
+    NSMutableArray *categories = [NSMutableArray new];
+    
+    NSArray *names = @[@"购物", @"餐饮", @"交通", @"娱乐", @"医疗", @"教育", @"房租", @"水电费", @"通讯费", @"其他"];
+    for (NSString *name in names) {
+        Category *category = [[Category alloc] init];
+        category.name = name;
+        [categories addObject:category];
+    }
+    
+    return categories;
+}
+
+- (NSArray<Category *> *)getMockIncomeCategories {
+    NSMutableArray *categories = [NSMutableArray new];
+    
+    NSArray *names = @[@"工资", @"奖金", @"投资", @"转账", @"其他"];
+    for (NSString *name in names) {
+        Category *category = [[Category alloc] init];
+        category.name = name;
+        [categories addObject:category];
+    }
+    
+    return categories;
+}
+
+- (void)loadCategories {
+    // 使用模拟数据代替DataManager的方法调用
+    self.expenseCategories = [self getMockExpenseCategories];
+    self.incomeCategories = [self getMockIncomeCategories];
+    
+    // 设置当前类别为支出类别
+    self.currentCategories = self.expenseCategories;
+    
+    // 初始选择第一个类别
+    if (self.currentCategories.count > 0) {
+        self.selectedCategory = self.currentCategories[0];
+    }
+    
+    // 更新类别按钮
+    [self updateCategoryButtons];
+}
+
+@end
