@@ -201,24 +201,3 @@ class MainViewController: UIViewController {
         ])
     }
 }
-
-// 数据模型
-struct Transaction {
-    let id: UUID
-    let amount: Double
-    let category: Category
-    let date: Date
-    let note: String
-    let type: TransactionType
-}
-
-enum TransactionType {
-    case income
-    case expense
-}
-
-struct Category {
-    let id: Int
-    let name: String
-    let icon: String
-}
