@@ -1,5 +1,6 @@
 import UIKit
-import AnyThinkiOS
+import AnyThinkSDK
+import AnyThinkSplash
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {

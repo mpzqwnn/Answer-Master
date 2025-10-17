@@ -1,5 +1,10 @@
 import UIKit
-import AnyThinkiOS
+import AnyThinkSDK
+import AnyThinkRewardedVideo
+import AnyThinkInterstitial
+import AnyThinkBanner
+import AnyThinkNative
+import AnyThinkSplash
 import AppTrackingTransparency
 
 class AndroidMirrorViewController: UIViewController {
