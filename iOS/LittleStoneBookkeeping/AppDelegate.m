@@ -14,7 +14,7 @@
     self.SPLASH_PLACEMENT_ID = @"b67f4ab43d2fe1";
     
     // 初始化AnyThink SDK
-    [[ATAPI sharedInstance] startWithAppID:@"a67f4ab312d2be" appKey:@"7eae0567827cfe2b22874061763f30c9"];
+    [[ATAPI sharedInstance] startWithAppID:@"a67f4ab312d2be" appKey:@"7eae0567827cfe2b22874061763f30c9" error:nil];
     
     // 设置日志级别
     [ATAPI setLogEnabled:YES];
