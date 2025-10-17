@@ -625,7 +625,7 @@ class AndroidMirrorViewController: UIViewController {
     private func refreshBannerAd() {
         // 刷新横幅广告
         if let bannerAd = bannerAdView.subviews.first as? ATBannerView {
-            bannerAd.loadNextAd()
+            bannerAd.loadAd()
         }
     }
     
@@ -886,7 +886,7 @@ extension AndroidMirrorViewController: ATRewardedVideoDelegate {
         print("激励广告播放结束: \(placementID)")
     }
     
-    func rewardedVideoDidRewardSuccess(forPlacemenID placementID: String, extra: [AnyHashable : Any]) {
+    func rewardedVideoDidRewardSuccess(forPlacementID placementID: String, extra: [AnyHashable : Any]) {
         print("激励广告奖励发放成功: \(placementID)")
         
         // 广告观看成功，恢复体力（与Android项目保持一致：体力+1）
@@ -977,7 +977,7 @@ extension AndroidMirrorViewController: ATBannerDelegate {
         print("横幅广告关闭按钮被点击: \(placementID)")
     }
     
-    func bannerView(_ bannerView: ATBannerView, didAutoRefreshWithPlacementID placementID: String, extra: [AnyHashable : Any]) {
+    func bannerView(_ bannerView: ATBannerView, didAutoRefreshWithPlacement placementID: String, extra: [AnyHashable : Any]) {
         print("横幅广告自动刷新: \(placementID)")
     }
     
